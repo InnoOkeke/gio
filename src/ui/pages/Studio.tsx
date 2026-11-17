@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type GameKey, type GameSession, type TargetLanguage } from '../../logo/index.js';
 import { TICK_MS } from '../../logo/primitives.js';
 import { checkQuest, CONCEPTS, playWithPresses, type Quest } from '../../logo/quests.js';
-import { api, local, type AssistantStyle } from '../api';
+import { api, ApiError, local, type AssistantStyle } from '../api';
 import { AskTurtle } from '../components/AskTurtle';
 import { CommandShelf } from '../components/CommandShelf';
 import { GamePad } from '../components/GamePad';
@@ -486,7 +486,12 @@ function StudioView({ initial }: { initial: Loaded }) {
       }
       return true;
     } catch (err) {
-      setBubble({ kind: 'problem', text: err instanceof Error ? err.message : 'Something went wrong. Try again?' });
+      if (err instanceof ApiError && err.redirect) {
+        setBubble({ kind: 'info', text: err.message });
+        toast.show({ text: "Let's draw something else!" });
+      } else {
+        setBubble({ kind: 'problem', text: err instanceof Error ? err.message : 'Something went wrong. Try again?' });
+      }
       return false;
     } finally {
       setAsking(false);
@@ -504,7 +509,8 @@ function StudioView({ initial }: { initial: Loaded }) {
       const { text } = await api.explain(code, style);
       setBubble({ kind: 'info', text });
     } catch (err) {
-      setBubble({ kind: 'problem', text: err instanceof Error ? err.message : 'I could not explain that right now.' });
+      const redirect = err instanceof ApiError && err.redirect;
+      setBubble({ kind: redirect ? 'info' : 'problem', text: err instanceof Error ? err.message : 'I could not explain that right now.' });
     } finally {
       setExplaining(false);
     }
@@ -769,7 +775,10 @@ function StudioView({ initial }: { initial: Loaded }) {
 
         <footer className="pt-2 pb-6 text-center text-[13px] font-semibold text-ink-3">
           GIO brings back Logo (1967), the language Seymour Papert and friends made so kids could learn by teaching a turtle.
-          {!little && ' Its turtle still lives on in Python today.'}
+          {!little && ' Its turtle still lives on in Python today.'}{' '}
+          <Link to="/privacy" className="underline underline-offset-4 font-extrabold">
+            Privacy for parents
+          </Link>
         </footer>
       </main>
 

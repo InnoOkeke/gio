@@ -2,6 +2,18 @@ interface Envelope<T> {
   success: boolean;
   data?: T;
   error?: unknown;
+  /** 'redirect' means the AI helper kindly turned the request down; show it as a friendly note. */
+  code?: string;
+}
+
+/** An error from the API. `redirect` is true when the turtle is steering the child to another idea. */
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    readonly redirect = false,
+  ) {
+    super(message);
+  }
 }
 
 export interface SharedProject {
@@ -41,7 +53,7 @@ async function request<T>(method: string, url: string, body?: unknown, headers: 
     throw new Error("Can't reach GIO right now. Check your internet connection.");
   }
   const json = (await res.json().catch(() => ({ success: false }))) as Envelope<T>;
-  if (!res.ok || !json.success || json.data === undefined) throw new Error(readError(json.error, res.status));
+  if (!res.ok || !json.success || json.data === undefined) throw new ApiError(readError(json.error, res.status), json.code === 'redirect');
   return json.data;
 }
 

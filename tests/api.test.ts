@@ -107,11 +107,21 @@ describe('AI endpoint input checks (no model call)', () => {
     expect((await call('POST', '/api/ai/logo', { prompt: 'x'.repeat(501) })).status).toBe(400);
   });
 
+  it('turns away blocklisted words with a friendly redirect, without using the daily cap', async () => {
+    const logo = await call('POST', '/api/ai/logo', { prompt: 'draw a f.u.c.k' });
+    expect(logo.status).toBe(422);
+    expect(logo.json).toMatchObject({ success: false, code: 'redirect' });
+    expect(logo.json.error).toContain('draw something else');
+    const explain = await call('POST', '/api/ai/explain', { code: 'FD 10 ; shit' });
+    expect(explain.status).toBe(422);
+  });
+
   it('stops all AI requests for the day once the site-wide cap is reached', async () => {
     const first = await call('POST', '/api/ai/logo', { prompt: 'a star' });
     const second = await call('POST', '/api/ai/explain', { code: 'FD 10' });
-    expect(first.status).toBe(502);
-    expect(second.status).toBe(502);
+    // The moderation check runs after the cap is counted. With no Bedrock settings it cannot answer, so it fails closed (503).
+    expect(first.status).toBe(503);
+    expect(second.status).toBe(503);
     const third = await call('POST', '/api/ai/logo', { prompt: 'a star' });
     expect(third.status).toBe(429);
     expect(third.json.error).toContain('lots of drawing today');

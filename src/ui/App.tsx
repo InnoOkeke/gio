@@ -4,6 +4,7 @@ import { Wordmark } from './components/GioMark';
 import { ModePicker } from './components/ModePicker';
 import { ModeProvider, useMode } from './mode';
 import NotFound from './pages/NotFound';
+import Privacy from './pages/Privacy';
 import Studio from './pages/Studio';
 
 interface ErrorBoundaryState {
@@ -52,6 +53,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<StudioGate />} />
           <Route path="/p/:slug" element={<StudioGate />} />
+          <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </ModeProvider>

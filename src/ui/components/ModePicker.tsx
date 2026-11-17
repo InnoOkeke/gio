@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
 import { Wordmark } from './GioMark';
@@ -99,6 +100,9 @@ export function ModePicker() {
           </button>
         ))}
       </div>
+      <Link to="/privacy" className="text-[14px] font-extrabold text-ink-3 underline underline-offset-4">
+        Privacy for parents
+      </Link>
     </div>
   );
 }
