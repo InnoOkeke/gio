@@ -22,6 +22,9 @@ beforeAll(async () => {
   // The DB client reads DB_PATH when first imported, so set it before importing the app.
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-test-'));
   process.env['DB_PATH'] = path.join(tmpDir, 'nested', 'test.db');
+  // A tiny site-wide AI cap, and no Bedrock settings, so these tests can never call the real model.
+  process.env['AI_DAILY_LIMIT'] = '2';
+  for (const k of ['AWS_REGION', 'BEDROCK_MODEL_ID', 'AWS_BEARER_TOKEN_BEDROCK']) delete process.env[k];
   const { createApp } = await import('../src/api/app.js');
   await new Promise<void>((resolve) => {
     server = createApp().listen(0, '127.0.0.1', () => resolve());
@@ -102,6 +105,16 @@ describe('AI endpoint input checks (no model call)', () => {
   it('rejects an empty or overly long request before calling Bedrock', async () => {
     expect((await call('POST', '/api/ai/logo', { prompt: '' })).status).toBe(400);
     expect((await call('POST', '/api/ai/logo', { prompt: 'x'.repeat(501) })).status).toBe(400);
+  });
+
+  it('stops all AI requests for the day once the site-wide cap is reached', async () => {
+    const first = await call('POST', '/api/ai/logo', { prompt: 'a star' });
+    const second = await call('POST', '/api/ai/explain', { code: 'FD 10' });
+    expect(first.status).toBe(502);
+    expect(second.status).toBe(502);
+    const third = await call('POST', '/api/ai/logo', { prompt: 'a star' });
+    expect(third.status).toBe(429);
+    expect(third.json.error).toContain('lots of drawing today');
   });
 
   it('unknown API routes return a JSON 404', async () => {
