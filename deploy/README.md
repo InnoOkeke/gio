@@ -1,46 +1,34 @@
 # Deploying GIO
 
-GIO runs on one small server: Node.js serves the API and the built UI on port 3001, nginx forwards port 80 to it, and an HTTPS address in front (for example an Amazon Lightsail distribution or CloudFront) provides TLS. HTTPS is required: browsers only allow the microphone, speech recognition and the clipboard on secure sites.
+GIO runs on one small server: Node.js serves the API and the built UI on port 3001, nginx forwards port 80 to it, and Amazon CloudFront in front provides the public **HTTPS** address. HTTPS is required: browsers only allow the microphone, speech recognition and the clipboard on secure sites.
 
-The reference deployment uses Amazon Lightsail in `eu-north-1`:
+## Reference deployment (AWS, `eu-north-1`)
 
 | Piece | Purpose |
 |---|---|
-| Lightsail instance (`micro_3_0`, Ubuntu 24.04) | Runs GIO; SQLite lives on the instance disk at `/var/lib/gio/gio.db` |
-| Static IP | A fixed address for the instance |
-| Lightsail distribution (`small_1_0`) | The public HTTPS address, with caching off so every request reaches GIO |
-| Firewall | Port 80 open; port 22 open only to the operator's IP |
+| EC2 `t3.micro`, Amazon Linux 2023, 20 GB encrypted gp3 | Runs GIO; SQLite lives at `/var/lib/gio/gio.db`. CPU credits in *standard* mode, so there are no surprise surplus charges. |
+| Elastic IP | A stable public DNS name for CloudFront to reach the server |
+| Security group | Only port 80, and only from CloudFront's origin-facing IP list. No SSH: the server is managed with AWS Systems Manager. |
+| IAM role (instance profile) | Systems Manager access, plus read access to one Parameter Store value: the Bedrock API key |
+| Parameter Store `SecureString` `/gio/bedrock-api-key` | The Bedrock API key, encrypted. Read at start-up and kept only in memory. |
+| CloudFront distribution | Public HTTPS address, HTTP→HTTPS redirect, caching only for `/assets/*` |
 
-## 1. Create the server
+## Setup
 
-Launch an Ubuntu 24.04 instance with `deploy/setup.sh` as its launch script. It installs Node 22 (checksum-verified), nginx, and a hardened `gio` systemd service, and builds the app from GitHub. It does not start GIO, because the secrets aren't there yet.
+1. Launch the instance with `deploy/setup.sh` as user data. It installs Node 22 (checksum-verified) and nginx, builds GIO from GitHub, writes the non-secret settings in `/etc/gio/gio.env` (from `deploy/gio.env.example`), and starts a hardened `gio` systemd service.
+2. Store the Bedrock API key in Parameter Store as a `SecureString` named `/gio/bedrock-api-key`, in the same Region. The service retries every 10 seconds, so GIO starts serving within a few seconds of the key being saved.
 
-## 2. Add the secrets
+## Updating
 
-Create `/etc/gio/gio.env` on the server, owned by root with mode `600`:
-
-```
-AWS_BEARER_TOKEN_BEDROCK=<your Bedrock API key>
-AWS_REGION=eu-north-1
-BEDROCK_MODEL_ID=qwen.qwen3-coder-480b-a35b-instruct
-AI_DAILY_LIMIT=2000
-PORT=3001
-DB_PATH=/var/lib/gio/gio.db
-TRUST_PROXY=2
-```
-
-`TRUST_PROXY=2` tells GIO it sits behind two proxies (the HTTPS distribution and nginx), so per-visitor rate limits see the real visitor's address. Then start it:
+Run as root on the server, for example with Systems Manager Run Command:
 
 ```
-sudo systemctl start gio
-curl http://127.0.0.1:3001/api/health
+bash /opt/gio/app/deploy/update.sh
 ```
 
-## 3. Updating
+## Rotating the API key
 
-```
-sudo bash /opt/gio/app/deploy/update.sh
-```
+Save the new key to the same parameter (overwrite), then restart: `systemctl restart gio`.
 
 ## Cost safety
 
