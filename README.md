@@ -6,6 +6,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 [![Kiroween 2026](https://img.shields.io/badge/Kiroween-2026-orange.svg)](https://kiroween.devpost.com)
 
+**▶ Try it: [https://2edol04wyk.execute-api.eu-north-1.amazonaws.com](https://2edol04wyk.execute-api.eu-north-1.amazonaws.com)** (runs on AWS; see [deploy/README.md](./deploy/README.md))
+
 ---
 
 ## What is GIO?
@@ -52,10 +54,6 @@ Kids pick a mode on the first screen and can switch any time. A link can choose 
 - 🔗 **Save and share**: every drawing gets a link. Only the person who saved it can change it; anyone with the link can watch it draw and save their own copy.
 - 🖼️ **Download** the drawing as a picture.
 - 🔒 **Safe by design**: AI output is only ever Logo run by GIO's interpreter, never JavaScript. Runaway loops are stopped with a friendly message, and the AI endpoint is rate limited.
-
-## Coming next
-
-- ☁️ A public deployment on AWS.
 
 ---
 

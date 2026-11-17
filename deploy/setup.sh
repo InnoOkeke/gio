@@ -105,15 +105,25 @@ http {
     access_log /var/log/nginx/access.log;
     error_log /var/log/nginx/error.log;
     client_max_body_size 200k;
+    # API Gateway reports the visitor in the last "Forwarded: ...;for=<ip>" entry and sends no
+    # X-Forwarded-For. Pass that IP on so per-visitor rate limits work (TRUST_PROXY=1).
+    # Entries a visitor adds themselves come earlier in the list, so they can't spoof it.
+    map $http_forwarded $gio_client_ip {
+        "~for=\"?\[?(?<ip>[0-9A-Fa-f.:]+)\]?\"?[^,]*$" $ip;
+        default $proxy_add_x_forwarded_for;
+    }
     server {
         listen 80 default_server;
         listen [::]:80 default_server;
         server_name _;
+        # Optional origin check, kept out of git (see deploy/README.md): rejects requests that
+        # don't carry the secret header added by API Gateway. Matches nothing if the file is absent.
+        include /etc/gio/nginx-origin*.conf;
         location / {
             proxy_pass http://127.0.0.1:3001;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-For $gio_client_ip;
             proxy_set_header X-Forwarded-Proto $scheme;
             proxy_read_timeout 120s;
         }
