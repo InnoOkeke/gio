@@ -1,0 +1,597 @@
+@tailwind base;
+@tailwind components;
+
+/* --------------------------------------------------------------------------
+ * GIO design tokens
+ * Warm paper surfaces, deep-green ink (AA contrast), one clear primary action.
+ * -------------------------------------------------------------------------- */
+:root {
+  --bg: #f5f2ea;
+  --bg-dots: #e6e0d2;
+  --surface: #ffffff;
+  --surface-2: #fbf9f4;
+  --surface-3: #f2eee4;
+  --line: #e7e1d4;
+  --line-strong: #d6cebd;
+
+  --ink: #17261f;
+  --ink-2: #44554c;
+  --ink-3: #66756d;
+
+  --green: #12a36b;
+  --green-ink: #0b7a4f;
+  --green-deep: #08603e;
+  --green-soft: #e1f7ec;
+  --sun: #ffc93c;
+  --sun-soft: #fff4cc;
+  --sky: #2b9bf4;
+  --sky-soft: #e3f2ff;
+  --grape: #7a4cf0;
+  --berry: #ec3f86;
+  --coral: #ef5a4c;
+  --coral-soft: #fdecea;
+
+  --radius-xl: 28px;
+  --radius-lg: 20px;
+  --radius-md: 14px;
+  --radius-sm: 10px;
+
+  --shadow-1: 0 1px 2px rgba(23, 38, 31, 0.06), 0 1px 1px rgba(23, 38, 31, 0.04);
+  --shadow-2: 0 2px 4px rgba(23, 38, 31, 0.05), 0 10px 28px rgba(23, 38, 31, 0.08);
+  --shadow-3: 0 6px 12px rgba(23, 38, 31, 0.08), 0 24px 48px rgba(23, 38, 31, 0.12);
+
+  --font: 'Nunito Variable', ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@layer base {
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--bg-dots) 1.2px, transparent 1.2px);
+    background-size: 22px 22px;
+    color: var(--ink);
+    font-family: var(--font);
+    font-feature-settings: 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  :focus-visible {
+    outline: 3px solid var(--sky);
+    outline-offset: 2px;
+    border-radius: 10px;
+  }
+
+  ::selection {
+    background: var(--sun-soft);
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Surfaces
+ * -------------------------------------------------------------------------- */
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2);
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+
+.eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* --------------------------------------------------------------------------
+ * Buttons — 44px minimum touch targets, springy press
+ * -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: transform 160ms var(--spring), box-shadow 200ms var(--ease-out), background-color 160ms ease, color 160ms ease;
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btn-primary {
+  background: var(--green-ink);
+  color: #fff;
+  box-shadow: 0 4px 0 var(--green-deep), 0 8px 18px rgba(11, 122, 79, 0.28);
+}
+
+.btn-primary:active:not(:disabled) {
+  box-shadow: 0 1px 0 var(--green-deep), 0 4px 10px rgba(11, 122, 79, 0.25);
+}
+
+.btn-magic {
+  background: linear-gradient(135deg, var(--grape), var(--berry));
+  color: #fff;
+  box-shadow: 0 4px 0 #5a2fc4, 0 8px 18px rgba(122, 76, 240, 0.32);
+}
+
+.btn-magic:active:not(:disabled) {
+  box-shadow: 0 1px 0 #5a2fc4, 0 4px 10px rgba(122, 76, 240, 0.28);
+}
+
+.btn-stop {
+  background: var(--coral);
+  color: #fff;
+  box-shadow: 0 4px 0 #c43f33, 0 8px 18px rgba(239, 90, 76, 0.3);
+}
+
+.btn-quiet {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-1);
+}
+
+.btn-quiet:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-2);
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--ink);
+}
+
+.btn-icon {
+  width: 44px;
+  padding: 0;
+}
+
+.btn-lg {
+  min-height: 56px;
+  padding: 0 26px;
+  font-size: 19px;
+}
+
+/* --------------------------------------------------------------------------
+ * Chips (tap to insert a command)
+ * -------------------------------------------------------------------------- */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line-strong);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 160ms var(--spring), border-color 160ms ease, background-color 160ms ease;
+}
+
+.chip:hover {
+  transform: translateY(-2px);
+  border-color: var(--green);
+  background: var(--green-soft);
+}
+
+.chip:active {
+  transform: scale(0.94);
+}
+
+.chip-suggestion {
+  font-family: var(--font);
+  font-weight: 700;
+  font-size: 15px;
+  border-color: transparent;
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
+.chip-suggestion:hover {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: transparent;
+}
+
+.swatch {
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  border: 3px solid #fff;
+  box-shadow: 0 0 0 1.5px var(--line-strong), var(--shadow-1);
+  cursor: pointer;
+  transition: transform 160ms var(--spring);
+}
+
+.swatch:hover {
+  transform: scale(1.12);
+}
+
+.swatch:active {
+  transform: scale(0.9);
+}
+
+/* --------------------------------------------------------------------------
+ * Stage
+ * -------------------------------------------------------------------------- */
+.stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background-color: #fff;
+  background-image:
+    linear-gradient(rgba(23, 38, 31, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(23, 38, 31, 0.045) 1px, transparent 1px);
+  background-size: 5% 5%;
+  background-position: center;
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+
+.stage canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.turtle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  pointer-events: none;
+  will-change: transform;
+  filter: drop-shadow(0 3px 4px rgba(23, 38, 31, 0.25));
+}
+
+.turtle-body {
+  transform-origin: 50% 50%;
+}
+
+.turtle.is-idle .turtle-body {
+  animation: turtle-bob 2.4s ease-in-out infinite;
+}
+
+.turtle.is-moving .turtle-legs {
+  animation: turtle-paddle 0.32s ease-in-out infinite alternate;
+  transform-origin: 50% 50%;
+}
+
+.turtle.is-happy .turtle-body {
+  animation: turtle-hop 0.7s var(--spring) 2;
+}
+
+@keyframes turtle-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-2px) scale(1.04); }
+}
+
+@keyframes turtle-paddle {
+  from { transform: rotate(-7deg); }
+  to { transform: rotate(7deg); }
+}
+
+@keyframes turtle-hop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.25) translateY(-4px); }
+  100% { transform: scale(1); }
+}
+
+/* Celebration burst when a drawing finishes */
+.burst {
+  position: absolute;
+  pointer-events: none;
+}
+
+.burst span {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  animation: burst-fly 900ms var(--ease-out) forwards;
+}
+
+@keyframes burst-fly {
+  0% { transform: translate(0, 0) rotate(0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)) scale(0.6); opacity: 0; }
+}
+
+/* --------------------------------------------------------------------------
+ * Ask the turtle
+ * -------------------------------------------------------------------------- */
+.ask {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: linear-gradient(135deg, #12a36b 0%, #0f8fa6 55%, #2b6ef4 100%);
+  color: #fff;
+  box-shadow: var(--shadow-3);
+}
+
+.ask::before {
+  content: '';
+  position: absolute;
+  inset: -40% -10% auto auto;
+  width: 360px;
+  height: 360px;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 233, 140, 0.45), transparent 65%);
+  pointer-events: none;
+}
+
+.ask-input {
+  width: 100%;
+  min-height: 56px;
+  padding: 0 20px;
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 18px;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 2px transparent, 0 6px 18px rgba(8, 40, 60, 0.18);
+  transition: box-shadow 160ms ease;
+}
+
+.ask-input::placeholder {
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.ask-input:focus {
+  outline: none;
+  box-shadow: inset 0 0 0 3px var(--sun), 0 6px 18px rgba(8, 40, 60, 0.18);
+}
+
+.thinking-dots span {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin: 0 2px;
+  border-radius: 999px;
+  background: currentColor;
+  animation: dot-bounce 1s ease-in-out infinite;
+}
+
+.thinking-dots span:nth-child(2) { animation-delay: 0.15s; }
+.thinking-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes dot-bounce {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.5; }
+  40% { transform: translateY(-5px); opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+ * Turtle speech bubble
+ * -------------------------------------------------------------------------- */
+.bubble {
+  position: relative;
+  border-radius: var(--radius-lg);
+  padding: 12px 16px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.4;
+  animation: bubble-in 320ms var(--spring);
+}
+
+.bubble-info { background: var(--sky-soft); color: #0b4f86; }
+.bubble-success { background: var(--green-soft); color: var(--green-deep); }
+.bubble-problem { background: var(--coral-soft); color: #9b2419; }
+
+@keyframes bubble-in {
+  from { transform: translateY(6px) scale(0.97); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+ * Toast
+ * -------------------------------------------------------------------------- */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: max(24px, env(safe-area-inset-bottom));
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 20px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 800;
+  box-shadow: var(--shadow-3);
+  transform: translateX(-50%);
+  animation: toast-in 360ms var(--spring);
+}
+
+@keyframes toast-in {
+  from { transform: translate(-50%, 16px) scale(0.96); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* --------------------------------------------------------------------------
+ * Segmented control (speed)
+ * -------------------------------------------------------------------------- */
+.segmented {
+  display: inline-flex;
+  padding: 4px;
+  gap: 2px;
+  border-radius: 999px;
+  background: var(--surface-3);
+}
+
+.segmented button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
+}
+
+.segmented button[aria-checked='true'] {
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow-1);
+}
+
+/* --------------------------------------------------------------------------
+ * Code editor (CodeMirror)
+ * -------------------------------------------------------------------------- */
+.editor-host .cm-editor {
+  height: 100%;
+  font-size: 18px;
+  background: transparent;
+}
+
+.editor-host .cm-editor.cm-focused {
+  outline: none;
+}
+
+.editor-host .cm-scroller {
+  font-family: var(--mono);
+  line-height: 1.7;
+}
+
+.editor-host .cm-content {
+  padding: 14px 0;
+  caret-color: var(--green-ink);
+}
+
+.editor-host .cm-gutters {
+  background: transparent;
+  border-right: none;
+  color: #b3ab99;
+  font-weight: 700;
+}
+
+.editor-host .cm-lineNumbers .cm-gutterElement {
+  padding: 0 12px 0 16px;
+}
+
+.editor-host .cm-activeLine {
+  background: rgba(18, 163, 107, 0.05);
+}
+
+.editor-host .cm-activeLineGutter {
+  background: transparent;
+  color: var(--green-ink);
+}
+
+.editor-host .cm-cursor {
+  border-left-width: 2.5px;
+  border-left-color: var(--green-ink);
+}
+
+.editor-host .cm-selectionBackground,
+.editor-host .cm-focused .cm-selectionBackground {
+  background: #ffe9a8 !important;
+}
+
+.editor-host .cm-running-line {
+  background: linear-gradient(90deg, rgba(255, 201, 60, 0.38), rgba(255, 201, 60, 0.12));
+  box-shadow: inset 4px 0 0 var(--sun);
+}
+
+.editor-host .cm-problem-line {
+  background: rgba(239, 90, 76, 0.1);
+  box-shadow: inset 4px 0 0 var(--coral);
+}
+
+.editor-host .cm-tooltip-autocomplete {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-3);
+  font-family: var(--mono);
+  font-size: 15px;
+}
+
+.editor-host .cm-tooltip-autocomplete ul li[aria-selected] {
+  background: var(--green-ink);
+}
+
+.editor-host .cm-placeholder {
+  color: var(--ink-3);
+  font-family: var(--font);
+  font-weight: 600;
+}
+
+/* Utilities come after the component styles so classes like hidden and sm:inline win. */
+@tailwind utilities;
+
+/* --------------------------------------------------------------------------
+ * Motion preferences
+ * -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}

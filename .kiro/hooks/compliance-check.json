@@ -1,0 +1,13 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Hackathon Compliance Check",
+      "trigger": "SessionStart",
+      "action": {
+        "type": "agent",
+        "prompt": "Before doing any work on this project, verify these Kiroween 2026 hackathon compliance requirements:\n1. The .kiro/ directory exists and is NOT in .gitignore\n2. A LICENSE file (MIT) exists at the project root\n3. README.md mentions the Resurrection category and Logo\n4. .env is in .gitignore but .env.example is NOT\n5. The app runs on port 3001 (not 3000)\n6. No API keys or secrets appear in tracked files\nWarn the user if any check fails."
+      }
+    }
+  ]
+}

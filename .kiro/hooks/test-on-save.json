@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Run Tests on Logo/API Save",
+      "trigger": "PostFileSave",
+      "matcher": "(src/(logo|ai|api|db)/.*|tests/.*)\\.ts$",
+      "action": {
+        "type": "command",
+        "command": "npm test"
+      }
+    }
+  ]
+}
