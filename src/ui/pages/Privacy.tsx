@@ -29,7 +29,7 @@ export default function Privacy() {
         </div>
 
         <Section title="No accounts, no tracking">
-          <p className="m-0">Children never sign up or log in, and GIO never asks for a name, email address, age or birthday. GIO does not use cookies, advertising or analytics.</p>
+          <p className="m-0">Children never sign up or log in, and GIO never asks for a name, email address or birthday. The first screen asks which age group a child is in (Under 8 or 8 to 12), but that choice only changes how GIO looks and stays on the device. GIO does not use cookies, advertising or analytics.</p>
         </Section>
 
         <Section title="What GIO saves on its server">
@@ -53,7 +53,8 @@ export default function Privacy() {
         </Section>
 
         <Section title="Limits that protect children and cost">
-          <p className="m-0">The turtle helper has a limit on how many requests each internet connection and for the whole site can make per day. GIO keeps only a daily total for the whole site, not who made the requests.</p>
+          <p className="m-0">The turtle helper has a limit on how many requests each internet connection and the whole site can make per day. The whole-site limit is a single daily number saved on the server. The per-connection limit is held only in the server&rsquo;s memory and is never saved.</p>
+          <p className="m-0">Like almost every website, the web server that hosts GIO writes standard connection logs (the internet address, the time and the page requested). These logs do not include what a child typed to the turtle or the code they wrote, and GIO does not use them to follow children around.</p>
         </Section>
 
         <p className="m-0 text-[14px] font-semibold text-ink-3">GIO is an open-source project under the MIT licence.</p>

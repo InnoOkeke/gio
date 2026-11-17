@@ -116,6 +116,8 @@ describe('AI endpoint input checks (no model call)', () => {
     expect(explain.status).toBe(422);
   });
 
+  // The 422 path for an UNSAFE verdict needs a live Bedrock answer. Per the no-mocks rule it is covered by the live
+  // check recorded in the commit message and by the parseVerdict tests in safety.test.ts. The fail-closed 503 is asserted below.
   it('stops all AI requests for the day once the site-wide cap is reached', async () => {
     const first = await call('POST', '/api/ai/logo', { prompt: 'a star' });
     const second = await call('POST', '/api/ai/explain', { code: 'FD 10' });
