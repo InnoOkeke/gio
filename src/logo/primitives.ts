@@ -43,7 +43,11 @@ const SPECS: PrimitiveSpec[] = [
 ];
 
 /** Keywords handled by the parser itself rather than the primitive table. */
-export const SPECIAL_FORMS = ['TO', 'END', 'REPEAT', 'IF', 'IFELSE', 'MAKE', 'STOP'] as const;
+export const SPECIAL_FORMS = ['TO', 'END', 'REPEAT', 'IF', 'IFELSE', 'MAKE', 'STOP', 'WHEN'] as const;
+
+/** Keys a game can react to with WHEN. */
+export const GAME_KEYS = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'SPACE'] as const;
+export type GameKey = (typeof GAME_KEYS)[number];
 
 const byName = new Map<string, PrimitiveSpec>();
 for (const spec of SPECS) {

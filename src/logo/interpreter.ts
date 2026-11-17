@@ -1,6 +1,7 @@
 import { NAMED_COLORS, PALETTE_16, rgbToHex } from './colors.js';
 import { LogoError, suggest, type SourcePos } from './errors.js';
 import type { Expr, Procedure, Program, Stmt } from './parser.js';
+import type { GameKey } from './primitives.js';
 
 export type Value = number | string | boolean | Value[];
 
@@ -97,7 +98,8 @@ export function formatValue(value: Value): string {
 class Interpreter {
   private state: TurtleState = { ...INITIAL_STATE };
   private background = DEFAULT_BACKGROUND;
-  private readonly events: TurtleEvent[] = [];
+  private events: TurtleEvent[] = [];
+  private readonly handlers = new Map<GameKey, Stmt[]>();
   private readonly globals = new Map<string, Value>();
   private readonly frames: Map<string, Value>[] = [];
   private readonly repcounts: number[] = [];
@@ -124,7 +126,27 @@ class Interpreter {
   }
 
   private result(): RunResult {
-    return { events: this.events, final: { ...this.state }, background: this.background };
+    return { events: [...this.events], final: { ...this.state }, background: this.background };
+  }
+
+  /** Keys the program reacts to (registered with WHEN while the main program ran). */
+  keys(): GameKey[] {
+    return [...this.handlers.keys()];
+  }
+
+  /** Run the WHEN handler for a key, continuing from where the turtle is. Returns only the new events. */
+  press(key: GameKey): TurtleEvent[] {
+    const body = this.handlers.get(key);
+    if (!body) return [];
+    this.events = [];
+    this.ops = 0;
+    try {
+      this.execBlock(body);
+    } catch (err) {
+      if (err instanceof LogoError) throw new LogoRunError(err, this.result());
+      if (!(err instanceof StopSignal)) throw err;
+    }
+    return [...this.events];
   }
 
   private tick(pos: SourcePos): void {
@@ -190,6 +212,9 @@ class Interpreter {
       }
       case 'make':
         this.setVariable(stmt.name, this.eval(stmt.value));
+        return;
+      case 'when':
+        this.handlers.set(stmt.key, stmt.body);
         return;
       case 'stop':
         throw new StopSignal();
@@ -480,4 +505,18 @@ class Interpreter {
 
 export function run(program: Program, options: RunOptions = {}): RunResult {
   return new Interpreter(program, options).run();
+}
+
+export interface GameSession {
+  /** Keys with a WHEN handler. Empty when the program is not a game. */
+  keys: GameKey[];
+  /** Run one key press. Throws LogoRunError (with the partial events) if the handler has a problem. */
+  press(key: GameKey): TurtleEvent[];
+}
+
+/** Run the main program and keep the interpreter alive so key presses can continue the game. */
+export function runSession(program: Program, options: RunOptions = {}): { result: RunResult; session: GameSession } {
+  const interpreter = new Interpreter(program, options);
+  const result = interpreter.run();
+  return { result, session: { keys: interpreter.keys(), press: (key) => interpreter.press(key) } };
 }

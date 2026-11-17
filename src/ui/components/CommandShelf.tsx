@@ -35,6 +35,10 @@ const GROUPS: { title: string; snippets: Snippet[] }[] = [
       { code: 'CIRCLE 40', hint: 'Draw a circle around the turtle' },
     ],
   },
+  {
+    title: 'Game',
+    snippets: [{ code: 'WHEN "up [ ]', hint: 'Do the commands inside [ ] when the up arrow is pressed' }],
+  },
 ];
 
 const SWATCHES = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink', 'black'];

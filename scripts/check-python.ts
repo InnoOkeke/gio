@@ -9,7 +9,7 @@ import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { check, execute, toText, translate, type TurtleEvent } from '../src/logo/index.js';
+import { check, press, start, toText, translate, type GameKey, type TurtleEvent } from '../src/logo/index.js';
 
 const PROGRAMS: Record<string, string> = {
   square: 'REPEAT 4 [FD 100 RT 90]',
@@ -24,6 +24,14 @@ const PROGRAMS: Record<string, string> = {
   clearscreen: 'FD 50 RT 90 FD 50 CS FD 25',
   home: 'RT 45 FD 70 HOME FD 10',
   penup: 'PU FD 50 RT 90 FD 20 PD CIRCLE 10 HT',
+  game: 'MAKE "step 10\nWHEN "up [FD :step MAKE "step :step + 5]\nWHEN "right [RT 90]\nWHEN "left [LT 45]\nWHEN "space [CIRCLE 15]',
+  sketch: 'WHEN "up [SETH 0 FD 10]\nWHEN "down [SETH 180 FD 10]\nWHEN "left [SETH 270 FD 10]\nWHEN "right [SETH 90 FD 10]',
+};
+
+/** Keys pressed (in order) for programs that are games. Python calls the same handler functions. */
+const PRESSES: Record<string, GameKey[]> = {
+  game: ['UP', 'RIGHT', 'UP', 'SPACE', 'LEFT', 'UP', 'UP'],
+  sketch: ['UP', 'UP', 'RIGHT', 'RIGHT', 'DOWN', 'LEFT'],
 };
 
 interface PythonState {
@@ -51,13 +59,14 @@ function gioArcEnds(events: TurtleEvent[]): [number, number][] {
   return ends;
 }
 
-function instrument(code: string): string {
+function instrument(code: string, presses: GameKey[]): string {
+  const calls = presses.map((k) => `on_${k.toLowerCase()}()`).join('\n');
   return code
     .replace('mode("logo")', 'mode("logo")\ntracer(0)\n_arc_ends = []')
     .replace('    circle(-radius, angle)\n', '    circle(-radius, angle)\n    _arc_ends.append((round(xcor(), 3), round(ycor(), 3)))\n')
     .replace(
       /\ndone\(\)$/,
-      '\nimport json\nprint(json.dumps({"x": round(xcor(), 3), "y": round(ycor(), 3), "h": round(heading(), 3) % 360, "down": isdown(), "arcs": _arc_ends}))\nbye()',
+      `\n${calls}\nimport json\nprint(json.dumps({"x": round(xcor(), 3), "y": round(ycor(), 3), "h": round(heading(), 3) % 360, "down": isdown(), "arcs": _arc_ends}))\nbye()`,
     );
 }
 
@@ -68,20 +77,28 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-py-'));
 let failures = 0;
 try {
   for (const [name, source] of Object.entries(PROGRAMS)) {
-    const run = execute(source);
+    const presses = PRESSES[name] ?? [];
+    const started = start(source);
     const parsed = check(source);
-    if (!run.ok || !parsed.ok) throw new Error(`${name} is not a valid program`);
+    if (!started.ok || !parsed.ok) throw new Error(`${name} is not a valid program`);
+    const events = [...started.result.events];
+    for (const key of presses) {
+      const r = press(started.session, key);
+      if (!r.ok) throw new Error(`${name}: ${r.problem.message}`);
+      events.push(...r.events);
+    }
+    const final = events.length ? events[events.length - 1]!.state : started.result.final;
 
     const file = path.join(tmp, `${name}.py`);
-    fs.writeFileSync(file, instrument(toText(translate(parsed.program, source, 'python'))));
+    fs.writeFileSync(file, instrument(toText(translate(parsed.program, source, 'python')), presses));
     const py = JSON.parse(execFileSync('python', [file], { encoding: 'utf8' }).trim().split('\n').pop()!) as PythonState;
 
-    const f = run.result.final;
-    const arcs = gioArcEnds(run.result.events);
+    const f = final;
+    const arcs = gioArcEnds(events);
     const stateOk = near(f.x, py.x) && near(f.y, py.y) && nearAngle(f.heading, py.h) && f.penDown === py.down;
     const arcsOk = arcs.length === py.arcs.length && arcs.every(([x, y], k) => near(x, py.arcs[k]![0]) && near(y, py.arcs[k]![1]));
     if (!stateOk || !arcsOk) failures++;
-    console.log(`${stateOk && arcsOk ? 'PASS' : 'FAIL'}  ${name.padEnd(12)} final (${py.x}, ${py.y}) heading ${py.h}  arcs ${arcs.length}/${py.arcs.length}`);
+    console.log(`${stateOk && arcsOk ? 'PASS' : 'FAIL'}  ${name.padEnd(12)}${presses.length ? ` (${presses.length} key presses)` : ''} final (${py.x}, ${py.y}) heading ${py.h}  arcs ${arcs.length}/${py.arcs.length}`);
   }
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });

@@ -50,7 +50,7 @@ export function toBlocks(program: Program): ToBlocksResult {
         out.push({ kind: 'repeat', n, body });
         continue;
       }
-      if (s.kind !== 'command') return `it uses ${s.kind === 'make' ? 'MAKE' : s.kind === 'if' ? 'IF' : s.kind === 'stop' ? 'STOP' : 'its own commands'}`;
+      if (s.kind !== 'command') return `it uses ${s.kind === 'make' ? 'MAKE' : s.kind === 'if' ? 'IF' : s.kind === 'stop' ? 'STOP' : s.kind === 'when' ? 'WHEN (that makes it a game)' : 'its own commands'}`;
       const n = s.args[0] ? literal(s.args[0]) : null;
       const needNumber = (kind: 'forward' | 'back' | 'right' | 'left' | 'size' | 'circle'): Block | string =>
         n === null ? `${s.name} uses a calculated number` : { kind, n };

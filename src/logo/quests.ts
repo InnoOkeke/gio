@@ -1,8 +1,9 @@
 import { sameDrawing } from './compare.js';
-import { check, execute } from './index.js';
+import { check, press, start, type RunResult } from './index.js';
+import type { GameKey } from './primitives.js';
 import type { Program, Stmt } from './parser.js';
 
-export type Concept = 'moves' | 'loops' | 'functions' | 'variables' | 'decisions' | 'recursion' | 'debugging' | 'colours';
+export type Concept = 'moves' | 'loops' | 'functions' | 'variables' | 'decisions' | 'recursion' | 'debugging' | 'colours' | 'events';
 export type QuestAudience = 'little' | 'coder';
 
 export interface Quest {
@@ -18,6 +19,8 @@ export interface Quest {
   /** A Logo program that draws the goal. Shown faintly on the stage and used for checking. */
   target?: string;
   allowMirror?: boolean;
+  /** For games: keys GIO presses, in order, after the program starts. */
+  presses?: GameKey[];
   needs?: {
     uses?: Feature[];
     /** At most this many commands (counting REPEAT bodies once), to reward loops. */
@@ -27,7 +30,7 @@ export interface Quest {
   };
 }
 
-export type Feature = 'REPEAT' | 'TO' | 'INPUT' | 'MAKE' | 'IF' | 'RECURSION' | 'CIRCLE';
+export type Feature = 'REPEAT' | 'TO' | 'INPUT' | 'MAKE' | 'IF' | 'RECURSION' | 'CIRCLE' | 'WHEN';
 
 export const CONCEPTS: Record<Concept, { name: string; badge: string; python: string; color: string }> = {
   moves: { name: 'First steps', badge: 'Explorer', python: 'forward(100)', color: '#12a36b' },
@@ -38,6 +41,7 @@ export const CONCEPTS: Record<Concept, { name: string; badge: string; python: st
   decisions: { name: 'Decisions', badge: 'Decider', python: 'if x > 5:', color: '#0f8fa6' },
   recursion: { name: 'Recursion', badge: 'Spiral Wizard', python: 'spiral(n + 10)', color: '#b4236b' },
   debugging: { name: 'Debugging', badge: 'Bug Hunter', python: 'fix the bug!', color: '#ef5a4c' },
+  events: { name: 'Games and events', badge: 'Game Maker', python: 'onkey(on_up, "Up")', color: '#14b8a6' },
 };
 
 export const QUESTS: Quest[] = [
@@ -61,6 +65,8 @@ export const QUESTS: Quest[] = [
   { id: 'c-shape', audience: 'coder', concept: 'variables', title: 'Shape shifter', goal: 'Write TO SHAPE :sides and use it to draw a hexagon with sides of 60.', hint: 'Turn 360 / :sides at each corner. Then SHAPE 6.', target: 'REPEAT 6 [FD 60 RT 60]', allowMirror: true, needs: { uses: ['TO', 'INPUT'] } },
   { id: 'c-bug-triangle', audience: 'coder', concept: 'debugging', title: 'Bug hunt: open triangle', goal: "This triangle doesn't close. Fix it!", hint: 'The turns of a triangle add up to 360 degrees.', starter: 'REPEAT 3 [FD 120 RT 100]', target: 'REPEAT 3 [FD 120 RT 120]', allowMirror: true },
   { id: 'c-dashes', audience: 'coder', concept: 'decisions', title: 'Dash it', goal: 'Draw a dashed line: 5 dashes of 10 with gaps of 10. Use IF or IFELSE to choose pen up or pen down.', hint: 'MAKE "on 1, then REPEAT 10 [IFELSE :on = 1 [PD] [PU] FD 10 MAKE "on 1 - :on]', target: 'REPEAT 5 [PD FD 10 PU FD 10]', needs: { uses: ['IF'] } },
+  { id: 'c-game', audience: 'coder', concept: 'events', title: 'Make a game', goal: 'Make the up arrow move the turtle forward 20, and the right arrow turn it right 90. I will test it by pressing up, right, up, right, up.', hint: 'WHEN "up [FD 20]  then  WHEN "right [RT 90]', target: 'WHEN "up [FD 20]\nWHEN "right [RT 90]', presses: ['UP', 'RIGHT', 'UP', 'RIGHT', 'UP'], needs: { uses: ['WHEN'] } },
+  { id: 'c-sketch', audience: 'coder', concept: 'events', title: 'Etch-a-sketch', goal: 'Make all four arrow keys move the turtle 10 steps in their direction, without the turtle needing to turn first. I will press up, up, right, right, down, left.', hint: 'Use SETHEADING (SETH) before FD: WHEN "right [SETH 90 FD 10]', target: 'WHEN "up [SETH 0 FD 10]\nWHEN "down [SETH 180 FD 10]\nWHEN "left [SETH 270 FD 10]\nWHEN "right [SETH 90 FD 10]', presses: ['UP', 'UP', 'RIGHT', 'RIGHT', 'DOWN', 'LEFT'], needs: { uses: ['WHEN'] } },
   { id: 'c-spiral', audience: 'coder', concept: 'recursion', title: 'Spiral wizard', goal: 'Make a command that uses itself to draw this square spiral, starting at 10 and growing by 10 until it passes 100.', hint: 'TO SPIRAL :n  IF :n > 100 [STOP]  FD :n RT 90  SPIRAL :n + 10  END', target: 'MAKE "n 10 REPEAT 10 [FD :n RT 90 MAKE "n :n + 10]', allowMirror: true, needs: { uses: ['RECURSION'] } },
 ];
 
@@ -69,7 +75,7 @@ export const QUESTS: Quest[] = [
 function walk(stmts: Stmt[], visit: (s: Stmt) => void): void {
   for (const s of stmts) {
     visit(s);
-    if (s.kind === 'repeat') walk(s.body, visit);
+    if (s.kind === 'repeat' || s.kind === 'when') walk(s.body, visit);
     if (s.kind === 'if') {
       walk(s.then, visit);
       if (s.otherwise) walk(s.otherwise, visit);
@@ -91,6 +97,7 @@ export function features(p: Program): Set<Feature> {
   if (stmts.some((s) => s.kind === 'make')) f.add('MAKE');
   if (stmts.some((s) => s.kind === 'if')) f.add('IF');
   if (stmts.some((s) => s.kind === 'command' && s.name === 'CIRCLE')) f.add('CIRCLE');
+  if (stmts.some((s) => s.kind === 'when')) f.add('WHEN');
   if (p.procedures.size) f.add('TO');
   if ([...p.procedures.values()].some((proc) => proc.params.length)) f.add('INPUT');
   for (const proc of p.procedures.values()) {
@@ -117,22 +124,37 @@ const FEATURE_HINT: Record<Feature, string> = {
   IF: 'Use IF or IFELSE to make a choice.',
   RECURSION: 'Make your command use itself.',
   CIRCLE: 'Use the Circle command.',
+  WHEN: 'Use WHEN so the arrow keys control the turtle.',
 };
+
+/** Run a program, then press the given keys, and return everything drawn. */
+export function playWithPresses(code: string, presses: GameKey[] = []): { ok: true; result: RunResult } | { ok: false; message: string } {
+  const started = start(code);
+  if (!started.ok) return { ok: false, message: started.problem.message };
+  const events = [...started.result.events];
+  for (const key of presses) {
+    const r = press(started.session, key);
+    events.push(...r.events);
+    if (!r.ok) return { ok: false, message: r.problem.message };
+  }
+  const last = events[events.length - 1];
+  return { ok: true, result: { events, final: last ? last.state : started.result.final, background: started.result.background } };
+}
 
 export type QuestResult = { pass: true; message: string } | { pass: false; message: string };
 
 export function checkQuest(quest: Quest, code: string): QuestResult {
   const parsed = check(code);
   if (!parsed.ok) return { pass: false, message: `Fix line ${parsed.problem.line} first: ${parsed.problem.message}` };
-  const run = execute(code);
-  if (!run.ok) return { pass: false, message: run.problem.message };
+  const run = playWithPresses(code, quest.presses);
+  if (!run.ok) return { pass: false, message: run.message };
   const result = run.result;
 
   const drewLines = result.events.some((e) => e.type === 'line');
   if (quest.needs?.drawsSomething && !drewLines) return { pass: false, message: "I didn't draw anything yet. Make sure the pen is down!" };
 
   if (quest.target) {
-    const target = execute(quest.target);
+    const target = playWithPresses(quest.target, quest.presses);
     if (!target.ok) throw new Error(`Quest ${quest.id} has an invalid target`);
     if (!sameDrawing(result, target.result, { allowMirror: quest.allowMirror })) {
       return { pass: false, message: drewLines ? "Not quite the same shape yet. Compare your drawing with the faint one and try again!" : "I didn't draw anything yet." };

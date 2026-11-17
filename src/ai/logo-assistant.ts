@@ -1,4 +1,4 @@
-import { BLOCK_COMMANDS_HELP, check, execute, NAMED_COLORS, PRIMITIVES, toBlocks } from '../logo/index.js';
+import { BLOCK_COMMANDS_HELP, check, NAMED_COLORS, press, PRIMITIVES, start, toBlocks, type TurtleEvent } from '../logo/index.js';
 import { chat, type ChatMessage } from './bedrock.js';
 
 /** The canvas shows x and y from -CANVAS_HALF to +CANVAS_HALF. */
@@ -32,7 +32,9 @@ function fullDialect(): string[] {
     '- MAKE "name value: store a value; read it back with :name',
     '- IF condition [ commands ] and IFELSE condition [ yes ] [ no ]; conditions use < > =',
     '- STOP: leave the current command early',
+    '- WHEN "key [ commands ]: for games. Runs the commands each time that key is pressed, after the main program has finished. Keys: "up "down "left "right "space. Use WHEN only when the child asks for a game or for something they can control with the keys.',
     '- Arithmetic: + - * / and parentheses. Comments start with ;',
+    '- Names of commands and variables use only letters, digits and underscores, like DRAW_CIRCLE or :big_size. Never put a dash (-) in a name.',
     `- Colours: ${colors}, a number 0-15, or a list like [255 128 0]`,
   ];
 }
@@ -83,14 +85,22 @@ function firstMessage(req: LogoRequest): string {
 
 /** Problems with AI output that the model is allowed one try to fix. */
 function validate(code: string, style: AssistantStyle): string | null {
-  const res = execute(code);
-  if (!res.ok) {
-    const sourceLine = code.split('\n')[res.problem.line - 1]?.trim() ?? '';
-    return `line ${res.problem.line} (\`${sourceLine}\`): ${res.problem.message}`;
-  }
+  const where = (line: number, message: string) => `line ${line} (\`${code.split('\n')[line - 1]?.trim() ?? ''}\`): ${message}`;
+  const res = start(code);
+  if (!res.ok) return where(res.problem.line, res.problem.message);
   const outOfBounds = res.result.events.some((e) => Math.abs(e.state.x) > CANVAS_HALF || Math.abs(e.state.y) > CANVAS_HALF);
   if (outOfBounds) return `the drawing goes off the canvas; keep every point between -${CANVAS_HALF} and ${CANVAS_HALF}`;
-  if (!res.result.events.some((e) => e.type === 'line')) return 'the program does not draw anything';
+
+  // Games: press every key a few times, the way a child would, and make sure nothing breaks.
+  const played: TurtleEvent[] = [];
+  for (let round = 0; round < 3; round++) {
+    for (const key of res.session.keys) {
+      const r = press(res.session, key);
+      if (!r.ok) return where(r.problem.line, `when the ${key.toLowerCase()} key is pressed: ${r.problem.message}`);
+      played.push(...r.events);
+    }
+  }
+  if (![...res.result.events, ...played].some((e) => e.type === 'line')) return 'the program does not draw anything';
   if (style === 'blocks') {
     const parsed = check(code);
     const blocks = parsed.ok ? toBlocks(parsed.program) : null;

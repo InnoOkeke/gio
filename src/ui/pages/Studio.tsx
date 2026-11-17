@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { blocksToLogo, check, execute, toBlocks, type Block, type TargetLanguage } from '../../logo/index.js';
-import { checkQuest, CONCEPTS, type Quest } from '../../logo/quests.js';
+import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type GameKey, type GameSession, type TargetLanguage } from '../../logo/index.js';
+import { checkQuest, CONCEPTS, playWithPresses, type Quest } from '../../logo/quests.js';
 import { api, local, type AssistantStyle } from '../api';
 import { AskTurtle } from '../components/AskTurtle';
 import { CommandShelf } from '../components/CommandShelf';
+import { GamePad } from '../components/GamePad';
 import { Wordmark } from '../components/GioMark';
 import {
   BulbIcon,
@@ -150,6 +151,16 @@ function StudioView({ initial }: { initial: Loaded }) {
   const questRef = useRef(quest);
   questRef.current = quest;
 
+  /* Games: the running program stays alive so WHEN handlers can answer key presses. */
+  const [gameKeys, setGameKeys] = useState<GameKey[]>([]);
+  const sessionRef = useRef<GameSession | null>(null);
+  const sessionCodeRef = useRef('');
+  const pressingRef = useRef(false);
+  const endGame = useCallback(() => {
+    sessionRef.current = null;
+    setGameKeys([]);
+  }, []);
+
   const owned = project?.editKey != null;
   const dirty = `${title}\n${code}` !== savedSnapshot;
 
@@ -179,7 +190,11 @@ function StudioView({ initial }: { initial: Loaded }) {
   const run = useCallback((source: string) => {
     setPrints([]);
     editorRef.current?.setProblemLine(null);
-    const res = execute(source);
+    pressingRef.current = false;
+    const res = start(source);
+    sessionRef.current = res.ok && res.session.keys.length ? res.session : null;
+    sessionCodeRef.current = source;
+    setGameKeys(sessionRef.current ? sessionRef.current.keys : []);
     if (!res.ok) {
       editorRef.current?.setProblemLine(res.problem.line);
       setBubble({ kind: 'problem', text: res.problem.message, line: res.problem.line });
@@ -187,6 +202,14 @@ function StudioView({ initial }: { initial: Loaded }) {
         stageRef.current?.load(res.partial);
         stageRef.current?.finish();
       }
+      return;
+    }
+    if (sessionRef.current) {
+      // Let the arrow keys reach the game instead of the code editor.
+      (document.activeElement as HTMLElement | null)?.blur?.();
+      setBubble({ kind: 'info', text: 'Game on! Press the arrow keys to play.' });
+      stageRef.current?.load(res.result);
+      stageRef.current?.play();
       return;
     }
     if (!res.result.events.length) {
@@ -204,6 +227,40 @@ function StudioView({ initial }: { initial: Loaded }) {
     if (initial.slug && initial.code.trim()) run(initial.code);
   }, [initial, run]);
 
+  // Editing the code ends the game, so key presses never run old code.
+  useEffect(() => {
+    if (sessionRef.current && code !== sessionCodeRef.current) endGame();
+  }, [code, endGame]);
+
+  const pressKey = useCallback((key: GameKey) => {
+    const session = sessionRef.current;
+    if (!session || !session.keys.includes(key)) return;
+    const r = press(session, key);
+    if (r.events.length) {
+      pressingRef.current = true;
+      stageRef.current?.appendEvents(r.events);
+    }
+    if (!r.ok) {
+      editorRef.current?.setProblemLine(r.problem.line);
+      setBubble({ kind: 'problem', text: r.problem.message, line: r.problem.line });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!gameKeys.length) return;
+    const map: Record<string, GameKey> = { ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', ' ': 'SPACE' };
+    const onKey = (e: KeyboardEvent) => {
+      const el = e.target as HTMLElement | null;
+      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      const key = map[e.key];
+      if (!key || !gameKeys.includes(key)) return;
+      e.preventDefault();
+      pressKey(key);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [gameKeys, pressKey]);
+
   /* ---------------- quests ---------------- */
 
   const startQuest = (q: Quest) => {
@@ -212,8 +269,9 @@ function StudioView({ initial }: { initial: Loaded }) {
     setQuestDone(false);
     setQuestFeedback(null);
     replaceCode(q.starter ?? '');
+    endGame();
     stageRef.current?.reset();
-    const target = q.target ? execute(q.target) : null;
+    const target = q.target ? playWithPresses(q.target, q.presses) : null;
     stageRef.current?.setGuide(target?.ok ? target.result : null);
     setBubble({ kind: 'info', text: q.starter ? 'This code has a bug. Press Run to see what goes wrong!' : q.goal });
   };
@@ -256,6 +314,8 @@ function StudioView({ initial }: { initial: Loaded }) {
   const onStatus = useCallback(
     (s: PlayerStatus) => {
       setStatus(s);
+      // A finished key press in a game is not the end of the program.
+      if (s === 'done' && pressingRef.current) return;
       if (s === 'done') {
         if (questRef.current) checkActiveQuest();
         else setBubble((b) => (b.kind === 'problem' ? b : { kind: 'success', text: little ? 'Ta-da! You made that!' : 'Ta-da! Change a number and run it again to see what happens.' }));
@@ -290,6 +350,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const onReset = () => {
+    endGame();
     stageRef.current?.reset();
     editorRef.current?.setProblemLine(null);
     setPrints([]);
@@ -555,6 +616,8 @@ function StudioView({ initial }: { initial: Loaded }) {
                 </button>
               </div>
             </div>
+
+            {gameKeys.length > 0 && <GamePad keys={gameKeys} onPress={pressKey} />}
 
             <div className="flex flex-col gap-2">
               <TurtleBubble message={bubble} onShowLine={(line) => editorRef.current?.setProblemLine(line)} />

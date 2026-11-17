@@ -30,7 +30,7 @@ Logo gave children a "turtle" they could steer with simple commands like `FORWAR
 | Coding | Big tap-to-add blocks with − / + numbers | Real Logo text with autocomplete and tap-to-insert chips |
 | Other languages | "See the code" shows the Logo behind the blocks | Every program shown live in **Python** and **JavaScript** |
 | Asking the turtle | Voice or text; answers always fit in blocks | Voice or text; answers use the full language |
-| Quests | 8 picture quests | 10 coding quests: loops, functions, inputs, decisions, recursion, debugging |
+| Quests | 8 picture quests | 12 coding quests: loops, functions, inputs, decisions, recursion, debugging, games |
 | Explain my code | A short story of what the turtle does | Line-by-line points that name the programming idea and the Python equivalent |
 
 Kids pick a mode on the first screen and can switch any time. A link can choose the mode, e.g. `/?mode=little` for a class of younger kids. Quest progress and badges stay in the browser: no accounts and no public gallery.
@@ -39,6 +39,7 @@ Kids pick a mode on the first screen and can switch any time. A link can choose 
 
 - 🐍 **Logo → Python and JavaScript**, translated from the program tree (no AI), with matching lines linked both ways. The Python uses Python's real `turtle` module; `npm run check:python` runs translated programs in CPython and confirms they end in the same place as GIO's turtle.
 - 🏆 **Quests with automatic checking**: GIO compares the drawing itself (any correct solution passes, mirror images count), shows the target faintly on the stage, and awards a badge for each programming idea.
+- 🎮 **Make a game**: `WHEN "up [FD 10]` runs commands each time a key is pressed (up, down, left, right, space), with on-screen buttons for tablets. Kids learn event-driven programming, and the Python version uses the real turtle module's `onkey`. The turtle helper can write games too; GIO test-presses every key before showing one.
 - 🎤 **Talk to the turtle** using the browser's built-in speech recognition (tap to talk; shown only where the browser supports it).
 - 🐢 **A real Logo interpreter**, written for GIO: `FD`, `BK`, `RT`, `LT`, `PU`, `PD`, `HOME`, `CS`, `SETXY`, `SETHEADING`, `ARC`, `CIRCLE`, `SETPENCOLOR`, `SETPENSIZE`, `SETBG`, `PRINT`, `REPEAT`, `TO … END` procedures with inputs, recursion with `STOP`, `MAKE` variables, `IF` / `IFELSE`, arithmetic, `RANDOM` and `REPCOUNT`.
 - 💬 **Error messages written for kids**, with the line highlighted: *"I don't know how to FORWRD. Did you mean FORWARD?"*
@@ -51,7 +52,6 @@ Kids pick a mode on the first screen and can switch any time. A link can choose 
 
 ## Coming next
 
-- 🎮 **Make a game**: arrow-key events, so kids learn event-driven programming.
 - ☁️ A public deployment on AWS.
 
 ---

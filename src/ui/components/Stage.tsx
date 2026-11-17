@@ -1,5 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
-import { DEFAULT_BACKGROUND, type RunResult } from '../../logo/index.js';
+import { DEFAULT_BACKGROUND, type RunResult, type TurtleEvent } from '../../logo/index.js';
 import { Player, WORLD_HALF, type PlayerStatus, type Speed, type SpriteState } from '../runtime/player';
 import { TurtleSprite } from './TurtleSprite';
 
@@ -13,6 +13,8 @@ export interface StageHandle {
   setSpeed(speed: Speed): void;
   /** PNG of the drawing on its background, for downloading. */
   toPNG(): string;
+  /** Games: draw the moves from one key press, without a celebration each time. */
+  appendEvents(events: TurtleEvent[]): void;
   /** A faint target drawing under the child's own, for quests. */
   setGuide(result: RunResult | null): void;
 }
@@ -36,6 +38,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
   const spriteRef = useRef<SpriteState>({ x: 0, y: 0, heading: 0, visible: true });
   const backgroundRef = useRef(DEFAULT_BACKGROUND);
   const lastStatusRef = useRef<PlayerStatus>('idle');
+  const gameRef = useRef(false);
   const callbacks = useRef({ onLine, onPrint, onStatus });
   callbacks.current = { onLine, onPrint, onStatus };
 
@@ -124,7 +127,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
       onPrint: (text) => callbacks.current.onPrint(text),
       onBackground: applyBackground,
       onStatus: (status) => {
-        if (status === 'done' && lastStatusRef.current === 'playing') celebrate();
+        if (status === 'done' && lastStatusRef.current === 'playing' && !gameRef.current) celebrate();
         lastStatusRef.current = status;
         callbacks.current.onStatus(status);
       },
@@ -145,12 +148,22 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
   }, []);
 
   useImperativeHandle(ref, () => ({
-    load: (result) => playerRef.current?.load(result),
+    load: (result) => {
+      gameRef.current = false;
+      playerRef.current?.load(result);
+    },
+    appendEvents: (events) => {
+      gameRef.current = true;
+      playerRef.current?.append(events);
+    },
     play: () => playerRef.current?.play(),
     pause: () => playerRef.current?.pause(),
     step: () => playerRef.current?.step(),
     finish: () => playerRef.current?.finish(),
-    reset: () => playerRef.current?.reset(),
+    reset: () => {
+      gameRef.current = false;
+      playerRef.current?.reset();
+    },
     setSpeed: (speed) => playerRef.current?.setSpeed(speed),
     setGuide(result) {
       guideResultRef.current = result;

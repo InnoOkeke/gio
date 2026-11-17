@@ -85,7 +85,7 @@ export class Player {
   /** Load a new run and clear the stage. Call play() or step() to start. */
   load(result: RunResult): void {
     this.cancel();
-    this.events = result.events;
+    this.events = [...result.events];
     this.index = 0;
     this.progress = 0;
     this.before = { ...INITIAL_STATE };
@@ -94,6 +94,18 @@ export class Player {
     this.cb.onLine(null);
     this.emitSprite(false);
     this.setStatus(this.events.length ? 'idle' : 'done');
+  }
+
+  /** Games: add the moves from a key press and keep going from where the turtle is. */
+  append(events: TurtleEvent[]): void {
+    if (!events.length) return;
+    this.events.push(...events);
+    if (this.status === 'done' || this.status === 'idle') {
+      this.stepping = false;
+      this.setStatus('playing');
+      this.lastTime = performance.now();
+      this.raf = requestAnimationFrame(this.frame);
+    }
   }
 
   /** Empty stage with the turtle at home. */

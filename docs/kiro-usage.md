@@ -57,7 +57,11 @@ Every quest is tested with a kid-style solution that differs from the target, an
 
 ## Checking against real Python
 
-Unit tests can only check translated text. `scripts/check-python.ts` (`npm run check:python`) goes further: it runs twelve translated programs in real CPython turtle and compares the final position, heading, pen state and every arc end point with GIO's interpreter. All twelve match, including the 25 arcs of the rainbow flower. That is the evidence behind the claim that GIO's Python draws the same picture.
+Unit tests can only check translated text. `scripts/check-python.ts` (`npm run check:python`) goes further: it runs twelve translated programs in real CPython turtle and compares the final position, heading, pen state and every arc end point with GIO's interpreter. All of them match, including the 25 arcs of the rainbow flower and two games where the script presses keys in both GIO and Python. That is the evidence behind the claim that GIO's Python draws the same picture.
+
+## A live test that changed the language
+
+Asking the turtle helper for a game, the model named a procedure `TO DRAW-CIRCLE`. GIO reads `-` as minus, so it rejected the program twice, and its message ("I wasn't expecting - here") didn't explain why. That message would confuse a child just as much. The fix was in two places: the parser now says "Names can't have a dash (-) in them, because - means minus. Try DRAW_CIRCLE instead.", and the prompt states the naming rule. The next request produced a working game.
 
 ## Real-browser review
 

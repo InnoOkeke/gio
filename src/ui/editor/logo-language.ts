@@ -6,7 +6,7 @@ import { tags as t } from '@lezer/highlight';
 import { NAMED_COLORS, PRIMITIVES } from '../../logo/index.js';
 
 const COMMAND_WORDS = new Set(PRIMITIVES.flatMap((p) => [p.name, ...p.aliases]));
-const CONTROL_WORDS = new Set(['REPEAT', 'IF', 'IFELSE', 'TO', 'END', 'MAKE', 'STOP']);
+const CONTROL_WORDS = new Set(['REPEAT', 'IF', 'IFELSE', 'TO', 'END', 'MAKE', 'STOP', 'WHEN']);
 
 const logoParser: StreamParser<null> = {
   name: 'logo',
@@ -70,6 +70,7 @@ function logoCompletions(context: CompletionContext): CompletionResult | null {
     { label: 'if', type: 'keyword', info: 'IF :size > 50 [ … ] does the commands only when it is true' },
     { label: 'ifelse', type: 'keyword', info: 'IFELSE question [yes] [no]' },
     { label: 'stop', type: 'keyword', info: 'Stops the current command' },
+    { label: 'when', type: 'keyword', info: 'WHEN "up [FD 10] runs the commands each time the up arrow is pressed (games!)' },
   ];
   return { from: word.from, options, validFor: /^[A-Za-z]*$/ };
 }

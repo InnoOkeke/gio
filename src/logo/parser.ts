@@ -1,6 +1,6 @@
 import { LogoError, suggest, type SourcePos } from './errors.js';
 import { tokenize, type Token } from './lexer.js';
-import { allPrimitiveNames, lookupPrimitive } from './primitives.js';
+import { allPrimitiveNames, GAME_KEYS, lookupPrimitive, type GameKey } from './primitives.js';
 
 export type Expr =
   | { kind: 'num'; value: number; pos: SourcePos }
@@ -17,6 +17,7 @@ export type Stmt =
   | { kind: 'repeat'; count: Expr; body: Stmt[]; pos: SourcePos }
   | { kind: 'if'; cond: Expr; then: Stmt[]; otherwise: Stmt[] | null; pos: SourcePos }
   | { kind: 'make'; name: string; value: Expr; pos: SourcePos }
+  | { kind: 'when'; key: GameKey; body: Stmt[]; pos: SourcePos }
   | { kind: 'stop'; pos: SourcePos };
 
 export interface Procedure {
@@ -31,7 +32,7 @@ export interface Program {
   main: Stmt[];
 }
 
-const RESERVED = new Set(['TO', 'END', 'REPEAT', 'IF', 'IFELSE', 'MAKE', 'STOP']);
+const RESERVED = new Set(['TO', 'END', 'REPEAT', 'IF', 'IFELSE', 'MAKE', 'STOP', 'WHEN']);
 
 /**
  * Logo procedure calls take a fixed number of inputs, so the parser needs every
@@ -89,6 +90,7 @@ class Parser {
     }
     this.next();
     const name = nameTok.text;
+    this.rejectDashedName(nameTok);
     if (RESERVED.has(name) || lookupPrimitive(name)) {
       throw new LogoError(`${name} is already a Logo word. Pick a different name for your command.`, nameTok.pos);
     }
@@ -171,6 +173,15 @@ class Parser {
         this.next();
         return { kind: 'make', name: nameTok.text, value: this.parseExpression('MAKE', t.pos), pos: t.pos };
       }
+      case 'WHEN': {
+        const keyTok = this.peek();
+        const key = keyTok?.type === 'quoted' ? keyTok.text : '';
+        if (!(GAME_KEYS as readonly string[]).includes(key)) {
+          throw new LogoError('WHEN needs a key: "up, "down, "left, "right or "space, like WHEN "up [FD 10].', keyTok?.pos ?? t.pos);
+        }
+        this.next();
+        return { kind: 'when', key: key as GameKey, body: this.parseBlock('WHEN', t.pos), pos: t.pos };
+      }
       case 'STOP':
         return { kind: 'stop', pos: t.pos };
     }
@@ -191,7 +202,21 @@ class Parser {
     throw this.unknownWord(t);
   }
 
+  /** `DRAW-CIRCLE` reads as DRAW minus CIRCLE, so explain that names can't contain a dash. */
+  private rejectDashedName(t: Token): void {
+    const dash = this.peek();
+    const rest = this.tokens[this.i + 1];
+    if (dash?.type === 'op' && dash.text === '-' && !dash.spaceBefore && !dash.spaceAfter && rest?.type === 'word') {
+      throw new LogoError(`Names can't have a dash (-) in them, because - means minus. Try ${t.text}_${rest.text} instead.`, t.pos);
+    }
+  }
+
   private unknownWord(t: Token): LogoError {
+    const dash = this.peek();
+    const rest = this.tokens[this.i + 1];
+    if (dash?.type === 'op' && dash.text === '-' && !dash.spaceBefore && !dash.spaceAfter && rest?.type === 'word') {
+      return new LogoError(`Names can't have a dash (-) in them, because - means minus. Try ${t.text}_${rest.text} instead.`, t.pos);
+    }
     const glued = /^([A-Z]+)(\d+(?:\.\d+)?)$/.exec(t.text);
     if (glued && (lookupPrimitive(glued[1]!) || this.arities.has(glued[1]!))) {
       return new LogoError(`Put a space between ${glued[1]} and ${glued[2]}, like ${glued[1]} ${glued[2]}.`, t.pos);

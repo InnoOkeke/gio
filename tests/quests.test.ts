@@ -32,6 +32,8 @@ const SOLUTIONS: Record<string, string> = {
   'c-bug-triangle': 'REPEAT 3 [FD 120 RT 120]',
   'c-dashes': 'MAKE "on 1\nREPEAT 10 [IFELSE :on = 1 [PD] [PU] FD 10 MAKE "on 1 - :on]',
   'c-spiral': 'TO SPIRAL :n\nIF :n > 100 [STOP]\nFD :n RT 90\nSPIRAL :n + 10\nEND\nSPIRAL 10',
+  'c-game': 'WHEN "right [RT 90]\nWHEN "up [FD 10 FD 10]',
+  'c-sketch': 'TO GO :h\nSETH :h FD 10\nEND\nWHEN "up [GO 0]\nWHEN "down [GO 180]\nWHEN "left [GO 270]\nWHEN "right [GO 90]',
 };
 
 describe('quests', () => {

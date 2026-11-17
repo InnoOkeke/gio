@@ -27,7 +27,8 @@ const PYTHON_KEYWORDS = new Set([
 const PYTHON_RESERVED = new Set([
   'forward', 'back', 'right', 'left', 'penup', 'pendown', 'home', 'clear', 'goto', 'setx', 'sety', 'setheading', 'pencolor',
   'pensize', 'bgcolor', 'hideturtle', 'showturtle', 'heading', 'xcor', 'ycor', 'circle', 'isdown', 'mode', 'done', 'randrange',
-  'sqrt', 'sin', 'cos', 'radians', 'speed', 'logo_arc', 'logo_clearscreen', 'palette',
+  'sqrt', 'sin', 'cos', 'radians', 'speed', 'logo_arc', 'logo_clearscreen', 'palette', 'onkey', 'listen',
+  'on_up', 'on_down', 'on_left', 'on_right', 'on_space',
 ]);
 
 const JS_KEYWORDS = new Set([
@@ -38,7 +39,7 @@ const JS_KEYWORDS = new Set([
 
 const JS_RESERVED = new Set([
   'forward', 'back', 'right', 'left', 'penup', 'pendown', 'home', 'clearscreen', 'clean', 'goto', 'setx', 'sety', 'setheading',
-  'pencolor', 'pensize', 'background', 'hideturtle', 'showturtle', 'heading', 'xcor', 'ycor', 'arc', 'circle',
+  'pencolor', 'pensize', 'background', 'hideturtle', 'showturtle', 'heading', 'xcor', 'ycor', 'arc', 'circle', 'onkey',
 ]);
 
 function identifier(name: string, language: TargetLanguage): string {
@@ -67,8 +68,13 @@ function formatNumber(n: number): string {
 
 const quote = (text: string): string => JSON.stringify(text);
 
+/** Key names Python's turtle onkey() expects. */
+const PY_KEY_NAMES: Record<string, string> = { UP: 'Up', DOWN: 'Down', LEFT: 'Left', RIGHT: 'Right', SPACE: 'space' };
+
+const handlerName = (key: string): string => `WHEN:${key}`;
+
 function childStatements(s: Stmt): Stmt[] {
-  if (s.kind === 'repeat') return s.body;
+  if (s.kind === 'repeat' || s.kind === 'when') return s.body;
   if (s.kind === 'if') return [...s.then, ...(s.otherwise ?? [])];
   return [];
 }
@@ -126,7 +132,7 @@ class Translator {
   private readonly trailingComments: { line: number; text: string }[] = [];
   private readonly emittedCommentLines = new Set<number>();
   private pendingNote: string | null = null;
-  private readonly needs = { arc: false, clearscreen: false, palette: false, random: false, math: false };
+  private readonly needs = { arc: false, clearscreen: false, palette: false, random: false, math: false, keys: false };
 
   constructor(
     private readonly program: Program,
@@ -151,7 +157,14 @@ class Translator {
         }
       });
     }
-    walk(program.main, (s) => s.kind === 'make' && this.usedNames.add(identifier(s.name, language)));
+    walk(program.main, (s) => {
+      if (s.kind === 'make') this.usedNames.add(identifier(s.name, language));
+      if (s.kind !== 'when') return;
+      // A WHEN handler becomes a function, so variables it changes are globals.
+      const set = this.globalsAssignedIn.get(handlerName(s.key)) ?? new Set<string>();
+      walk(s.body, (inner) => inner.kind === 'make' && set.add(inner.name));
+      this.globalsAssignedIn.set(handlerName(s.key), set);
+    });
     this.attachComments(source);
   }
 
@@ -191,7 +204,7 @@ class Translator {
 
     const body = this.lines.splice(0);
     while (body.length && body[body.length - 1]!.text === '') body.pop();
-    const footer: TranslatedLine[] = this.py ? [{ text: '' }, { text: 'done()' }] : [];
+    const footer: TranslatedLine[] = this.py ? [{ text: '' }, ...(this.needs.keys ? [{ text: 'listen()  # start listening for the arrow keys' }] : []), { text: 'done()' }] : [];
     return { language: this.language, lines: [...this.header(), ...body, ...footer] };
   }
 
@@ -340,6 +353,27 @@ class Translator {
           }
           this.push('}', depth);
         }
+        return;
+      }
+      case 'when': {
+        this.needs.keys = true;
+        const saved = this.currentProc;
+        this.currentProc = { name: handlerName(s.key), params: [], body: s.body, pos: s.pos };
+        if (this.py) {
+          const fn = `on_${s.key.toLowerCase()}`;
+          this.push(`def ${fn}():`, depth, line);
+          const globals = [...(this.globalsAssignedIn.get(handlerName(s.key)) ?? [])].map((g) => identifier(g, 'python'));
+          if (globals.length) this.push(`global ${globals.join(', ')}`, depth + 1, line);
+          const before = this.lines.length;
+          this.emitBlock(s.body, depth + 1);
+          if (this.lines.length === before && !globals.length) this.push('pass', depth + 1);
+          this.push(`onkey(${fn}, ${quote(PY_KEY_NAMES[s.key])})`, depth, line);
+        } else {
+          this.push(`onKey(${quote(s.key.toLowerCase())}, () => {`, depth, line);
+          this.emitBlock(s.body, depth + 1);
+          this.push('});', depth);
+        }
+        this.currentProc = saved;
         return;
       }
       case 'repeat': {
