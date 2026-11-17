@@ -15,7 +15,8 @@
     "test:watch": "vitest",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc -p tsconfig.api.json --noEmit && tsc -p tsconfig.ui.json --noEmit",
-    "check:python": "tsx scripts/check-python.ts"
+    "check:python": "tsx scripts/check-python.ts",
+    "check:browser": "tsx scripts/browser-check.ts"
   },
   "engines": {
     "node": ">=20.0.0"

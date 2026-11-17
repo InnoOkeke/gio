@@ -4,7 +4,7 @@ import { ArrowDownIcon, ArrowUpIcon } from './icons';
 
 const REPEAT_MS = 140;
 
-const LABEL: Record<GameKey, string> = { UP: 'Up', DOWN: 'Down', LEFT: 'Left', RIGHT: 'Right', SPACE: 'Space' };
+const LABEL: Record<GameKey, string> = { UP: 'Up', DOWN: 'Down', LEFT: 'Left', RIGHT: 'Right', SPACE: 'Space', TICK: 'Tick' };
 
 function PadButton({ k, onPress, className = '' }: { k: GameKey; onPress(key: GameKey): void; className?: string }) {
   const timer = useRef<number>();

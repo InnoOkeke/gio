@@ -32,7 +32,10 @@ export type TurtleEvent =
   | (EventBase & { type: 'visibility' })
   | (EventBase & { type: 'clear' })
   | (EventBase & { type: 'background'; color: string })
-  | (EventBase & { type: 'print'; text: string });
+  | (EventBase & { type: 'print'; text: string })
+  | (EventBase & { type: 'dot'; x: number; y: number; r: number; color: string })
+  | (EventBase & { type: 'show'; text: string })
+  | (EventBase & { type: 'gameover' });
 
 export interface RunLimits {
   /** Statements and loop rounds executed before GIO stops a runaway program. */
@@ -71,6 +74,9 @@ export const DEFAULT_BACKGROUND = '#ffffff';
 
 class StopSignal {}
 
+/** GAMEOVER ends the whole game, even from inside a procedure. */
+class GameOverSignal {}
+
 /** A LogoError raised while running, carrying everything drawn before the problem. */
 export class LogoRunError extends LogoError {
   readonly partial: RunResult;
@@ -100,6 +106,7 @@ class Interpreter {
   private background = DEFAULT_BACKGROUND;
   private events: TurtleEvent[] = [];
   private readonly handlers = new Map<GameKey, Stmt[]>();
+  private gameOver = false;
   private readonly globals = new Map<string, Value>();
   private readonly frames: Map<string, Value>[] = [];
   private readonly repcounts: number[] = [];
@@ -120,7 +127,7 @@ class Interpreter {
       this.execBlock(this.program.main);
     } catch (err) {
       if (err instanceof LogoError) throw new LogoRunError(err, this.result());
-      if (!(err instanceof StopSignal)) throw err;
+      if (!(err instanceof StopSignal) && !(err instanceof GameOverSignal)) throw err;
     }
     return this.result();
   }
@@ -131,20 +138,28 @@ class Interpreter {
 
   /** Keys the program reacts to (registered with WHEN while the main program ran). */
   keys(): GameKey[] {
-    return [...this.handlers.keys()];
+    return [...this.handlers.keys()].filter((k) => k !== 'TICK');
+  }
+
+  hasTick(): boolean {
+    return this.handlers.has('TICK');
+  }
+
+  isOver(): boolean {
+    return this.gameOver;
   }
 
   /** Run the WHEN handler for a key, continuing from where the turtle is. Returns only the new events. */
   press(key: GameKey): TurtleEvent[] {
     const body = this.handlers.get(key);
-    if (!body) return [];
+    if (!body || this.gameOver) return [];
     this.events = [];
     this.ops = 0;
     try {
       this.execBlock(body);
     } catch (err) {
       if (err instanceof LogoError) throw new LogoRunError(err, this.result());
-      if (!(err instanceof StopSignal)) throw err;
+      if (!(err instanceof StopSignal) && !(err instanceof GameOverSignal)) throw err;
     }
     return [...this.events];
   }
@@ -388,6 +403,19 @@ class Interpreter {
       case 'PRINT':
         this.emit({ type: 'print', text: formatValue(this.eval(argExprs[0]!)), line, state: this.snapshot() });
         return;
+      case 'DOT': {
+        const x = round(num(0));
+        const y = round(num(1));
+        this.emit({ type: 'dot', x, y, r: Math.max(3, this.state.size * 2 + 2), color: this.state.color, line, state: this.snapshot() });
+        return;
+      }
+      case 'SHOW':
+        this.emit({ type: 'show', text: formatValue(this.eval(argExprs[0]!)), line, state: this.snapshot() });
+        return;
+      case 'GAMEOVER':
+        this.gameOver = true;
+        this.emit({ type: 'gameover', line, state: this.snapshot() });
+        throw new GameOverSignal();
       default:
         throw new LogoError(`I don't know how to ${name} yet.`, pos);
     }
@@ -415,9 +443,10 @@ class Interpreter {
   private evalBinary(op: string, leftExpr: Expr, rightExpr: Expr, pos: SourcePos): Value {
     const left = this.eval(leftExpr);
     const right = this.eval(rightExpr);
-    if (op === '=') {
-      if (typeof left === 'number' && typeof right === 'number') return round(left) === round(right);
-      return formatValue(left).toUpperCase() === formatValue(right).toUpperCase();
+    if (op === '=' || op === '<>') {
+      const same =
+        typeof left === 'number' && typeof right === 'number' ? round(left) === round(right) : formatValue(left).toUpperCase() === formatValue(right).toUpperCase();
+      return op === '=' ? same : !same;
     }
     const a = this.toNumber(left, op, leftExpr.pos);
     const b = this.toNumber(right, op, rightExpr.pos);
@@ -430,6 +459,8 @@ class Interpreter {
         return a / b;
       case '<': return a < b;
       case '>': return a > b;
+      case '<=': return a <= b;
+      case '>=': return a >= b;
       default: throw new LogoError(`I don't understand ${op}.`, pos);
     }
   }
@@ -464,6 +495,13 @@ class Interpreter {
         return this.state.x;
       case 'YCOR':
         return this.state.y;
+      case 'DISTANCE':
+        return round(Math.hypot(num(0) - this.state.x, num(1) - this.state.y));
+      case 'SENTENCE': {
+        const a = this.eval(argExprs[0]!);
+        const b = this.eval(argExprs[1]!);
+        return [...(Array.isArray(a) ? a : [a]), ...(Array.isArray(b) ? b : [b])];
+      }
       default:
         throw new LogoError(`I don't know how to ${name} yet.`, pos);
     }
@@ -508,8 +546,12 @@ export function run(program: Program, options: RunOptions = {}): RunResult {
 }
 
 export interface GameSession {
-  /** Keys with a WHEN handler. Empty when the program is not a game. */
+  /** Keys with a WHEN handler (not counting TICK). */
   keys: GameKey[];
+  /** True when the program has a WHEN "tick handler. */
+  ticks: boolean;
+  /** True after GAMEOVER. */
+  isOver(): boolean;
   /** Run one key press. Throws LogoRunError (with the partial events) if the handler has a problem. */
   press(key: GameKey): TurtleEvent[];
 }
@@ -518,5 +560,5 @@ export interface GameSession {
 export function runSession(program: Program, options: RunOptions = {}): { result: RunResult; session: GameSession } {
   const interpreter = new Interpreter(program, options);
   const result = interpreter.run();
-  return { result, session: { keys: interpreter.keys(), press: (key) => interpreter.press(key) } };
+  return { result, session: { keys: interpreter.keys(), ticks: interpreter.hasTick(), isOver: () => interpreter.isOver(), press: (key) => interpreter.press(key) } };
 }

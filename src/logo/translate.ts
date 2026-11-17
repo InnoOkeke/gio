@@ -1,5 +1,6 @@
 import { NAMED_COLORS, PALETTE_16 } from './colors.js';
 import type { Expr, Procedure, Program, Stmt } from './parser.js';
+import { TICK_MS } from './primitives.js';
 
 export type TargetLanguage = 'python' | 'javascript';
 
@@ -28,7 +29,8 @@ const PYTHON_RESERVED = new Set([
   'forward', 'back', 'right', 'left', 'penup', 'pendown', 'home', 'clear', 'goto', 'setx', 'sety', 'setheading', 'pencolor',
   'pensize', 'bgcolor', 'hideturtle', 'showturtle', 'heading', 'xcor', 'ycor', 'circle', 'isdown', 'mode', 'done', 'randrange',
   'sqrt', 'sin', 'cos', 'radians', 'speed', 'logo_arc', 'logo_clearscreen', 'palette', 'onkey', 'listen',
-  'on_up', 'on_down', 'on_left', 'on_right', 'on_space',
+  'on_up', 'on_down', 'on_left', 'on_right', 'on_space', 'on_tick', 'show', 'dot', 'logo_dot', 'game_over', 'distance',
+  'ontimer', 'position', 'turtle',
 ]);
 
 const JS_KEYWORDS = new Set([
@@ -40,6 +42,7 @@ const JS_KEYWORDS = new Set([
 const JS_RESERVED = new Set([
   'forward', 'back', 'right', 'left', 'penup', 'pendown', 'home', 'clearscreen', 'clean', 'goto', 'setx', 'sety', 'setheading',
   'pencolor', 'pensize', 'background', 'hideturtle', 'showturtle', 'heading', 'xcor', 'ycor', 'arc', 'circle', 'onkey',
+  'ontick', 'show', 'dot', 'gameover', 'distance',
 ]);
 
 function identifier(name: string, language: TargetLanguage): string {
@@ -132,7 +135,7 @@ class Translator {
   private readonly trailingComments: { line: number; text: string }[] = [];
   private readonly emittedCommentLines = new Set<number>();
   private pendingNote: string | null = null;
-  private readonly needs = { arc: false, clearscreen: false, palette: false, random: false, math: false, keys: false };
+  private readonly needs = { arc: false, clearscreen: false, palette: false, random: false, math: false, keys: false, tick: false, dot: false, show: false, gameover: false };
 
   constructor(
     private readonly program: Program,
@@ -204,7 +207,14 @@ class Translator {
 
     const body = this.lines.splice(0);
     while (body.length && body[body.length - 1]!.text === '') body.pop();
-    const footer: TranslatedLine[] = this.py ? [{ text: '' }, ...(this.needs.keys ? [{ text: 'listen()  # start listening for the arrow keys' }] : []), { text: 'done()' }] : [];
+    const footer: TranslatedLine[] = this.py
+      ? [
+          { text: '' },
+          ...(this.needs.tick ? [{ text: '_tick()  # start the game clock' }] : []),
+          ...(this.needs.keys ? [{ text: 'listen()  # start listening for the keys' }] : []),
+          { text: 'done()' },
+        ]
+      : [];
     return { language: this.language, lines: [...this.header(), ...body, ...footer] };
   }
 
@@ -258,6 +268,58 @@ class Translator {
         { text: '    home()' },
         { text: '    if was_down:' },
         { text: '        pendown()' },
+        { text: '' },
+      );
+    }
+    if (this.needs.tick || this.needs.gameover) {
+      out.push({ text: '_playing = True  # becomes False after game_over()' }, { text: '' });
+    }
+    if (this.needs.dot) {
+      out.push(
+        { text: '# Draw a dot somewhere without moving the turtle' },
+        { text: 'def logo_dot(x, y):' },
+        { text: '    here, h, was_down = position(), heading(), isdown()' },
+        { text: '    penup()' },
+        { text: '    goto(x, y)' },
+        { text: '    dot(max(6, pensize() * 4 + 4))' },
+        { text: '    goto(here)' },
+        { text: '    setheading(h)' },
+        { text: '    if was_down:' },
+        { text: '        pendown()' },
+        { text: '' },
+      );
+    }
+    if (this.needs.show) {
+      out.push(
+        { text: '# A second turtle that writes the scoreboard' },
+        { text: '_board = Turtle()' },
+        { text: '_board.hideturtle()' },
+        { text: '_board.penup()' },
+        { text: '_board.goto(-280, 250)' },
+        { text: '' },
+        { text: 'def show(text):' },
+        { text: '    _board.clear()' },
+        { text: '    _board.write(str(text), font=("Arial", 24, "bold"))' },
+        { text: '' },
+      );
+    }
+    if (this.needs.gameover) {
+      out.push(
+        { text: 'def game_over():' },
+        { text: '    global _playing' },
+        { text: '    _playing = False' },
+        { text: '    for key in ["Up", "Down", "Left", "Right", "space"]:' },
+        { text: '        onkey(None, key)' },
+        { text: '' },
+      );
+    }
+    if (this.needs.tick) {
+      out.push(
+        { text: `# The game clock: run on_tick() every ${TICK_MS} milliseconds` },
+        { text: 'def _tick():' },
+        { text: '    if _playing:' },
+        { text: '        on_tick()' },
+        { text: `        ontimer(_tick, ${TICK_MS})` },
         { text: '' },
       );
     }
@@ -315,6 +377,8 @@ class Translator {
       case 'command': {
         const code = this.command(s.name, s.args);
         this.pushStatement(`${code}${end}`, depth, line);
+        // GAMEOVER also ends the rest of this handler, as it does in GIO.
+        if (s.name === 'GAMEOVER' && this.currentProc) this.push(this.py ? 'return' : 'return;', depth, line);
         return;
       }
       case 'call':
@@ -359,6 +423,8 @@ class Translator {
         this.needs.keys = true;
         const saved = this.currentProc;
         this.currentProc = { name: handlerName(s.key), params: [], body: s.body, pos: s.pos };
+        const isTick = s.key === 'TICK';
+        if (isTick) this.needs.tick = true;
         if (this.py) {
           const fn = `on_${s.key.toLowerCase()}`;
           this.push(`def ${fn}():`, depth, line);
@@ -367,9 +433,9 @@ class Translator {
           const before = this.lines.length;
           this.emitBlock(s.body, depth + 1);
           if (this.lines.length === before && !globals.length) this.push('pass', depth + 1);
-          this.push(`onkey(${fn}, ${quote(PY_KEY_NAMES[s.key])})`, depth, line);
+          if (!isTick) this.push(`onkey(${fn}, ${quote(PY_KEY_NAMES[s.key]!)})`, depth, line);
         } else {
-          this.push(`onKey(${quote(s.key.toLowerCase())}, () => {`, depth, line);
+          this.push(isTick ? 'onTick(() => {' : `onKey(${quote(s.key.toLowerCase())}, () => {`, depth, line);
           this.emitBlock(s.body, depth + 1);
           this.push('});', depth);
         }
@@ -439,6 +505,17 @@ class Translator {
       case 'HIDETURTLE': return py ? 'hideturtle()' : 'hideTurtle()';
       case 'SHOWTURTLE': return py ? 'showturtle()' : 'showTurtle()';
       case 'PRINT': return `${py ? 'print' : 'console.log'}(${this.printValue(args[0]!)})`;
+      case 'DOT':
+        if (!py) return `dot(${a[0]}, ${a[1]})`;
+        this.needs.dot = true;
+        return `logo_dot(${a[0]}, ${a[1]})`;
+      case 'SHOW':
+        if (py) this.needs.show = true;
+        return `show(${this.printValue(args[0]!)})`;
+      case 'GAMEOVER':
+        if (!py) return 'gameOver()';
+        this.needs.gameover = true;
+        return 'game_over()';
       default: return `${name.toLowerCase()}(${a.join(', ')})`;
     }
   }
@@ -494,7 +571,7 @@ class Translator {
         return { code: `-${this.expr(e.expr, 5)}`, prec: 4 };
       case 'bin': {
         const prec = e.op === '+' || e.op === '-' ? 2 : e.op === '*' || e.op === '/' ? 3 : 1;
-        const op = e.op === '=' ? (this.py ? '==' : '===') : e.op;
+        const op = e.op === '=' ? (this.py ? '==' : '===') : e.op === '<>' ? (this.py ? '!=' : '!==') : e.op;
         const left = this.expr(e.left, prec);
         // The right side of - and / needs brackets at equal precedence: a - (b - c).
         const right = this.expr(e.right, e.op === '-' || e.op === '/' ? prec + 1 : prec);
@@ -530,8 +607,21 @@ class Translator {
       case 'HEADING': return 'heading()';
       case 'XCOR': return 'xcor()';
       case 'YCOR': return 'ycor()';
+      case 'DISTANCE': return `distance(${a[0]}, ${a[1]})`;
+      case 'SENTENCE': return this.sentence(args);
       default: return `${name.toLowerCase()}(${a.join(', ')})`;
     }
+  }
+
+  /** SENTENCE "Score: :score becomes f"Score: {score}" in Python and `Score: ${score}` in JavaScript. */
+  private sentence(args: Expr[]): string {
+    const parts = args.flatMap((e) => (e.kind === 'reporter' && e.name === 'SENTENCE' ? e.args : [e]));
+    const pieces = parts.map((e) => {
+      if (e.kind === 'word') return e.value.replace(/[{}`$\\]/g, '');
+      if (e.kind === 'num') return formatNumber(e.value);
+      return this.py ? `{${this.expr(e)}}` : `\${${this.expr(e)}}`;
+    });
+    return this.py ? `f${quote(pieces.join(' '))}` : `\`${pieces.join(' ')}\``;
   }
 
   /* ---- output ---- */

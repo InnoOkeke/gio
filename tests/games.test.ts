@@ -58,7 +58,7 @@ describe('WHEN and key presses', () => {
 
   it('explains a WHEN without a valid key', () => {
     const r = execute('WHEN "jump [FD 10]');
-    expect(!r.ok && r.problem.message).toBe('WHEN needs a key: "up, "down, "left, "right or "space, like WHEN "up [FD 10].');
+    expect(!r.ok && r.problem.message).toBe('WHEN needs a key: "up, "down, "left, "right or "space, like WHEN "up [FD 10]. Or use WHEN "tick to do something 10 times a second.');
   });
 
   it('explains that names cannot contain a dash', () => {
@@ -94,7 +94,7 @@ describe('games in Python and JavaScript', () => {
     const py = toText(translate(parsed.program, src, 'python'));
     expect(py).toContain('def on_up():\n    global step\n    forward(step)\n    step = step + 1\nonkey(on_up, "Up")');
     expect(py).toContain('onkey(on_left, "Left")');
-    expect(py).toContain('listen()  # start listening for the arrow keys\ndone()');
+    expect(py).toContain('listen()  # start listening for the keys\ndone()');
   });
 
   it('renames variables that would clash with turtle functions', () => {

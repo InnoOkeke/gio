@@ -63,6 +63,20 @@ Unit tests can only check translated text. `scripts/check-python.ts` (`npm run c
 
 Asking the turtle helper for a game, the model named a procedure `TO DRAW-CIRCLE`. GIO reads `-` as minus, so it rejected the program twice, and its message ("I wasn't expecting - here") didn't explain why. That message would confuse a child just as much. The fix was in two places: the parser now says "Names can't have a dash (-) in them, because - means minus. Try DRAW_CIRCLE instead.", and the prompt states the naming rule. The next request produced a working game.
 
+## What live AI testing taught us
+
+Asking the turtle helper for real games exposed gaps a human tester might never hit, and each one became a language or message fix rather than a workaround:
+
+- `IF :score >= 5` failed: GIO only had `<`, `>` and `=`. Kids write `>=` too, so `>=`, `<=` and `<>` were added (and translate to `>=`, `!=` / `!==`).
+- `PRINT SENTENCE "Score: :score` failed twice: there was no `SENTENCE`, and a colon inside a quoted word broke the lexer. Both now work, and translate to an f-string in Python and a template string in JavaScript.
+- `IF DISTANCE :x :y < 15` was read as `DISTANCE :x (:y < 15)`. Reporter inputs now stop before a comparison, which is what children (and the model) expect.
+- `SHOW [You win!]` failed on the `!`. Words may now contain the punctuation kids use in messages.
+- A maze border went off the canvas, and the retry didn't help, because the feedback only said "off the canvas". The feedback now names the line and the point, the prompt gives a safe border recipe, and the model gets up to two fixes.
+
+## Playing games in a real browser
+
+`scripts/browser-check.ts` (`npm run check:browser <slug>`) drives headless Edge or Chrome through the DevTools protocol: it opens a shared game, sends real arrow-key presses, and reads the canvas pixels and the scoreboard. It first looked like the game clock never drew, until it became clear the first ticks ran during page load. Steering the turtle onto the apple then proved the whole loop (keys, ticks, DISTANCE, SHOW) works end to end, and it caught a real bug: the "Game on!" message was being replaced by "Ta-da!" when the main program finished.
+
 ## Real-browser review
 
 Each UI change was checked with headless Microsoft Edge screenshots at laptop and phone sizes. This caught issues that the type checker and tests could not:

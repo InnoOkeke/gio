@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { CONCEPTS, type Quest } from '../../logo/quests.js';
 import type { Badge } from '../progress';
-import { CheckIcon, CloseIcon, TrophyIcon } from './icons';
+import { useVoice } from '../voice';
+import { CheckIcon, CloseIcon, MicIcon, TrophyIcon } from './icons';
 
 interface QuestMapProps {
   open: boolean;
@@ -119,11 +120,14 @@ interface QuestCardProps {
   onHint(): void;
   onNext(): void;
   onLeave(): void;
+  /** Spoken commands during a quest (run, hint, explain...). */
+  onVoice(text: string): void;
 }
 
 /** Shown above the studio while a quest is active. */
-export function QuestCard({ quest, done, feedback, onHint, onNext, onLeave }: QuestCardProps) {
+export function QuestCard({ quest, done, feedback, onHint, onNext, onLeave, onVoice }: QuestCardProps) {
   const c = CONCEPTS[quest.concept];
+  const voice = useVoice(onVoice);
   return (
     <section className="panel px-5 py-5 sm:px-7 flex flex-col sm:flex-row sm:items-center gap-4" aria-labelledby="quest-title" style={{ borderColor: c.color, borderWidth: 2 }}>
       <span className="w-14 h-14 shrink-0 rounded-[18px] flex items-center justify-center text-white" style={{ background: c.color }} aria-hidden="true">
@@ -141,6 +145,18 @@ export function QuestCard({ quest, done, feedback, onHint, onNext, onLeave }: Qu
         {feedback && <p className={`m-0 mt-2 text-[15px] font-extrabold ${done ? 'text-[#08603e]' : 'text-[#9b2419]'}`}>{feedback}</p>}
       </div>
       <div className="flex flex-wrap gap-2 shrink-0">
+        {voice.supported && (
+          <button
+            type="button"
+            className={`btn btn-icon bg-[#ffc93c] text-[#5a3b00] shadow-[0_4px_0_#c99a1a] ${voice.listening ? 'mic-live' : ''}`}
+            onClick={() => (voice.listening ? voice.stop() : voice.start())}
+            aria-pressed={voice.listening}
+            aria-label={voice.listening ? 'Stop listening' : 'Say a command, like run or hint'}
+            title="Say run, hint, explain or step"
+          >
+            <MicIcon />
+          </button>
+        )}
         {done ? (
           <button type="button" className="btn btn-primary" onClick={onNext}>
             Next quest

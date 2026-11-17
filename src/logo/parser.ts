@@ -177,7 +177,7 @@ class Parser {
         const keyTok = this.peek();
         const key = keyTok?.type === 'quoted' ? keyTok.text : '';
         if (!(GAME_KEYS as readonly string[]).includes(key)) {
-          throw new LogoError('WHEN needs a key: "up, "down, "left, "right or "space, like WHEN "up [FD 10].', keyTok?.pos ?? t.pos);
+          throw new LogoError('WHEN needs a key: "up, "down, "left, "right or "space, like WHEN "up [FD 10]. Or use WHEN "tick to do something 10 times a second.', keyTok?.pos ?? t.pos);
         }
         this.next();
         return { kind: 'when', key: key as GameKey, body: this.parseBlock('WHEN', t.pos), pos: t.pos };
@@ -242,7 +242,7 @@ class Parser {
     let left = this.parseAdditive(owner, ownerPos);
     for (;;) {
       const t = this.peek();
-      if (t?.type !== 'op' || !['<', '>', '='].includes(t.text)) return left;
+      if (t?.type !== 'op' || !['<', '>', '=', '<=', '>=', '<>'].includes(t.text)) return left;
       this.next();
       const right = this.parseAdditive(owner, ownerPos);
       left = { kind: 'bin', op: t.text, left, right, pos: t.pos };
@@ -309,7 +309,10 @@ class Parser {
         const prim = lookupPrimitive(t.text);
         if (prim?.kind === 'reporter') {
           this.next();
-          return { kind: 'reporter', name: prim.name, args: this.parseArgs(prim.name, prim.arity, t.pos), pos: t.pos };
+          // A reporter's inputs stop before a comparison, so DISTANCE :x :y < 15 compares the distance.
+          const args: Expr[] = [];
+          for (let k = 0; k < prim.arity; k++) args.push(this.parseAdditive(prim.name, t.pos));
+          return { kind: 'reporter', name: prim.name, args, pos: t.pos };
         }
         if (prim || RESERVED.has(t.text) || this.arities.has(t.text)) {
           throw new LogoError(`${owner} needs an input before ${t.text}. Try something like ${owner} 50.`, t.pos);

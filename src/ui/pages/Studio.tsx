@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type GameKey, type GameSession, type TargetLanguage } from '../../logo/index.js';
+import { TICK_MS } from '../../logo/primitives.js';
 import { checkQuest, CONCEPTS, playWithPresses, type Quest } from '../../logo/quests.js';
 import { api, local, type AssistantStyle } from '../api';
 import { AskTurtle } from '../components/AskTurtle';
@@ -18,6 +19,8 @@ import {
   RocketSpeedIcon,
   SaveIcon,
   ShareIcon,
+  SpeakerIcon,
+  SpeakerOffIcon,
   StepIcon,
   TrophyIcon,
   TurtleSpeedIcon,
@@ -31,6 +34,8 @@ import { BlocksEditor } from '../editor/BlocksEditor';
 import { LogoEditor, type LogoEditorHandle } from '../editor/LogoEditor';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
 import { useProgress } from '../progress';
+import { useReadAloud } from '../speech';
+import { parseVoiceCommand, type VoiceCommand } from '../voice-commands';
 import type { PlayerStatus, Speed } from '../runtime/player';
 
 const DEFAULT_TITLE = 'My drawing';
@@ -124,6 +129,8 @@ function StudioView({ initial }: { initial: Loaded }) {
   const stageRef = useRef<StageHandle>(null);
   const toast = useToast();
   const progress = useProgress(mode);
+  const readAloud = useReadAloud(little);
+  const undoStack = useRef<string[]>([]);
 
   const [title, setTitle] = useState(initial.title);
   const [code, setCode] = useState(initial.code);
@@ -153,12 +160,14 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   /* Games: the running program stays alive so WHEN handlers can answer key presses. */
   const [gameKeys, setGameKeys] = useState<GameKey[]>([]);
+  const [gameTicks, setGameTicks] = useState(false);
   const sessionRef = useRef<GameSession | null>(null);
   const sessionCodeRef = useRef('');
   const pressingRef = useRef(false);
   const endGame = useCallback(() => {
     sessionRef.current = null;
     setGameKeys([]);
+    setGameTicks(false);
   }, []);
 
   const owned = project?.editKey != null;
@@ -174,9 +183,16 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   /** Replace the whole program (AI answers, quest starters, blocks) in whichever editor is showing. */
   const replaceCode = useCallback((next: string) => {
+    if (next !== codeRef.current) undoStack.current = [...undoStack.current, codeRef.current].slice(-30);
     setCode(next);
     editorRef.current?.replaceAll(next);
   }, []);
+
+  // Read the turtle's messages aloud (on by default for Little Turtles).
+  useEffect(() => {
+    readAloud.speak(bubble.text);
+    // Speak only when the message changes, not when the speak function is recreated.
+  }, [bubble.text]);
 
   // Keep unsaved new work safe in this browser.
   useEffect(() => {
@@ -192,9 +208,10 @@ function StudioView({ initial }: { initial: Loaded }) {
     editorRef.current?.setProblemLine(null);
     pressingRef.current = false;
     const res = start(source);
-    sessionRef.current = res.ok && res.session.keys.length ? res.session : null;
+    sessionRef.current = res.ok && (res.session.keys.length || res.session.ticks) && !res.session.isOver() ? res.session : null;
     sessionCodeRef.current = source;
     setGameKeys(sessionRef.current ? sessionRef.current.keys : []);
+    setGameTicks(sessionRef.current?.ticks ?? false);
     if (!res.ok) {
       editorRef.current?.setProblemLine(res.problem.line);
       setBubble({ kind: 'problem', text: res.problem.message, line: res.problem.line });
@@ -207,7 +224,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     if (sessionRef.current) {
       // Let the arrow keys reach the game instead of the code editor.
       (document.activeElement as HTMLElement | null)?.blur?.();
-      setBubble({ kind: 'info', text: 'Game on! Press the arrow keys to play.' });
+      setBubble({ kind: 'info', text: sessionRef.current.keys.length ? 'Game on! Press the arrow keys to play.' : 'Game on! Watch it go.' });
       stageRef.current?.load(res.result);
       stageRef.current?.play();
       return;
@@ -234,7 +251,8 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   const pressKey = useCallback((key: GameKey) => {
     const session = sessionRef.current;
-    if (!session || !session.keys.includes(key)) return;
+    if (!session || session.isOver()) return;
+    if (key === 'TICK' ? !session.ticks : !session.keys.includes(key)) return;
     const r = press(session, key);
     if (r.events.length) {
       pressingRef.current = true;
@@ -245,6 +263,21 @@ function StudioView({ initial }: { initial: Loaded }) {
       setBubble({ kind: 'problem', text: r.problem.message, line: r.problem.line });
     }
   }, []);
+
+  // The game clock: WHEN "tick runs 10 times a second. A tick is skipped if the turtle is still catching up.
+  useEffect(() => {
+    if (!gameTicks) return;
+    const id = window.setInterval(() => {
+      if ((stageRef.current?.pending() ?? 0) > 40) return;
+      pressKey('TICK');
+    }, TICK_MS);
+    return () => window.clearInterval(id);
+  }, [gameTicks, pressKey]);
+
+  const onGameOver = useCallback(() => {
+    endGame();
+    setBubble({ kind: 'success', text: 'Game over! Press Run to play again.' });
+  }, [endGame]);
 
   useEffect(() => {
     if (!gameKeys.length) return;
@@ -318,7 +351,8 @@ function StudioView({ initial }: { initial: Loaded }) {
       if (s === 'done' && pressingRef.current) return;
       if (s === 'done') {
         if (questRef.current) checkActiveQuest();
-        else setBubble((b) => (b.kind === 'problem' ? b : { kind: 'success', text: little ? 'Ta-da! You made that!' : 'Ta-da! Change a number and run it again to see what happens.' }));
+        // A game keeps its "Game on!" message while it is being played.
+        else if (!sessionRef.current) setBubble((b) => (b.kind === 'problem' ? b : { kind: 'success', text: little ? 'Ta-da! You made that!' : 'Ta-da! Change a number and run it again to see what happens.' }));
       }
       if (s === 'paused') setBubble((b) => (b.kind === 'problem' ? b : { kind: 'info', text: 'Paused. Press Step to go one command at a time.' }));
     },
@@ -357,9 +391,86 @@ function StudioView({ initial }: { initial: Loaded }) {
     setBubble({ kind: 'info', text: 'All clean! Press Run when you\u2019re ready.' });
   };
 
+  /* ---------------- voice and typed commands ---------------- */
+
+  const undo = () => {
+    const previous = undoStack.current.pop();
+    if (previous === undefined) {
+      setBubble({ kind: 'info', text: 'There is nothing to undo.' });
+      return;
+    }
+    setCode(previous);
+    editorRef.current?.replaceAll(previous);
+    setBubble({ kind: 'info', text: 'Undone!' });
+  };
+
+  const SLOWER: Record<Speed, Speed> = { rocket: 'rabbit', rabbit: 'turtle', turtle: 'turtle' };
+  const FASTER: Record<Speed, Speed> = { turtle: 'rabbit', rabbit: 'rocket', rocket: 'rocket' };
+
+  /** Short spoken (or typed) commands control the app; everything else is a drawing request. */
+  const doCommand = (command: VoiceCommand) => {
+    switch (command) {
+      case 'run':
+        if (status === 'paused') stageRef.current?.play();
+        else run(codeRef.current);
+        return;
+      case 'pause':
+        stageRef.current?.pause();
+        return;
+      case 'step':
+        onStep();
+        return;
+      case 'slower':
+        setSpeed((s) => SLOWER[s]);
+        setBubble({ kind: 'info', text: 'Okay, I\u2019ll go slower.' });
+        return;
+      case 'faster':
+        setSpeed((s) => FASTER[s]);
+        setBubble({ kind: 'info', text: 'Okay, I\u2019ll go faster!' });
+        return;
+      case 'zoom':
+        setSpeed('rocket');
+        setBubble({ kind: 'info', text: 'Zoom! Super fast.' });
+        return;
+      case 'explain':
+        void explain();
+        return;
+      case 'save':
+        void save();
+        return;
+      case 'clear':
+        onReset();
+        return;
+      case 'new':
+        startNew();
+        return;
+      case 'undo':
+        undo();
+        return;
+      case 'quests':
+        setQuestsOpen(true);
+        return;
+      case 'hint':
+        setBubble({ kind: 'info', text: quest ? `Hint: ${quest.hint}` : 'Open Quests to find a challenge, and I can give you hints!' });
+        return;
+      case 'quiet':
+        readAloud.setEnabled(false);
+        return;
+      case 'talk':
+        readAloud.setEnabled(true);
+        readAloud.speak(bubble.text, true);
+        return;
+    }
+  };
+
   /* ---------------- AI ---------------- */
 
   const ask = async (prompt: string): Promise<boolean> => {
+    const command = parseVoiceCommand(prompt);
+    if (command) {
+      doCommand(command);
+      return true;
+    }
     setAsking(true);
     setBubble({ kind: 'info', text: 'Hmm, let me think about how to draw that…' });
     const before = code;
@@ -371,7 +482,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       if (suggested && (title === DEFAULT_TITLE || !project)) setTitle(suggested);
       run(next);
       if (before.trim()) {
-        toast.show({ text: 'I changed your drawing.', action: { label: 'Undo', run: () => replaceCode(before) } }, 6000);
+        toast.show({ text: 'I changed your drawing.', action: { label: 'Undo', run: undo } }, 6000);
       }
       return true;
     } catch (err) {
@@ -576,7 +687,11 @@ function StudioView({ initial }: { initial: Loaded }) {
 
       <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
         {quest ? (
-          <QuestCard quest={quest} done={questDone} feedback={questFeedback} onHint={() => setBubble({ kind: 'info', text: `Hint: ${quest.hint}` })} onNext={nextQuest} onLeave={leaveQuest} />
+          <QuestCard quest={quest} done={questDone} feedback={questFeedback} onHint={() => setBubble({ kind: 'info', text: `Hint: ${quest.hint}` })} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
+            const command = parseVoiceCommand(text);
+            if (command) doCommand(command);
+            else setBubble({ kind: 'info', text: 'In a quest you write the code yourself! You can say run, hint, explain or step.' });
+          }} />
         ) : (
           <AskTurtle mode={mode} hasCode={code.trim().length > 0} busy={asking} onAsk={ask} />
         )}
@@ -587,7 +702,7 @@ function StudioView({ initial }: { initial: Loaded }) {
           <section className="panel p-4 sm:p-5 flex flex-col gap-4 order-1 lg:order-2" aria-label="Turtle stage">
             {/* Square stage sized so the Run button stays on screen on laptops. */}
             <div className="mx-auto w-full" style={{ maxWidth: 'max(320px, min(640px, calc(100vh - 470px)))' }}>
-              <Stage ref={stageRef} onLine={onLine} onPrint={onPrint} onStatus={onStatus} />
+              <Stage ref={stageRef} onLine={onLine} onPrint={onPrint} onStatus={onStatus} onGameOver={onGameOver} />
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -621,7 +736,18 @@ function StudioView({ initial }: { initial: Loaded }) {
 
             <div className="flex flex-col gap-2">
               <TurtleBubble message={bubble} onShowLine={(line) => editorRef.current?.setProblemLine(line)} />
-              <div className="flex justify-end">
+              <div className="flex justify-end gap-2">
+                {readAloud.supported && (
+                  <button
+                    type="button"
+                    className="btn btn-quiet"
+                    onClick={() => readAloud.setEnabled(!readAloud.enabled)}
+                    aria-pressed={readAloud.enabled}
+                    title={readAloud.enabled ? 'Stop reading messages aloud' : 'Read messages aloud'}
+                  >
+                    {readAloud.enabled ? <SpeakerIcon /> : <SpeakerOffIcon />} {readAloud.enabled ? 'Reading aloud' : 'Read aloud'}
+                  </button>
+                )}
                 <button type="button" className="btn btn-quiet" onClick={() => void explain()} disabled={explaining || asking}>
                   <BulbIcon className="text-[#f4a72c]" /> {explaining ? 'Thinking…' : little ? 'What did I make?' : 'Explain my code'}
                 </button>

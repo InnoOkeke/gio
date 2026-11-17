@@ -30,9 +30,10 @@ function fullDialect(): string[] {
     '- REPEAT n [ commands ]: repeat the commands n times (n is a whole number)',
     '- TO name :input1 :input2 … END: teach a new command; call it later with its inputs',
     '- MAKE "name value: store a value; read it back with :name',
-    '- IF condition [ commands ] and IFELSE condition [ yes ] [ no ]; conditions use < > =',
+    '- IF condition [ commands ] and IFELSE condition [ yes ] [ no ]; conditions use < > = <= >= and <> (not equal)',
     '- STOP: leave the current command early',
-    '- WHEN "key [ commands ]: for games. Runs the commands each time that key is pressed, after the main program has finished. Keys: "up "down "left "right "space. Use WHEN only when the child asks for a game or for something they can control with the keys.',
+    '- WHEN "key [ commands ]: for games. Runs the commands each time that key is pressed, after the main program has finished. Keys: "up "down "left "right "space. WHEN "tick [ commands ] runs 10 times a second while the game is on, for things that move by themselves. Use WHEN only when the child asks for a game or for something they can control.',
+    '- Games: draw targets like apples or coins with DOT x y, check if the turtle reached one with IF DISTANCE x y < 20 [ ... ], keep score with MAKE and show it with SHOW, and end with GAMEOVER (for example after a score of 10). Pick new random spots with RANDOM 400 - 200. Show labels with SHOW SENTENCE "Score: :score. For a border or maze walls, stay inside the canvas: PU SETXY -250 -250 PD REPEAT 4 [FD 500 RT 90] draws the biggest safe border. Keep game code short and readable.',
     '- Arithmetic: + - * / and parentheses. Comments start with ;',
     '- Names of commands and variables use only letters, digits and underscores, like DRAW_CIRCLE or :big_size. Never put a dash (-) in a name.',
     `- Colours: ${colors}, a number 0-15, or a list like [255 128 0]`,
@@ -88,15 +89,19 @@ function validate(code: string, style: AssistantStyle): string | null {
   const where = (line: number, message: string) => `line ${line} (\`${code.split('\n')[line - 1]?.trim() ?? ''}\`): ${message}`;
   const res = start(code);
   if (!res.ok) return where(res.problem.line, res.problem.message);
-  const outOfBounds = res.result.events.some((e) => Math.abs(e.state.x) > CANVAS_HALF || Math.abs(e.state.y) > CANVAS_HALF);
-  if (outOfBounds) return `the drawing goes off the canvas; keep every point between -${CANVAS_HALF} and ${CANVAS_HALF}`;
+  const off = (x: number, y: number) => Math.abs(x) > CANVAS_HALF || Math.abs(y) > CANVAS_HALF;
+  const outside = res.result.events.find((e) => off(e.state.x, e.state.y) || (e.type === 'dot' && off(e.x, e.y)));
+  if (outside) {
+    const [x, y] = outside.type === 'dot' && off(outside.x, outside.y) ? [outside.x, outside.y] : [outside.state.x, outside.state.y];
+    return where(outside.line, `this goes off the canvas to (${Math.round(x)}, ${Math.round(y)}). Every point must stay between -${CANVAS_HALF - 40} and ${CANVAS_HALF - 40}; use smaller numbers`);
+  }
 
   // Games: press every key a few times, the way a child would, and make sure nothing breaks.
   const played: TurtleEvent[] = [];
   for (let round = 0; round < 3; round++) {
-    for (const key of res.session.keys) {
+    for (const key of [...res.session.keys, ...(res.session.ticks ? Array<'TICK'>(10).fill('TICK') : [])]) {
       const r = press(res.session, key);
-      if (!r.ok) return where(r.problem.line, `when the ${key.toLowerCase()} key is pressed: ${r.problem.message}`);
+      if (!r.ok) return where(r.problem.line, `${key === 'TICK' ? 'on a game tick' : `when the ${key.toLowerCase()} key is pressed`}: ${r.problem.message}`);
       played.push(...r.events);
     }
   }
@@ -111,7 +116,7 @@ function validate(code: string, style: AssistantStyle): string | null {
 
 /**
  * Turns a child's request into a Logo program that GIO has already parsed and run successfully.
- * If the model's first answer has a problem, it gets one chance to fix it using GIO's own error message.
+ * If the model's answer has a problem, it gets up to two chances to fix it using GIO's own error message.
  * If that also fails, the real problem is thrown; GIO never substitutes a made-up program.
  */
 export async function generateLogo(req: LogoRequest): Promise<string> {
@@ -121,7 +126,7 @@ export async function generateLogo(req: LogoRequest): Promise<string> {
   ];
 
   let problem = '';
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  for (let attempt = 1; attempt <= 3; attempt++) {
     const code = stripCodeFence(await chat(messages, { maxTokens: 1200, temperature: 0.4 }));
     const issue = validate(code, req.style);
     if (!issue) return code;

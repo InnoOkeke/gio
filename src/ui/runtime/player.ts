@@ -26,6 +26,9 @@ export interface PlayerCallbacks {
   onPrint(text: string): void;
   onBackground(color: string): void;
   onStatus(status: PlayerStatus): void;
+  /** SHOW: the scoreboard text, or null to clear it. */
+  onShow(text: string | null): void;
+  onGameOver(): void;
 }
 
 type DrawnLine = Extract<TurtleEvent, { type: 'line' }>;
@@ -90,6 +93,7 @@ export class Player {
     this.progress = 0;
     this.before = { ...INITIAL_STATE };
     this.cb.onBackground(DEFAULT_BACKGROUND);
+    this.cb.onShow(null);
     this.clearCanvas();
     this.cb.onLine(null);
     this.emitSprite(false);
@@ -116,6 +120,7 @@ export class Player {
     this.progress = 0;
     this.before = { ...INITIAL_STATE };
     this.cb.onBackground(DEFAULT_BACKGROUND);
+    this.cb.onShow(null);
     this.clearCanvas();
     this.cb.onLine(null);
     this.emitSprite(false);
@@ -164,6 +169,7 @@ export class Player {
     for (let k = 0; k < this.index; k++) {
       const e = this.events[k]!;
       if (e.type === 'line') this.strokeSegment(e, 0, 1);
+      if (e.type === 'dot') this.fillDot(e);
       if (e.type === 'clear') this.clearCanvas();
     }
     const current = this.events[this.index];
@@ -232,6 +238,9 @@ export class Player {
         if (this.progress < total) return finished;
       } else {
         if (e.type === 'clear') this.clearCanvas();
+        if (e.type === 'dot') this.fillDot(e);
+        if (e.type === 'show') this.cb.onShow(e.text);
+        if (e.type === 'gameover') this.cb.onGameOver();
         if (e.type === 'print') this.cb.onPrint(e.text);
         if (e.type === 'background') this.cb.onBackground(e.color);
         this.cb.onSprite({ x: e.state.x, y: e.state.y, heading: e.state.heading, visible: e.state.visible }, false);
@@ -272,6 +281,21 @@ export class Player {
     const { width, height } = this.canvas;
     this.ctx.setTransform(1, 0, 0, 1, 0, 0);
     this.ctx.clearRect(0, 0, width, height);
+  }
+
+  private fillDot(e: Extract<TurtleEvent, { type: 'dot' }>): void {
+    const scale = this.canvas.width / (WORLD_HALF * 2);
+    const half = this.canvas.width / 2;
+    this.ctx.setTransform(scale, 0, 0, -scale, half, half);
+    this.ctx.fillStyle = e.color;
+    this.ctx.beginPath();
+    this.ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    this.ctx.fill();
+  }
+
+  /** Events still waiting to be drawn (games skip a tick when the turtle falls behind). */
+  pending(): number {
+    return this.events.length - this.index;
   }
 
   private strokeSegment(e: DrawnLine, t0: number, t1: number): void {

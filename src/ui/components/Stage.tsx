@@ -15,11 +15,14 @@ export interface StageHandle {
   toPNG(): string;
   /** Games: draw the moves from one key press, without a celebration each time. */
   appendEvents(events: TurtleEvent[]): void;
+  /** How many moves are still waiting to be drawn. */
+  pending(): number;
   /** A faint target drawing under the child's own, for quests. */
   setGuide(result: RunResult | null): void;
 }
 
 interface StageProps {
+  onGameOver(): void;
   onLine(line: number | null): void;
   onPrint(text: string): void;
   onStatus(status: PlayerStatus): void;
@@ -27,7 +30,7 @@ interface StageProps {
 
 const BURST_COLORS = ['#ffc93c', '#12a36b', '#2b9bf4', '#ec3f86', '#7a4cf0', '#ef5a4c'];
 
-export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine, onPrint, onStatus }, ref) {
+export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine, onPrint, onStatus, onGameOver }, ref) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const guideRef = useRef<HTMLCanvasElement>(null);
@@ -39,8 +42,21 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
   const backgroundRef = useRef(DEFAULT_BACKGROUND);
   const lastStatusRef = useRef<PlayerStatus>('idle');
   const gameRef = useRef(false);
-  const callbacks = useRef({ onLine, onPrint, onStatus });
-  callbacks.current = { onLine, onPrint, onStatus };
+  const scoreRef = useRef<HTMLDivElement>(null);
+  const callbacks = useRef({ onLine, onPrint, onStatus, onGameOver });
+  callbacks.current = { onLine, onPrint, onStatus, onGameOver };
+
+  const showScore = (text: string | null) => {
+    const el = scoreRef.current;
+    if (!el) return;
+    el.hidden = text === null;
+    if (text !== null && el.textContent !== text) {
+      el.textContent = text;
+      el.classList.remove('score-pop');
+      void el.offsetWidth;
+      el.classList.add('score-pop');
+    }
+  };
 
   const placeTurtle = (sprite: SpriteState, moving: boolean) => {
     spriteRef.current = sprite;
@@ -126,6 +142,8 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
       onLine: (line) => callbacks.current.onLine(line),
       onPrint: (text) => callbacks.current.onPrint(text),
       onBackground: applyBackground,
+      onShow: showScore,
+      onGameOver: () => callbacks.current.onGameOver(),
       onStatus: (status) => {
         if (status === 'done' && lastStatusRef.current === 'playing' && !gameRef.current) celebrate();
         lastStatusRef.current = status;
@@ -165,6 +183,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
       playerRef.current?.reset();
     },
     setSpeed: (speed) => playerRef.current?.setSpeed(speed),
+    pending: () => playerRef.current?.pending() ?? 0,
     setGuide(result) {
       guideResultRef.current = result;
       drawGuide();
@@ -187,6 +206,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
       <canvas ref={guideRef} aria-hidden="true" />
       <canvas ref={canvasRef} />
       <div ref={burstRef} className="burst" aria-hidden="true" />
+      <div ref={scoreRef} className="scoreboard" role="status" aria-live="polite" hidden />
       <div ref={turtleRef} className="turtle is-idle">
         <TurtleSprite />
       </div>

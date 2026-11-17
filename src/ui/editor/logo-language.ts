@@ -18,7 +18,7 @@ const logoParser: StreamParser<null> = {
     }
     if (stream.match(/^\d*\.?\d+/)) return 'number';
     if (stream.match(/^:[A-Za-z0-9_.?]+/)) return 'variableName';
-    if (stream.match(/^"[A-Za-z0-9_.?]+/)) return 'string';
+    if (stream.match(/^"[A-Za-z0-9_.?!,'&@#]+/)) return 'string';
     if (stream.match(/^[[\]()]/)) return 'bracket';
     if (stream.match(/^[+\-*/<>=]/)) return 'operator';
     const word = stream.match(/^[A-Za-z_][A-Za-z0-9_.?]*/) as RegExpMatchArray | null;

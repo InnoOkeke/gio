@@ -32,6 +32,9 @@ const SPECS: PrimitiveSpec[] = [
   { name: 'HIDETURTLE', aliases: ['HT'], arity: 0, kind: 'command', help: 'Hide the turtle' },
   { name: 'SHOWTURTLE', aliases: ['ST'], arity: 0, kind: 'command', help: 'Show the turtle' },
   { name: 'PRINT', aliases: ['PR'], arity: 1, kind: 'command', help: 'Show a message or number' },
+  { name: 'DOT', aliases: [], arity: 2, kind: 'command', help: 'Draw a filled dot at a spot without moving the turtle: DOT x y (bigger with SETPENSIZE)' },
+  { name: 'SHOW', aliases: [], arity: 1, kind: 'command', help: 'Show a big message on the stage, like a scoreboard: SHOW :score' },
+  { name: 'GAMEOVER', aliases: [], arity: 0, kind: 'command', help: 'End the game: the keys and the tick stop' },
   { name: 'RANDOM', aliases: [], arity: 1, kind: 'reporter', help: 'A random whole number from 0 up to (not including) the number you give' },
   { name: 'REPCOUNT', aliases: [], arity: 0, kind: 'reporter', help: 'Which time round the current REPEAT is on, starting at 1' },
   { name: 'SQRT', aliases: [], arity: 1, kind: 'reporter', help: 'Square root of a number' },
@@ -40,13 +43,18 @@ const SPECS: PrimitiveSpec[] = [
   { name: 'HEADING', aliases: [], arity: 0, kind: 'reporter', help: 'Which way the turtle is facing' },
   { name: 'XCOR', aliases: [], arity: 0, kind: 'reporter', help: 'The turtle\'s x position' },
   { name: 'YCOR', aliases: [], arity: 0, kind: 'reporter', help: 'The turtle\'s y position' },
+  { name: 'DISTANCE', aliases: [], arity: 2, kind: 'reporter', help: 'How far the turtle is from a spot: DISTANCE x y' },
+  { name: 'SENTENCE', aliases: ['SE'], arity: 2, kind: 'reporter', help: 'Join two things into a message: SHOW SENTENCE "Score: :score' },
 ];
 
 /** Keywords handled by the parser itself rather than the primitive table. */
 export const SPECIAL_FORMS = ['TO', 'END', 'REPEAT', 'IF', 'IFELSE', 'MAKE', 'STOP', 'WHEN'] as const;
 
 /** Keys a game can react to with WHEN. */
-export const GAME_KEYS = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'SPACE'] as const;
+export const GAME_KEYS = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'SPACE', 'TICK'] as const;
+
+/** How often WHEN "tick runs while a game is on. */
+export const TICK_MS = 100;
 export type GameKey = (typeof GAME_KEYS)[number];
 
 const byName = new Map<string, PrimitiveSpec>();

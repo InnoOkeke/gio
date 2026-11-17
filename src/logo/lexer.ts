@@ -16,7 +16,8 @@ export interface Token {
 }
 
 const OPERATORS = new Set(['+', '-', '*', '/', '<', '>', '=']);
-const WORD_CHAR = /[A-Za-z0-9_.?]/;
+/** Letters, digits and the punctuation kids put in messages (\"You win!\", \"Let's go,\"). */
+const WORD_CHAR = /[A-Za-z0-9_.?!,'&@#]/;
 
 export function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -65,6 +66,13 @@ export function tokenize(source: string): Token[] {
     if (ch === ')') { advance(); push({ type: 'rparen', text: ')', raw: ')', pos }); continue; }
 
     if (OPERATORS.has(ch)) {
+      const two = ch + (source[i + 1] ?? '');
+      if (two === '<=' || two === '>=' || two === '<>') {
+        advance();
+        advance();
+        push({ type: 'op', text: two, raw: two, pos });
+        continue;
+      }
       advance();
       push({ type: 'op', text: ch, raw: ch, pos });
       continue;
@@ -84,7 +92,8 @@ export function tokenize(source: string): Token[] {
     if (ch === '"') {
       advance();
       let text = '';
-      while (i < source.length && WORD_CHAR.test(source[i]!)) text += advance();
+      // A quoted word runs to the next space or bracket, so "Score: works as a label.
+      while (i < source.length && (WORD_CHAR.test(source[i]!) || (text && source[i] === ':'))) text += advance();
       if (!text) throw new LogoError('A quote mark (") needs a word right after it, like "red.', pos);
       push({ type: 'quoted', text: text.toUpperCase(), raw: text, pos });
       continue;

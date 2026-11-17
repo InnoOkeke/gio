@@ -25,6 +25,7 @@ const PROGRAMS: Record<string, string> = {
   home: 'RT 45 FD 70 HOME FD 10',
   penup: 'PU FD 50 RT 90 FD 20 PD CIRCLE 10 HT',
   game: 'MAKE "step 10\nWHEN "up [FD :step MAKE "step :step + 5]\nWHEN "right [RT 90]\nWHEN "left [LT 45]\nWHEN "space [CIRCLE 15]',
+  catch: 'MAKE "score 0\nMAKE "ay 50\nSETPENCOLOR "red\nDOT 0 :ay\nSHOW :score\nWHEN "up [FD 10]\nWHEN "tick [\n  IF DISTANCE 0 :ay < 15 [\n    MAKE "score :score + 1\n    SHOW :score\n    IF :score = 2 [SHOW [You win!] GAMEOVER]\n    MAKE "ay :ay + 50\n    DOT 0 :ay\n  ]\n]',
   sketch: 'WHEN "up [SETH 0 FD 10]\nWHEN "down [SETH 180 FD 10]\nWHEN "left [SETH 270 FD 10]\nWHEN "right [SETH 90 FD 10]',
 };
 
@@ -32,6 +33,7 @@ const PROGRAMS: Record<string, string> = {
 const PRESSES: Record<string, GameKey[]> = {
   game: ['UP', 'RIGHT', 'UP', 'SPACE', 'LEFT', 'UP', 'UP'],
   sketch: ['UP', 'UP', 'RIGHT', 'RIGHT', 'DOWN', 'LEFT'],
+  catch: ['UP', 'UP', 'UP', 'UP', 'UP', 'TICK', 'UP', 'UP', 'UP', 'UP', 'UP', 'TICK', 'UP'],
 };
 
 interface PythonState {
@@ -60,9 +62,12 @@ function gioArcEnds(events: TurtleEvent[]): [number, number][] {
 }
 
 function instrument(code: string, presses: GameKey[]): string {
-  const calls = presses.map((k) => `on_${k.toLowerCase()}()`).join('\n');
+  // After game_over() Python unbinds the keys and stops the clock, so presses only count while the game is on.
+  const calls = presses.map((k) => `if globals().get("_playing", True): on_${k.toLowerCase()}()`).join('\n');
   return code
     .replace('mode("logo")', 'mode("logo")\ntracer(0)\n_arc_ends = []')
+    // The test presses keys and ticks itself, so don't start Python's own game clock.
+    .replace('\n_tick()  # start the game clock', '')
     .replace('    circle(-radius, angle)\n', '    circle(-radius, angle)\n    _arc_ends.append((round(xcor(), 3), round(ycor(), 3)))\n')
     .replace(
       /\ndone\(\)$/,

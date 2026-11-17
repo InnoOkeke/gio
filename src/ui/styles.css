@@ -334,6 +334,40 @@
   100% { transform: scale(1); }
 }
 
+/* SHOW: the game's scoreboard */
+.scoreboard {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: calc(100% - 24px);
+  padding: 8px 20px;
+  border-radius: 999px;
+  background: rgba(23, 38, 31, 0.86);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 900;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  box-shadow: var(--shadow-2);
+}
+
+.scoreboard[hidden] {
+  display: none;
+}
+
+.score-pop {
+  animation: score-pop 360ms var(--spring);
+}
+
+@keyframes score-pop {
+  0% { transform: translateX(-50%) scale(1); }
+  45% { transform: translateX(-50%) scale(1.22); }
+  100% { transform: translateX(-50%) scale(1); }
+}
+
 /* Celebration burst when a drawing finishes */
 .burst {
   position: absolute;
