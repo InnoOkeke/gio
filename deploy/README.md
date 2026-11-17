@@ -10,13 +10,13 @@ GIO runs on one small server: Node.js serves the API and the built UI on port 30
 | Elastic IP | A stable public DNS name for CloudFront to reach the server |
 | Security group | Only port 80, and only from CloudFront's origin-facing IP list. No SSH: the server is managed with AWS Systems Manager. |
 | IAM role (instance profile) | Systems Manager access, plus read access to one Parameter Store value: the Bedrock API key |
-| Parameter Store `SecureString` `/gio/bedrock-api-key` | The Bedrock API key, encrypted. Read at start-up and kept only in memory. |
+| Parameter Store `SecureString` `gio-bedrock-api-key` | The Bedrock API key, encrypted. Read at start-up and kept only in memory. |
 | CloudFront distribution | Public HTTPS address, HTTP→HTTPS redirect, caching only for `/assets/*` |
 
 ## Setup
 
 1. Launch the instance with `deploy/setup.sh` as user data. It installs Node 22 (checksum-verified) and nginx, builds GIO from GitHub, writes the non-secret settings in `/etc/gio/gio.env` (from `deploy/gio.env.example`), and starts a hardened `gio` systemd service.
-2. Store the Bedrock API key in Parameter Store as a `SecureString` named `/gio/bedrock-api-key`, in the same Region. The service retries every 10 seconds, so GIO starts serving within a few seconds of the key being saved.
+2. Store the Bedrock API key in Parameter Store as a `SecureString` named `gio-bedrock-api-key`, in the same Region. The service retries every 10 seconds, so GIO starts serving within a few seconds of the key being saved.
 
 ## Updating
 
