@@ -23,8 +23,23 @@ Logo gave children a "turtle" they could steer with simple commands like `FORWAR
 
 ---
 
+## Two ways to code, by age
+
+| | **Little Turtles** (under 8) | **Turtle Coders** (8–12) |
+|---|---|---|
+| Coding | Big tap-to-add blocks with − / + numbers | Real Logo text with autocomplete and tap-to-insert chips |
+| Other languages | "See the code" shows the Logo behind the blocks | Every program shown live in **Python** and **JavaScript** |
+| Asking the turtle | Voice or text; answers always fit in blocks | Voice or text; answers use the full language |
+| Quests | 8 picture quests | 10 coding quests: loops, functions, inputs, decisions, recursion, debugging |
+| Explain my code | A short story of what the turtle does | Line-by-line points that name the programming idea and the Python equivalent |
+
+Kids pick a mode on the first screen and can switch any time. A link can choose the mode, e.g. `/?mode=little` for a class of younger kids. Quest progress and badges stay in the browser: no accounts and no public gallery.
+
 ## What works today
 
+- 🐍 **Logo → Python and JavaScript**, translated from the program tree (no AI), with matching lines linked both ways. The Python uses Python's real `turtle` module; `npm run check:python` runs translated programs in CPython and confirms they end in the same place as GIO's turtle.
+- 🏆 **Quests with automatic checking**: GIO compares the drawing itself (any correct solution passes, mirror images count), shows the target faintly on the stage, and awards a badge for each programming idea.
+- 🎤 **Talk to the turtle** using the browser's built-in speech recognition (tap to talk; shown only where the browser supports it).
 - 🐢 **A real Logo interpreter**, written for GIO: `FD`, `BK`, `RT`, `LT`, `PU`, `PD`, `HOME`, `CS`, `SETXY`, `SETHEADING`, `ARC`, `CIRCLE`, `SETPENCOLOR`, `SETPENSIZE`, `SETBG`, `PRINT`, `REPEAT`, `TO … END` procedures with inputs, recursion with `STOP`, `MAKE` variables, `IF` / `IFELSE`, arithmetic, `RANDOM` and `REPCOUNT`.
 - 💬 **Error messages written for kids**, with the line highlighted: *"I don't know how to FORWRD. Did you mean FORWARD?"*
 - 🤖 **Ask the turtle**: describe a drawing (or a change to the current one) and GIO writes Logo with short comments a child can read. Every AI answer is parsed and test-run by GIO's interpreter before it reaches the editor.
@@ -36,8 +51,7 @@ Logo gave children a "turtle" they could steer with simple commands like `FORWAR
 
 ## Coming next
 
-- 💡 **Explain my code**: the turtle explains a program in kid-friendly words.
-- 🏁 Starter challenges and a retro "school lab" look.
+- 🎮 **Make a game**: arrow-key events, so kids learn event-driven programming.
 - ☁️ A public deployment on AWS.
 
 ---

@@ -117,6 +117,59 @@ export const RocketSpeedIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const MicIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" stroke="none" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0" />
+    <path d="M12 17.5V21" />
+  </Icon>
+);
+
+export const TrophyIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 4h10v5a5 5 0 0 1-10 0Z" fill="currentColor" fillOpacity={0.2} />
+    <path d="M7 6H4.5a2.5 2.5 0 0 0 2.6 3.4M17 6h2.5a2.5 2.5 0 0 1-2.6 3.4" />
+    <path d="M12 14v3.5M8.5 20.5h7M9.5 17.5h5v3h-5Z" />
+  </Icon>
+);
+
+export const BulbIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M8.5 14.5a6 6 0 1 1 7 0c-.8.6-1 1.3-1 2.2V17h-5v-.3c0-.9-.2-1.6-1-2.2Z" fill="currentColor" fillOpacity={0.2} />
+    <path d="M9.5 20h5" />
+  </Icon>
+);
+
+export const CloseIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6 6l12 12M18 6 6 18" />
+  </Icon>
+);
+
+export const ArrowUpIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 19V5M6 11l6-6 6 6" />
+  </Icon>
+);
+
+export const ArrowDownIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 5v14M6 13l6 6 6-6" />
+  </Icon>
+);
+
+export const TrashIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4.5 7h15M10 7V4.5h4V7M6.5 7l1 13h9l1-13" />
+  </Icon>
+);
+
+export const MinusIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 12h14" />
+  </Icon>
+);
+
 export const CheckIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="m5 12.5 4.5 4.5L19 7.5" />

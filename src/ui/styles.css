@@ -492,7 +492,8 @@
   transition: background-color 160ms ease, color 160ms ease, box-shadow 160ms ease;
 }
 
-.segmented button[aria-checked='true'] {
+.segmented button[aria-checked='true'],
+.segmented button[aria-selected='true'] {
   background: var(--surface);
   color: var(--ink);
   box-shadow: var(--shadow-1);
@@ -578,6 +579,150 @@
   color: var(--ink-3);
   font-family: var(--font);
   font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+ * Blocks (Little Turtles)
+ * -------------------------------------------------------------------------- */
+.block-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 8px 10px 8px 12px;
+  border-radius: 18px;
+  color: #fff;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 160ms var(--spring), box-shadow 160ms ease, outline-color 160ms ease;
+  outline: 4px solid transparent;
+  outline-offset: 2px;
+}
+
+.block-pill:hover {
+  transform: translateY(-1px);
+}
+
+.block-pill:active {
+  transform: scale(0.97);
+}
+
+.block-pill.is-selected {
+  outline-color: var(--sun);
+}
+
+.block-pill.is-running {
+  animation: block-pulse 600ms ease-in-out infinite alternate;
+  outline-color: var(--sun);
+}
+
+@keyframes block-pulse {
+  from { transform: scale(1); }
+  to { transform: scale(1.03); }
+}
+
+.block-glyph {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.22);
+  font-size: 22px;
+  line-height: 1;
+}
+
+.block-step {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  cursor: pointer;
+  transition: transform 140ms var(--spring), background-color 140ms ease;
+}
+
+.block-step:hover {
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.block-step:active {
+  transform: scale(0.88);
+}
+
+.block-value {
+  min-width: 58px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #fff;
+  color: var(--ink);
+  font-size: 19px;
+  font-weight: 900;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.repeat-body {
+  margin: 6px 0 4px 22px;
+  padding: 10px 0 10px 14px;
+  border-left: 6px solid;
+  border-radius: 0 0 0 16px;
+}
+
+.palette-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 68px;
+  padding: 6px 4px;
+  line-height: 1.1;
+  border: none;
+  border-radius: 16px;
+  color: #fff;
+  font-family: var(--font);
+  font-size: 14px;
+  font-weight: 900;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 160ms var(--spring), box-shadow 160ms ease;
+}
+
+.palette-tile:hover {
+  transform: translateY(-2px);
+}
+
+.palette-tile:active {
+  transform: scale(0.94);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+}
+
+/* Side sheet (quests) */
+.sheet-in {
+  animation: sheet-in 380ms var(--ease-out);
+}
+
+@keyframes sheet-in {
+  from { transform: translateX(40px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+/* Mic button while listening */
+.mic-live {
+  animation: mic-pulse 1.1s ease-in-out infinite;
+}
+
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 201, 60, 0.7); }
+  50% { box-shadow: 0 0 0 12px rgba(255, 201, 60, 0); }
 }
 
 /* Utilities come after the component styles so classes like hidden and sm:inline win. */

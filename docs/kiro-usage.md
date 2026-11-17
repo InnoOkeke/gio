@@ -47,6 +47,18 @@ A property also caught a real precision issue: after seven turns of 51.43°, the
 
 ---
 
+More property tests guard the newer features:
+
+- Every valid program translates to Python and JavaScript with every Logo line accounted for, Python indentation always correct, and JavaScript braces always balanced.
+- Any block program survives the round trip blocks → Logo → blocks unchanged.
+- A regular polygon drawn starting from any corner is recognised as the same drawing by the quest checker.
+
+Every quest is tested with a kid-style solution that differs from the target, and every debugging quest is tested to fail with its buggy starter code.
+
+## Checking against real Python
+
+Unit tests can only check translated text. `scripts/check-python.ts` (`npm run check:python`) goes further: it runs twelve translated programs in real CPython turtle and compares the final position, heading, pen state and every arc end point with GIO's interpreter. All twelve match, including the 25 arcs of the rainbow flower. That is the evidence behind the claim that GIO's Python draws the same picture.
+
 ## Real-browser review
 
 Each UI change was checked with headless Microsoft Edge screenshots at laptop and phone sizes. This caught issues that the type checker and tests could not:

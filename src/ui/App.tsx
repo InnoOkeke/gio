@@ -1,6 +1,8 @@
 import { Component, type ReactNode } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Wordmark } from './components/GioMark';
+import { ModePicker } from './components/ModePicker';
+import { ModeProvider, useMode } from './mode';
 import NotFound from './pages/NotFound';
 import Studio from './pages/Studio';
 
@@ -37,14 +39,22 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryS
   }
 }
 
+/** Every studio visit needs an age mode first; the picker appears until one is chosen. */
+function StudioGate() {
+  const { mode } = useMode();
+  return mode ? <Studio /> : <ModePicker />;
+}
+
 export default function App() {
   return (
     <AppErrorBoundary>
-      <Routes>
-        <Route path="/" element={<Studio />} />
-        <Route path="/p/:slug" element={<Studio />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <ModeProvider>
+        <Routes>
+          <Route path="/" element={<StudioGate />} />
+          <Route path="/p/:slug" element={<StudioGate />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </ModeProvider>
     </AppErrorBoundary>
   );
 }

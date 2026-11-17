@@ -10,6 +10,10 @@ export type { TurtleEvent, TurtleState, RunResult, RunOptions, RunLimits, Value 
 export { PRIMITIVES, lookupPrimitive } from './primitives.js';
 export type { PrimitiveSpec } from './primitives.js';
 export { NAMED_COLORS, PALETTE_16 } from './colors.js';
+export { translate, toText } from './translate.js';
+export { toBlocks, blocksToLogo, BLOCK_COLORS, BLOCK_COMMANDS_HELP } from './blocks.js';
+export type { Block, BlockKind, ToBlocksResult } from './blocks.js';
+export type { TargetLanguage, Translation, TranslatedLine } from './translate.js';
 
 export interface LogoProblem {
   message: string;

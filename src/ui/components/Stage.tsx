@@ -13,6 +13,8 @@ export interface StageHandle {
   setSpeed(speed: Speed): void;
   /** PNG of the drawing on its background, for downloading. */
   toPNG(): string;
+  /** A faint target drawing under the child's own, for quests. */
+  setGuide(result: RunResult | null): void;
 }
 
 interface StageProps {
@@ -26,6 +28,8 @@ const BURST_COLORS = ['#ffc93c', '#12a36b', '#2b9bf4', '#ec3f86', '#7a4cf0', '#e
 export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine, onPrint, onStatus }, ref) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const guideRef = useRef<HTMLCanvasElement>(null);
+  const guideResultRef = useRef<RunResult | null>(null);
   const turtleRef = useRef<HTMLDivElement>(null);
   const burstRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
@@ -74,6 +78,36 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
     }
   };
 
+  const drawGuide = () => {
+    const canvas = guideRef.current;
+    const stage = stageRef.current;
+    if (!canvas || !stage) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 3);
+    const px = Math.max(1, Math.round(stage.clientWidth * dpr));
+    canvas.width = px;
+    canvas.height = px;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, px, px);
+    const result = guideResultRef.current;
+    if (!result) return;
+    const scale = px / (WORLD_HALF * 2);
+    ctx.setTransform(scale, 0, 0, -scale, px / 2, px / 2);
+    ctx.strokeStyle = 'rgba(43, 155, 244, 0.38)';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.setLineDash([2, 12]);
+    for (const e of result.events) {
+      if (e.type === 'clear') ctx.clearRect(-WORLD_HALF, -WORLD_HALF, WORLD_HALF * 2, WORLD_HALF * 2);
+      if (e.type !== 'line') continue;
+      ctx.beginPath();
+      ctx.moveTo(e.x1, e.y1);
+      ctx.lineTo(e.x2, e.y2);
+      ctx.stroke();
+    }
+  };
+
   const applyBackground = (color: string) => {
     backgroundRef.current = color;
     const stage = stageRef.current;
@@ -99,6 +133,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
 
     const observer = new ResizeObserver(() => {
       player.resize();
+      drawGuide();
       placeTurtle(spriteRef.current, false);
     });
     observer.observe(stageRef.current!);
@@ -117,6 +152,10 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
     finish: () => playerRef.current?.finish(),
     reset: () => playerRef.current?.reset(),
     setSpeed: (speed) => playerRef.current?.setSpeed(speed),
+    setGuide(result) {
+      guideResultRef.current = result;
+      drawGuide();
+    },
     toPNG() {
       const source = canvasRef.current!;
       const out = document.createElement('canvas');
@@ -132,6 +171,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
 
   return (
     <div ref={stageRef} className="stage" role="img" aria-label="Turtle drawing area">
+      <canvas ref={guideRef} aria-hidden="true" />
       <canvas ref={canvasRef} />
       <div ref={burstRef} className="burst" aria-hidden="true" />
       <div ref={turtleRef} className="turtle is-idle">

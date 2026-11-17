@@ -1,0 +1,111 @@
+import { NAMED_COLORS } from './colors.js';
+import type { Expr, Program, Stmt } from './parser.js';
+
+/**
+ * The block language for Little Turtles: a small, friendly subset of Logo.
+ * Blocks and Logo convert both ways, so blocks are always real Logo underneath.
+ */
+export type Block =
+  | { kind: 'forward'; n: number }
+  | { kind: 'back'; n: number }
+  | { kind: 'right'; n: number }
+  | { kind: 'left'; n: number }
+  | { kind: 'penup' }
+  | { kind: 'pendown' }
+  | { kind: 'color'; color: string }
+  | { kind: 'size'; n: number }
+  | { kind: 'circle'; n: number }
+  | { kind: 'repeat'; n: number; body: Block[] };
+
+export type BlockKind = Block['kind'];
+
+export const BLOCK_COLORS = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink', 'black'] as const;
+
+/** Commands Little Turtles' AI answers may use, described for the model. */
+export const BLOCK_COMMANDS_HELP = [
+  'FD n / BK n: move forward or back by a whole number of steps',
+  'RT n / LT n: turn right or left by a whole number of degrees',
+  'PU / PD: pen up, pen down',
+  `SETPENCOLOR "name: one of ${BLOCK_COLORS.map((c) => `"${c}`).join(' ')}`,
+  'SETPENSIZE n: pen thickness, 1 to 20',
+  'CIRCLE n: a circle of radius n around the turtle',
+  'REPEAT n [ ... ]: repeat the commands inside n times (REPEAT can contain REPEAT)',
+];
+
+const literal = (e: Expr): number | null => (e.kind === 'num' && Number.isInteger(e.value) ? e.value : e.kind === 'neg' && e.expr.kind === 'num' && Number.isInteger(e.expr.value) ? -e.expr.value : null);
+
+export type ToBlocksResult = { ok: true; blocks: Block[] } | { ok: false; reason: string };
+
+/** Convert a parsed Logo program to blocks, if it only uses block commands with plain numbers. */
+export function toBlocks(program: Program): ToBlocksResult {
+  if (program.procedures.size) return { ok: false, reason: 'it teaches the turtle new commands with TO' };
+  const convert = (stmts: Stmt[]): Block[] | string => {
+    const out: Block[] = [];
+    for (const s of stmts) {
+      if (s.kind === 'repeat') {
+        const n = literal(s.count);
+        if (n === null) return 'a REPEAT uses a calculated number';
+        const body = convert(s.body);
+        if (typeof body === 'string') return body;
+        out.push({ kind: 'repeat', n, body });
+        continue;
+      }
+      if (s.kind !== 'command') return `it uses ${s.kind === 'make' ? 'MAKE' : s.kind === 'if' ? 'IF' : s.kind === 'stop' ? 'STOP' : 'its own commands'}`;
+      const n = s.args[0] ? literal(s.args[0]) : null;
+      const needNumber = (kind: 'forward' | 'back' | 'right' | 'left' | 'size' | 'circle'): Block | string =>
+        n === null ? `${s.name} uses a calculated number` : { kind, n };
+      let block: Block | string;
+      switch (s.name) {
+        case 'FORWARD': block = needNumber('forward'); break;
+        case 'BACK': block = needNumber('back'); break;
+        case 'RIGHT': block = needNumber('right'); break;
+        case 'LEFT': block = needNumber('left'); break;
+        case 'SETPENSIZE': block = needNumber('size'); break;
+        case 'CIRCLE': block = needNumber('circle'); break;
+        case 'PENUP': block = { kind: 'penup' }; break;
+        case 'PENDOWN': block = { kind: 'pendown' }; break;
+        case 'SETPENCOLOR': {
+          const arg = s.args[0]!;
+          const name = arg.kind === 'word' ? arg.value.toLowerCase() : null;
+          block = name && (BLOCK_COLORS as readonly string[]).includes(name) ? { kind: 'color', color: name } : 'it uses a colour that has no block';
+          break;
+        }
+        default:
+          block = `it uses ${s.name}`;
+      }
+      if (typeof block === 'string') return block;
+      out.push(block);
+    }
+    return out;
+  };
+  const result = convert(program.main);
+  return typeof result === 'string' ? { ok: false, reason: result } : { ok: true, blocks: result };
+}
+
+/** Write blocks as tidy Logo, one command per line, with REPEAT bodies indented. */
+export function blocksToLogo(blocks: Block[], depth = 0): string {
+  const pad = '  '.repeat(depth);
+  return blocks
+    .map((b) => {
+      switch (b.kind) {
+        case 'forward': return `${pad}FD ${b.n}`;
+        case 'back': return `${pad}BK ${b.n}`;
+        case 'right': return `${pad}RT ${b.n}`;
+        case 'left': return `${pad}LT ${b.n}`;
+        case 'penup': return `${pad}PU`;
+        case 'pendown': return `${pad}PD`;
+        case 'color': return `${pad}SETPENCOLOR "${b.color}`;
+        case 'size': return `${pad}SETPENSIZE ${b.n}`;
+        case 'circle': return `${pad}CIRCLE ${b.n}`;
+        case 'repeat': {
+          if (!b.body.length) return `${pad}REPEAT ${b.n} [ ]`;
+          return `${pad}REPEAT ${b.n} [\n${blocksToLogo(b.body, depth + 1)}\n${pad}]`;
+        }
+      }
+    })
+    .join('\n');
+}
+
+export function isBlockColor(name: string): boolean {
+  return (BLOCK_COLORS as readonly string[]).includes(name) && NAMED_COLORS[name.toUpperCase()] !== undefined;
+}

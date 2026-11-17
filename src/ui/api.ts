@@ -45,8 +45,11 @@ async function request<T>(method: string, url: string, body?: unknown, headers: 
   return json.data;
 }
 
+export type AssistantStyle = 'code' | 'blocks';
+
 export const api = {
-  askTurtle: (prompt: string, code?: string) => request<{ code: string }>('POST', '/api/ai/logo', { prompt, code }),
+  askTurtle: (prompt: string, code: string | undefined, style: AssistantStyle) => request<{ code: string }>('POST', '/api/ai/logo', { prompt, code, style }),
+  explain: (code: string, style: AssistantStyle) => request<{ text: string }>('POST', '/api/ai/explain', { code, style }),
   createProject: (title: string, code: string) => request<OwnedProject>('POST', '/api/projects', { title, code }),
   updateProject: (slug: string, editKey: string, changes: { title?: string; code?: string }) =>
     request<SharedProject>('PUT', `/api/projects/${encodeURIComponent(slug)}`, changes, { 'X-Edit-Key': editKey }),

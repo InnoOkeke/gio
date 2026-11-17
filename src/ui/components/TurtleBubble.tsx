@@ -16,7 +16,14 @@ export function TurtleBubble({ message, onShowLine }: { message: BubbleMessage; 
         <TurtleSprite />
       </div>
       <div key={message.text} className={`bubble bubble-${message.kind} flex-1`}>
-        <p className="m-0">{message.text}</p>
+        {message.text
+          .split('\n')
+          .filter((l) => l.trim())
+          .map((l, k) => (
+            <p key={k} className={`m-0 ${k ? 'mt-1.5' : ''}`}>
+              {l}
+            </p>
+          ))}
         {message.kind === 'problem' && message.line !== undefined && (
           <button type="button" className="mt-1 text-[14px] font-extrabold underline underline-offset-4" onClick={() => onShowLine(message.line!)}>
             Show me line {message.line}
