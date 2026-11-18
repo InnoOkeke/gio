@@ -22,7 +22,7 @@ describe('coder content A: quests', () => {
     expect(CODER_A).toHaveLength(36);
     expect(CODER_A.every((q) => q.audience === 'coder')).toBe(true);
     expect(CODER_A.map((q) => q.id)).toEqual(Object.values(STAGES).flatMap((s) => s.ids));
-    expect(QUESTS.slice(-36).map((q) => q.id)).toEqual(CODER_A.map((q) => q.id));
+    expect(QUESTS.slice(-72, -36).map((q) => q.id)).toEqual(CODER_A.map((q) => q.id));
   });
 
   it('has a reference solution for every quest and nothing else', () => {
@@ -110,8 +110,8 @@ describe('coder content A: stages and order', () => {
   });
 
   it('keeps the eight old coder islands in order around the new ones', () => {
-    expect(islandsFor('coder')).toHaveLength(14);
-    expect(islandsFor('coder').map((i) => i.key)).toEqual([
+    expect(islandsFor('coder')).toHaveLength(20);
+    expect(islandsFor('coder').map((i) => i.key).slice(0, 14)).toEqual([
       'coder:moves',
       'coder:loops',
       'coder:colour-cove',

@@ -134,9 +134,9 @@ describe('adventure map quests', () => {
   const little = QUESTS.filter((q) => q.audience === 'little');
   const coder = QUESTS.filter((q) => q.audience === 'coder');
 
-  it('has 18 little and 84 coder quests with unique ids', () => {
+  it('has 18 little and 120 coder quests with unique ids', () => {
     expect(little).toHaveLength(18);
-    expect(coder).toHaveLength(84);
+    expect(coder).toHaveLength(120);
     expect(new Set(QUESTS.map((q) => q.id)).size).toBe(QUESTS.length);
   });
 

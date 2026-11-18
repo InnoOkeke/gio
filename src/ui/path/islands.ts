@@ -2,7 +2,7 @@ import { CONCEPTS, QUESTS, type Concept, type Quest, type QuestAudience } from '
 import type { FriendId } from '../gio/catalog';
 
 /** Which scene the island card draws. For now each scene is named after a concept; new stages add their own ids. */
-export type ArtId = Concept;
+export type ArtId = Concept | 'master';
 
 /**
  * One island is one stage of one mode (children see "Stage 7"). The key of the first stages is
@@ -182,6 +182,78 @@ const CODER: readonly Island[] = [
       ['c-frac-snowflake', 'c-frac-general', 'c-frac-fern'],
     ],
     { key: 'coder:fractals', badge: null, stamp: '#b4236b' },
+  ),
+  island(
+    'coder',
+    'debugging',
+    'Bug Bay',
+    'Bigger programs with more than one bug. Fix them, do not rewrite them.',
+    'dot',
+    [
+      ['c-bb-two-bugs', 'c-bb-name', 'c-bb-runaway'],
+      ['c-bb-off-by-one', 'c-bb-inputs', 'c-bb-game'],
+    ],
+    { key: 'coder:bug-bay', badge: null, stamp: '#ef5a4c' },
+  ),
+  island(
+    'coder',
+    'loops',
+    'Tiny Code Temple',
+    'The same picture in fewer and fewer commands.',
+    'olly',
+    [
+      ['c-tiny-square', 'c-tiny-ring', 'c-tiny-burst'],
+      ['c-tiny-spiral', 'c-tiny-flower', 'c-tiny-snowflake'],
+    ],
+    { key: 'coder:tiny', badge: null, stamp: '#7a4cf0' },
+  ),
+  island(
+    'coder',
+    'functions',
+    'Mirror Mountains',
+    'Draw one piece, then mirror it, spin it and tile it.',
+    'bree',
+    [
+      ['c-mir-butterfly', 'c-mir-snowflake6', 'c-mir-row'],
+      ['c-mir-crosshatch', 'c-mir-honeycomb', 'c-mir-mandala'],
+    ],
+    { key: 'coder:mirror', badge: null, stamp: '#2b9bf4' },
+  ),
+  island(
+    'coder',
+    'variables',
+    'Physics Peak',
+    'Gravity, floors and bouncing balls, one tick at a time.',
+    'nutmeg',
+    [
+      ['c-phys-fall', 'c-phys-floor', 'c-phys-bounce'],
+      ['c-phys-damped', 'c-phys-throw', 'c-phys-box'],
+    ],
+    { key: 'coder:physics', badge: null, stamp: '#f97316' },
+  ),
+  island(
+    'coder',
+    'events',
+    'Game Studio',
+    'Levels, lives, scores and monsters. Build whole games.',
+    'hop',
+    [
+      ['c-gs-gem', 'c-gs-walls', 'c-gs-lives'],
+      ['c-gs-levels', 'c-gs-chase', 'c-gs-three'],
+    ],
+    { key: 'coder:game-studio', badge: null, stamp: '#14b8a6' },
+  ),
+  island(
+    'coder',
+    'recursion',
+    'Logo Master',
+    'Everything you know, in one last set of puzzles.',
+    'spindle',
+    [
+      ['c-lm-polyspi', 'c-lm-garden', 'c-lm-engine'],
+      ['c-lm-tiny-flake', 'c-lm-bounce-count', 'c-lm-final-game'],
+    ],
+    { key: 'coder:master', art: 'master', badge: null, stamp: '#d4a017' },
   ),
 ];
 

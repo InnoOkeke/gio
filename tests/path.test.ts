@@ -49,7 +49,7 @@ function sail(w: World, key: string, today = D1): World {
 }
 
 describe('adventure map content', () => {
-  it('has 3 little islands and 8 coder islands in the planned order', () => {
+  it('has 3 little islands and 20 coder islands in the planned order', () => {
     expect(islandsFor('little').map((i) => i.concept)).toEqual(['moves', 'loops', 'colours']);
     expect(islandsFor('coder').map((i) => i.concept)).toEqual([
       'moves',
@@ -65,6 +65,12 @@ describe('adventure map content', () => {
       'events',
       'events',
       'recursion',
+      'recursion',
+      'debugging',
+      'loops',
+      'functions',
+      'variables',
+      'events',
       'recursion',
     ]);
     expect(ALL_ISLANDS.map((i) => i.key)).toEqual([...new Set(ALL_ISLANDS.map((i) => i.key))]);
