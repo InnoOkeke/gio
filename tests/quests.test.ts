@@ -134,9 +134,9 @@ describe('adventure map quests', () => {
   const little = QUESTS.filter((q) => q.audience === 'little');
   const coder = QUESTS.filter((q) => q.audience === 'coder');
 
-  it('has 18 little and 48 coder quests with unique ids', () => {
+  it('has 18 little and 84 coder quests with unique ids', () => {
     expect(little).toHaveLength(18);
-    expect(coder).toHaveLength(48);
+    expect(coder).toHaveLength(84);
     expect(new Set(QUESTS.map((q) => q.id)).size).toBe(QUESTS.length);
   });
 
@@ -151,10 +151,12 @@ describe('adventure map quests', () => {
   it.each(QUESTS.filter((q) => q.target).map((q) => [q.id, q] as const))('%s target runs and passes its own drawing check', (_id, quest) => {
     const played = playWithPresses(quest.target!, quest.presses);
     expect(played.ok).toBe(true);
-    if (played.ok) expect(played.result.events.some((e) => e.type === 'line')).toBe(true);
+    // A target draws a line or a dot (Grid Garden dots have no lines).
+    if (played.ok) expect(played.result.events.some((e) => e.type === 'line' || e.type === 'dot')).toBe(true);
   });
 
-  it.each(QUESTS.filter((q) => q.needs?.uses?.includes('RECURSION')).map((q) => [q.id, q] as const))('%s needs a command that uses itself', (_id, quest) => {
+  // Quests with hidden calls have a recursive target; their hard-coded answers are tested in coder-a.test.ts.
+  it.each(QUESTS.filter((q) => q.needs?.uses?.includes('RECURSION') && !q.needs.calls).map((q) => [q.id, q] as const))('%s needs a command that uses itself', (_id, quest) => {
     expect(checkQuest(quest, quest.target!).pass).toBe(false);
   });
 

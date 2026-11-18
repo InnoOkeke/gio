@@ -31,22 +31,22 @@ describe('skill check eligibility', () => {
 
   it('is not offered when every earlier stage is already sailed or tested out', () => {
     const state: PathState = { ...emptyPath(), sailed: { 'coder:moves': TODAY }, tested: { 'coder:loops': TODAY } };
-    expect(skillCheckEligible(state, [], 'coder:debugging')).toBe(false);
+    expect(skillCheckEligible(state, [], 'coder:colour-cove')).toBe(false);
   });
 });
 
 describe('skill check plan', () => {
   it('picks the own quest of stages spread over the skipped ones, including the stage right before the target', () => {
     const plan = skillCheckPlan(emptyPath(), [], 'coder:recursion');
-    expect(plan).toHaveLength(3);
-    expect(plan.map((c) => c.stageKey)).toEqual(['coder:loops', 'coder:variables', 'coder:events']);
+    expect(plan).toHaveLength(4);
+    expect(plan.map((c) => c.stageKey)).toEqual(['coder:colour-cove', 'coder:ingredients', 'coder:decisions', 'coder:clockwork']);
     expect(plan.map((c) => c.questId)).toEqual(plan.map((c) => own(c.stageKey)));
-    expect(plan[plan.length - 1]!.stageKey).toBe('coder:events');
+    expect(plan[plan.length - 1]!.stageKey).toBe('coder:clockwork');
   });
 
   it('only counts stages that are not sailed or tested out, and never offers more challenges than stages', () => {
     const state: PathState = { ...emptyPath(), sailed: { 'coder:moves': TODAY }, tested: { 'coder:loops': TODAY, 'coder:debugging': TODAY } };
-    expect(skillCheckPlan(state, [], 'coder:variables').map((c) => c.stageKey)).toEqual(['coder:functions']);
+    expect(skillCheckPlan(state, [], 'coder:ingredients').map((c) => c.stageKey)).toEqual(['coder:colour-cove', 'coder:functions']);
     expect(skillCheckPlan(emptyPath(), [], 'coder:loops').map((c) => c.stageKey)).toEqual(['coder:moves']);
   });
 
@@ -93,7 +93,7 @@ describe('passing a skill check', () => {
   it('tests out every earlier stage that is not sailed, opens the target and sends the child there', () => {
     const state = sailed(emptyPath(), ['coder:moves']);
     const done = passSkillCheck(state, 'coder:recursion', TODAY);
-    const expected = coder.slice(1, -1).map((i) => i.key);
+    const expected = coder.slice(1, coder.findIndex((i) => i.key === 'coder:recursion')).map((i) => i.key);
     expect(done.tested).toEqual(expected);
     expect(Object.keys(done.state.tested)).toEqual(expected);
     expect(done.state.tested['coder:moves']).toBeUndefined();

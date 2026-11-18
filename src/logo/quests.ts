@@ -1,5 +1,6 @@
 import { drawnDots, drawnSegments, sameDrawing } from './compare.js';
 import { NEW_QUESTS } from './quest-bank.js';
+import { CODER_A } from './stages/coder-a.js';
 import { check, DEFAULT_BACKGROUND, press, start, type RunResult, type TurtleState } from './index.js';
 import { lookupPrimitive, type GameKey } from './primitives.js';
 import type { Expr, Program, Stmt } from './parser.js';
@@ -108,8 +109,8 @@ const BASE_QUESTS: Quest[] = [
   { id: 'c-spiral', audience: 'coder', concept: 'recursion', title: 'Spiral wizard', goal: 'Make a command that uses itself to draw this square spiral, starting at 10 and growing by 10 until it passes 100.', hint: 'TO SPIRAL :n  IF :n > 100 [STOP]  FD :n RT 90  SPIRAL :n + 10  END', target: 'MAKE "n 10 REPEAT 10 [FD :n RT 90 MAKE "n :n + 10]', allowMirror: true, needs: { uses: ['RECURSION'] } },
 ];
 
-/** Every quest: the 20 original ones first, then the adventure map's 46 new ones. */
-export const QUESTS: Quest[] = [...BASE_QUESTS, ...NEW_QUESTS];
+/** Every quest: the 20 original ones first, then the adventure map's 46 new ones, then the stages' quests in stage order. */
+export const QUESTS: Quest[] = [...BASE_QUESTS, ...NEW_QUESTS, ...CODER_A];
 /* ------------------------------------------------------------------ program features */
 
 function walk(stmts: Stmt[], visit: (s: Stmt) => void): void {

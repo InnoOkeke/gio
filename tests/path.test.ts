@@ -51,7 +51,22 @@ function sail(w: World, key: string, today = D1): World {
 describe('adventure map content', () => {
   it('has 3 little islands and 8 coder islands in the planned order', () => {
     expect(islandsFor('little').map((i) => i.concept)).toEqual(['moves', 'loops', 'colours']);
-    expect(islandsFor('coder').map((i) => i.concept)).toEqual(['moves', 'loops', 'debugging', 'functions', 'variables', 'decisions', 'events', 'recursion']);
+    expect(islandsFor('coder').map((i) => i.concept)).toEqual([
+      'moves',
+      'loops',
+      'colours',
+      'debugging',
+      'functions',
+      'functions',
+      'variables',
+      'moves',
+      'decisions',
+      'decisions',
+      'events',
+      'events',
+      'recursion',
+      'recursion',
+    ]);
     expect(ALL_ISLANDS.map((i) => i.key)).toEqual([...new Set(ALL_ISLANDS.map((i) => i.key))]);
   });
 
@@ -574,7 +589,7 @@ describe('stages: tested out and Logo Master', () => {
 
   it('sends the child past tested stages and still lets a tested stage be sailed later', () => {
     const state = { ...emptyPath(), tested: { 'coder:moves': D1, 'coder:loops': D1 } };
-    expect(nextStop(state, [], 'coder', D1)).toMatchObject({ kind: 'quest', islandKey: 'coder:debugging', questId: 'c-bug-square' });
+    expect(nextStop(state, [], 'coder', D1)).toMatchObject({ kind: 'quest', islandKey: 'coder:colour-cove', questId: 'c-red-blue' });
     const w = sail({ state, cleared: [] }, 'coder:moves');
     expect(w.state.sailed['coder:moves']).toBe(D1);
     expect(w.state.tested['coder:moves']).toBe(D1);

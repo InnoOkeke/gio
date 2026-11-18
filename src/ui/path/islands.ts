@@ -87,6 +87,18 @@ const CODER: readonly Island[] = [
     ['c-repeat', 'c-loop-triangle', 'c-loop-hexagon'],
     ['c-star', 'c-loop-spin', 'c-loop-sun'],
   ]),
+  island(
+    'coder',
+    'colours',
+    'Colour Cove',
+    'Pen colours, thick lines and a night sky to paint.',
+    'chip',
+    [
+      ['c-red-blue', 'c-four-colours', 'c-fat-lines'],
+      ['c-night-sky', 'c-rainbow-fan', 'c-colour-wheel'],
+    ],
+    { key: 'coder:colour-cove', badge: null, stamp: '#ec3f86' },
+  ),
   island('coder', 'debugging', 'Bug Burrow', 'Something is broken. Find the bug and fix it.', 'dot', [
     ['c-bug-square', 'c-bug-triangle', 'c-bug-star'],
     ['c-bug-hexagon', 'c-bug-typo', 'c-bug-missing-end'],
@@ -95,22 +107,82 @@ const CODER: readonly Island[] = [
     ['c-box-command', 'c-triangle-command', 'c-function'],
     ['c-house', 'c-three-squares', 'c-square-ring'],
   ]),
+  island(
+    'coder',
+    'functions',
+    'Ingredient Island',
+    'Commands with inputs, mixed into bigger recipes.',
+    'bree',
+    [
+      ['c-ing-square', 'c-ing-poly', 'c-ing-petals'],
+      ['c-ing-house', 'c-ing-grid', 'c-ing-stars'],
+    ],
+    { key: 'coder:ingredients', badge: null, stamp: '#2b9bf4' },
+  ),
   island('coder', 'variables', 'Variable Valley', 'Store numbers and change them as you go.', 'nutmeg', [
     ['c-make-size', 'c-make-double', 'c-shape'],
     ['c-make-growing', 'c-make-steps', 'c-two-inputs'],
   ]),
+  island(
+    'coder',
+    'moves',
+    'Grid Garden',
+    'Dots and lines at exact spots, from SETXY and DOT.',
+    'puff',
+    [
+      ['c-grid-corners', 'c-grid-ruler', 'c-grid-diagonal'],
+      ['c-grid-lattice', 'c-grid-axes', 'c-grid-parabola'],
+    ],
+    { key: 'coder:grid', badge: null, stamp: '#12a36b' },
+  ),
   island('coder', 'decisions', 'Decision Dunes', 'Let your code choose what to do.', 'hoot', [
     ['c-half-and-half', 'c-gap-square', 'c-bend'],
     ['c-dashes', 'c-turn-choice', 'c-half-hexagon'],
   ]),
+  island(
+    'coder',
+    'decisions',
+    'Surprise Springs',
+    'RANDOM makes every run a surprise.',
+    'hoot',
+    [
+      ['c-rand-step', 'c-rand-wobble', 'c-rand-coin'],
+      ['c-rand-dice', 'c-rand-confetti', 'c-rand-maze'],
+    ],
+    { key: 'coder:surprise', badge: null, stamp: '#0f8fa6' },
+  ),
   island('coder', 'events', 'Event Forest', 'Make things happen when a key is pressed.', 'hop', [
     ['c-one-key', 'c-game', 'c-space-square'],
     ['c-stamp', 'c-ticker', 'c-sketch'],
   ]),
+  island(
+    'coder',
+    'events',
+    'Clockwork Canyon',
+    'A game clock ticks, and your code keeps score.',
+    'hop',
+    [
+      ['c-clock-walk', 'c-clock-spiral', 'c-clock-count'],
+      ['c-clock-timer', 'c-clock-score', 'c-clock-race'],
+    ],
+    { key: 'coder:clockwork', badge: null, stamp: '#14b8a6' },
+  ),
   island('coder', 'recursion', 'Recursion Ridge', 'Commands that call themselves, again and again.', 'spindle', [
     ['c-rec-stairs', 'c-rec-rays', 'c-spiral'],
     ['c-rec-triangle-spiral', 'c-rec-nested', 'c-rec-pentagon-spiral'],
   ]),
+  island(
+    'coder',
+    'recursion',
+    'Fractal Falls',
+    'Trees, snowflakes and ferns grown from one small recipe.',
+    'spindle',
+    [
+      ['c-frac-tree', 'c-frac-koch', 'c-frac-sierpinski'],
+      ['c-frac-snowflake', 'c-frac-general', 'c-frac-fern'],
+    ],
+    { key: 'coder:fractals', badge: null, stamp: '#b4236b' },
+  ),
 ];
 
 export const ISLANDS: Record<QuestAudience, readonly Island[]> = { little: LITTLE, coder: CODER };
