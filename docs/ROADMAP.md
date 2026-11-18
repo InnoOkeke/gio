@@ -68,10 +68,36 @@ Badges, a growing garden or aquarium that fills up as the child learns, and a ca
 **J. Free for every child.**
 Keep GIO free for children. Fund it through school and NGO partnerships (Phase 5 classrooms), grants, and cloud credits. Offline-first (Phase 3) so it works where data is scarce. Add more languages as native speakers volunteer, e.g. Yoruba, Hausa, Igbo and Swahili.
 
-### Suggested order after Phase 5
+## Stages: quests that keep getting harder
 
-1. A (characters) and I (rewards): small changes that make every existing screen warmer.
-2. B (adventure map): reorganises existing quests; foundation for everything after.
-3. C (talk with Gio): builds on voice, read-aloud and tutor mode.
-4. G (Mathland units) and D (story adventures): the bulk of new content.
-5. H (parents), F (songs), E (photo challenges).
+Today's quests become Stage 1. Turtle Coders get **20 stages**, Little Turtles get **10**, each harder than the last, with about 5–6 automatically checked quests per stage. Stages unlock in order; confident kids and adults can skip ahead by passing a short skill check. Finishing the last stage earns a printable **Logo Master certificate** for parents and a **golden shell** for Gio.
+
+Draft Turtle Coders stages: 1 First steps, 2 Shape Shore (polygons, 360 ÷ sides), 3 Loop Lagoon (nested loops, spirals), 4 Colour Cove, 5 Recipe Reef (procedures), 6 Ingredient Island (procedures with inputs), 7 Variable Valley, 8 Grid Garden (coordinates), 9 Decision Desert (`IF`), 10 Surprise Springs (`RANDOM`), 11 Event Forest (keys), 12 Clockwork Canyon (game clock, score), 13 Recursion Ridge, 14 Fractal Falls, 15 Bug Bay (fix broken programs), 16 Tiny Code Temple (fewest commands), 17 Mirror Mountains (symmetry, tiling), 18 Physics Peak (bouncing, gravity), 19 Game Studio (multi-level games), 20 Logo Master (capstone).
+
+Little Turtles stages stay gentle and block-based: shapes, colours, patterns, simple loops and simple games. Stages extend the adventure map (B): stages are its islands.
+
+## Fun features
+
+1. **Daily Turtle Puzzle.** One new puzzle a day, the same for everyone, with a spoiler-free emoji result to share (e.g. "GIO #42 🐢 solved in 7 commands ⭐⭐⭐"). No accounts or leaderboards.
+2. **WhatsApp stickers.** One tap turns a drawing into a WhatsApp sticker for family chats.
+3. **Seasonal events.** Limited-time stages and Gio outfits: Spooky Season (pumpkins, ghost-catching games, haunted houses), then Christmas, Eid, Independence Day and more.
+4. *(Maze mode, merged into 9.)*
+5. **Race your past self.** Re-solve a quest against a "ghost turtle" replaying your earlier solution. Improvement without comparing kids to each other.
+6. **Take-turns drawing.** Two kids on one device add one command each to build a picture together. Works offline.
+7. **Turtle on the floor (AR).** Point the phone at the floor and Gio walks and draws on it: the original 1970s floor turtle, back again. Newer phones only.
+8. **Colouring pages and `FILL`.** Print any drawing as a colouring sheet; a `FILL` command colours in shapes.
+9. **Gio's Adventure, a game you play with code.** A world of levels (forests, rivers, caves, a castle) where kids write commands to get Gio through: walk around rocks, `REPEAT` across a long bridge, `IF` there's a river then swim, collect gems, free trapped friends, beat boss levels. Each world introduces one coding idea; Maze mode is its first world. Blocks for Little Turtles, typed code for Turtle Coders.
+
+## Build order
+
+At most two workflows run at once, paired so they don't edit the same files.
+
+| Wave | Pair |
+|---|---|
+| Now | Phase 2 (learning) · B adventure map |
+| 1 | Stages 20/10 + certificate · Phase 4 (music, animation, Python in the browser) |
+| 2 | 9 Gio's Adventure · Phase 3 offline app (PWA) |
+| 3 | Phase 3 languages (translates everything built so far) · 1 Daily puzzle + 2 WhatsApp stickers + 8 colouring and `FILL` |
+| 4 | Phase 5 classrooms · C talk with Gio |
+| 5 | G Mathland units + D story adventures · 3 seasonal events + 5 ghost race + 6 take-turns |
+| 6 | H parents + F songs + E photo challenges · 7 AR floor turtle |
