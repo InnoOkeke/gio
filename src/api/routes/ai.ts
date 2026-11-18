@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { isBlocked } from '../../ai/blocklist.js';
 import { explainLogo, generateLogo } from '../../ai/logo-assistant.js';
 import { moderate } from '../../ai/moderation.js';
+import { assertQuestMatches, hintLogo } from '../../ai/tutor.js';
 import { takeDailySlot } from '../../db/ai-usage.js';
 import { db } from '../../db/client.js';
 import { dailyCap, rateLimit } from '../middleware/rate-limit.js';
@@ -22,6 +23,13 @@ const logoSchema = z.object({
 const explainSchema = z.object({
   code: z.string().trim().min(1, 'Write some code first, then I can explain it').max(MAX_CODE_LENGTH),
   style,
+});
+
+const hintSchema = z.object({
+  level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+  code: z.string().max(MAX_CODE_LENGTH),
+  style,
+  questId: z.string().max(40).optional(),
 });
 
 // One shared budget per child for every AI request, so the endpoints can't be used to run up costs.
@@ -87,6 +95,17 @@ function fail(res: Response, label: string, err: unknown): void {
   res.status(status).json({ success: false, error: err instanceof Error ? err.message : 'The turtle helper is not available right now' });
 }
 
+/** Part of validation: an unknown quest, or one for the other age group, is a 400 before anything is counted or sent. */
+function questCheck(req: Request, res: Response, next: NextFunction): void {
+  try {
+    const body = req.body as z.infer<typeof hintSchema>;
+    assertQuestMatches(body.questId, body.style);
+    next();
+  } catch (err) {
+    fail(res, 'hint', err);
+  }
+}
+
 router.post('/logo', limiter, validate(logoSchema), blocklist, siteCap, moderation, async (req, res) => {
   try {
     const code = await generateLogo(req.body as z.infer<typeof logoSchema>);
@@ -102,6 +121,16 @@ router.post('/explain', limiter, validate(explainSchema), blocklist, siteCap, mo
     res.json({ success: true, data: { text } });
   } catch (err) {
     fail(res, 'explain', err);
+  }
+});
+
+router.post('/hint', limiter, validate(hintSchema), questCheck, blocklist, siteCap, moderation, async (req, res) => {
+  try {
+    const body = req.body as z.infer<typeof hintSchema>;
+    const hint = await hintLogo(body);
+    res.json({ success: true, data: hint });
+  } catch (err) {
+    fail(res, 'hint', err);
   }
 });
 

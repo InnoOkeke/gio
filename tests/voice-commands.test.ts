@@ -15,6 +15,12 @@ describe('voice commands', () => {
     ['start over', 'new'],
     ['oops', 'undo'],
     ['give me a hint', 'hint'],
+    ["I'm stuck", 'hint'],
+    ['im stuck', 'hint'],
+    ['I am stuck!', 'hint'],
+    ['stuck', 'hint'],
+    ['I need help', 'hint'],
+    ['help me', 'hint'],
     ['be quiet', 'quiet'],
     ['talk to me', 'talk'],
   ])('"%s" is the %s command', (text, command) => {

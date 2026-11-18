@@ -44,6 +44,7 @@ export default function Privacy() {
 
         <Section title="The turtle helper (AI)">
           <p className="m-0">When a child asks the turtle to draw or explain something, the words they typed or said, and the code in the editor, are sent to Amazon Bedrock, an AWS service, which runs the Qwen3 Coder model.</p>
+          <p className="m-0">When a child taps &ldquo;I&rsquo;m stuck&rdquo;, the code in the editor, which quest they are on and which hint step they asked for (Think, Look or Fix) are sent to Amazon Bedrock the same way. Hints go through the same two checks and count toward the same daily limits. Hints are not stored, and they never change progress, badges or stickers.</p>
           <p className="m-0">Before anything is drawn, every request is checked twice: against a list of words GIO never allows, and by an AI safety check. Requests that fail are turned down with a friendly message, such as &ldquo;Let&rsquo;s draw something else!&rdquo;. If the safety check cannot run, the turtle waits and asks the child to try again instead of guessing.</p>
           <p className="m-0">GIO does not keep a record of what children ask the turtle. The AI only ever writes Logo code, and GIO runs that code in its own turtle. It never runs anything else.</p>
         </Section>

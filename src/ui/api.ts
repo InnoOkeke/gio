@@ -59,9 +59,24 @@ async function request<T>(method: string, url: string, body?: unknown, headers: 
 
 export type AssistantStyle = 'code' | 'blocks';
 
+export interface HintChange {
+  line: number;
+  was: string | null;
+  now: string | null;
+}
+
+export interface Hint {
+  text: string;
+  /** Level 2: the line GIO's own interpreter found the problem on. */
+  line?: number;
+  /** Level 3: the lines that change in the corrected program. */
+  changes?: HintChange[];
+}
+
 export const api = {
   askTurtle: (prompt: string, code: string | undefined, style: AssistantStyle) => request<{ code: string }>('POST', '/api/ai/logo', { prompt, code, style }),
   explain: (code: string, style: AssistantStyle) => request<{ text: string }>('POST', '/api/ai/explain', { code, style }),
+  hint: (level: 1 | 2 | 3, code: string, style: AssistantStyle, questId?: string) => request<Hint>('POST', '/api/ai/hint', { level, code, style, questId }),
   createProject: (title: string, code: string) => request<OwnedProject>('POST', '/api/projects', { title, code }),
   updateProject: (slug: string, editKey: string, changes: { title?: string; code?: string }) =>
     request<SharedProject>('PUT', `/api/projects/${encodeURIComponent(slug)}`, changes, { 'X-Edit-Key': editKey }),

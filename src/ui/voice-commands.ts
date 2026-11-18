@@ -29,7 +29,7 @@ const PHRASES: Record<VoiceCommand, string[]> = {
   new: ['new', 'new drawing', 'start over', 'start again', 'something new'],
   undo: ['undo', 'go back', 'oops', 'undo that'],
   quests: ['quests', 'quest', 'show quests', 'open quests', 'challenges'],
-  hint: ['hint', 'help', 'give me a hint', 'help me'],
+  hint: ['hint', 'help', 'give me a hint', 'help me', "i'm stuck", 'im stuck', 'i am stuck', 'stuck', 'i need help'],
   quiet: ['be quiet', 'stop talking', 'quiet', 'shh', 'shush'],
   talk: ['talk to me', 'read to me', 'read it', 'say it', 'talk'],
 };

@@ -11,6 +11,7 @@ import { Wordmark } from '../components/GioMark';
 import {
   BulbIcon,
   DownloadIcon,
+  HelpIcon,
   PauseIcon,
   PlayIcon,
   PlusIcon,
@@ -31,6 +32,7 @@ import { GardenSheet } from '../components/GardenSheet';
 import { AdventureMap } from '../components/AdventureMap';
 import { MasteryMoment, type Moment } from '../components/MasteryMoment';
 import { QuestCard } from '../components/Quests';
+import { HintCard } from '../components/HintCard';
 import { Stage, type StageHandle } from '../components/Stage';
 import { useToast } from '../components/Toast';
 import { TranslatedCode } from '../components/TranslatedCode';
@@ -49,6 +51,7 @@ import type { NextStop, Star } from '../path/state';
 import { useProgress } from '../progress';
 import { useRewards } from '../rewards';
 import { useReadAloud } from '../speech';
+import { useTutor } from '../tutor/useTutor';
 import { parseVoiceCommand, type VoiceCommand } from '../voice-commands';
 import type { PlayerStatus, Speed } from '../runtime/player';
 
@@ -157,6 +160,8 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [cameBack] = useState(() => rewards.days.length > 0 && daysAway(rewards.days, localDateKey(new Date())) >= 3);
   const readAloud = useReadAloud(little);
   const undoStack = useRef<string[]>([]);
+  const tutor = useTutor();
+  const stuckRef = useRef<HTMLButtonElement>(null);
 
   const [title, setTitle] = useState(initial.title);
   const [code, setCode] = useState(initial.code);
@@ -246,7 +251,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     const id = window.setTimeout(() => setMoodLive(false), 5000);
     return () => window.clearTimeout(id);
   }, [bubble]);
-  const mood: GioMood = asking || explaining ? 'thinking' : moodLive ? moodFor(bubble) : 'idle';
+  const mood: GioMood = asking || explaining || tutor.loading ? 'thinking' : moodLive ? moodFor(bubble) : 'idle';
 
   // Keep unsaved new work safe in this browser.
   useEffect(() => {
@@ -371,6 +376,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     setQuest(q);
     setQuestDone(false);
     setQuestFeedback(null);
+    tutor.reset();
     if (q.starter?.trim()) borrowedRef.current.add(q.starter.trim());
     replaceCode(q.starter ?? '');
     endGame();
@@ -382,22 +388,13 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   const leaveQuest = () => {
     setReviewRun(null);
+    tutor.reset();
     setQuest(null);
     setQuestFeedback(null);
     stageRef.current?.setGuide(null);
     setBubble(WELCOME[mode]);
   };
 
-  /** The hint is help. Note it, and tell the child plainly what it means for the star. */
-  const giveHint = (q: Quest): string => {
-    const firstHelp = !help.used();
-    if (!questDone) {
-      help.note('hint');
-      setHinted(true);
-    }
-    const silver = !questDone && firstHelp && progress.quest(q.id).star !== 'clean';
-    return silver ? `Hint used, so this one will be a silver star. You can try it again later for gold. Hint: ${q.hint}` : `Hint: ${q.hint}`;
-  };
   /** Follow the path: the next quest, a review visit, or the end of the map. */
   const goTo = (stop: NextStop) => {
     if (stop.kind === 'review') return startReview(stop.islandKey);
@@ -606,7 +603,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         setQuestsOpen(true);
         return;
       case 'hint':
-        setBubble({ kind: 'info', text: quest ? giveHint(quest) : 'Open the map to find a quest, and I can give you hints!' });
+        void askForHint();
         return;
       case 'quiet':
         readAloud.setEnabled(false);
@@ -653,6 +650,33 @@ function StudioView({ initial }: { initial: Loaded }) {
       setAsking(false);
     }
   };
+
+  /** "I'm stuck": one hint at a time. Hints never touch quest progress, badges or stickers. */
+  const askForHint = async () => {
+    if (tutor.loading) return;
+    const q = questRef.current;
+    if (q && !questDone) {
+      help.note('hint');
+      setHinted(true);
+    }
+    const got = await tutor.ask({ code: codeRef.current, style, quest: questRef.current });
+    if (got) readAloud.speak(got.hint.text);
+  };
+
+  /** "Show me more": step forward to a hint that is already here, or ask for the next one. */
+  const moreHint = () => {
+    const next = (tutor.shown + 1) as 1 | 2 | 3;
+    if (tutor.ladder?.hints[next]) tutor.show(next);
+    else void askForHint();
+  };
+
+  // Turtle Coders see the line the interpreter found at the Look step, until the card moves on or closes.
+  const lookLine = !little && tutor.open && tutor.shown === 2 ? tutor.ladder?.hints[2]?.line : undefined;
+  useEffect(() => {
+    if (lookLine === undefined) return;
+    editorRef.current?.setProblemLine(lookLine);
+    return () => editorRef.current?.setProblemLine(null);
+  }, [lookLine]);
 
   const explain = async () => {
     if (!code.trim()) {
@@ -728,6 +752,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const startNew = () => {
+    tutor.reset();
     local.clearDraft();
     if (project) {
       window.history.pushState(null, '', '/');
@@ -854,7 +879,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
       <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
         {quest ? (
-          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted} review={review ? { index: review.index, total: review.ids.length } : null} nextLabel={review ? (review.index + 1 < review.ids.length ? 'Next review quest' : 'Finish review') : 'Next quest'} onHint={() => setBubble({ kind: 'info', text: giveHint(quest) })} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
+          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted} review={review ? { index: review.index, total: review.ids.length } : null} nextLabel={review ? (review.index + 1 < review.ids.length ? 'Next review quest' : 'Finish review') : 'Next quest'} onHint={() => void askForHint()} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
             const command = parseVoiceCommand(text);
             if (command) doCommand(command);
             else setBubble({ kind: 'info', text: 'In a quest you write the code yourself! You can say run, hint, explain or step.' });
@@ -903,11 +928,30 @@ function StudioView({ initial }: { initial: Loaded }) {
 
             <div className="flex flex-col gap-2">
               <TurtleBubble message={bubble} mood={mood} stickers={rewards.shell} onShowLine={(line) => editorRef.current?.setProblemLine(line)} />
+              <HintCard
+                open={tutor.open}
+                loading={tutor.loading}
+                error={tutor.error}
+                notice={tutor.notice}
+                ladder={tutor.ladder}
+                shown={tutor.shown}
+                little={little}
+                questTip={quest?.hint}
+                canSpeak={readAloud.supported}
+                onMore={moreHint}
+                onShow={tutor.show}
+                onRetry={() => void askForHint()}
+                onHear={(text) => readAloud.speak(text, true)}
+                onClose={() => {
+                  tutor.close();
+                  stuckRef.current?.focus();
+                }}
+              />
               <div className="flex flex-wrap justify-end gap-2">
                 {readAloud.supported && (
                   <button
                     type="button"
-                    className="btn btn-quiet"
+                    className="btn btn-quiet min-h-[48px]"
                     onClick={() => readAloud.setEnabled(!readAloud.enabled)}
                     aria-pressed={readAloud.enabled}
                     title={readAloud.enabled ? 'Stop reading messages aloud' : 'Read messages aloud'}
@@ -915,8 +959,11 @@ function StudioView({ initial }: { initial: Loaded }) {
                     {readAloud.enabled ? <SpeakerIcon /> : <SpeakerOffIcon />} {readAloud.enabled ? 'Reading aloud' : 'Read aloud'}
                   </button>
                 )}
-                <button type="button" className="btn btn-quiet" onClick={() => void explain()} disabled={explaining || asking}>
+                <button type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void explain()} disabled={explaining || asking}>
                   <BulbIcon className="text-[#f4a72c]" /> {explaining ? 'Thinking…' : little ? 'What did I make?' : 'Explain my code'}
+                </button>
+                <button ref={stuckRef} type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void askForHint()} disabled={tutor.loading || asking || explaining}>
+                  <HelpIcon className="text-[#e0861a]" /> I&rsquo;m stuck
                 </button>
               </div>
             </div>

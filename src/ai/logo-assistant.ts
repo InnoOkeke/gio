@@ -114,6 +114,8 @@ function validate(code: string, style: AssistantStyle): string | null {
   return null;
 }
 
+export { validate as validateProgram };
+
 /**
  * Turns a child's request into a Logo program that GIO has already parsed and run successfully.
  * If the model's answer has a problem, it gets up to two chances to fix it using GIO's own error message.

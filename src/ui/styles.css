@@ -1048,6 +1048,64 @@
   50% { box-shadow: 0 0 0 12px rgba(255, 201, 60, 0); }
 }
 
+/* --------------------------------------------------------------------------
+ * "I'm stuck" hint card
+ * -------------------------------------------------------------------------- */
+.hint-card {
+  animation: bubble-in 360ms var(--spring);
+  box-shadow: var(--shadow-1);
+}
+
+.hint-text {
+  animation: hint-in 280ms var(--ease-out);
+}
+
+@keyframes hint-in {
+  from { transform: translateY(4px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+
+.hint-chip {
+  min-height: 48px;
+  min-width: 64px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 2px solid #e8c458;
+  background: #fffbea;
+  color: #4a3000;
+  font-family: var(--font);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform 160ms var(--spring), background-color 160ms ease;
+}
+
+.hint-chip:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: #fff1b8;
+}
+
+.hint-chip:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.hint-chip:disabled {
+  cursor: default;
+  border-style: dashed;
+  color: #8a6a1f;
+  opacity: 0.75;
+}
+
+.hint-chip-on {
+  background: #4a3000;
+  border-color: #4a3000;
+  color: #fff;
+}
+
+.hint-chip-on:hover:not(:disabled) {
+  background: #4a3000;
+}
+
 /* Utilities come after the component styles so classes like hidden and sm:inline win. */
 @tailwind utilities;
 
@@ -1061,5 +1119,10 @@
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
+  }
+
+  .hint-card,
+  .hint-text {
+    animation: none !important;
   }
 }

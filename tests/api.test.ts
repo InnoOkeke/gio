@@ -118,6 +118,22 @@ describe('AI endpoint input checks (no model call)', () => {
 
   // The 422 path for an UNSAFE verdict needs a live Bedrock answer. Per the no-mocks rule it is covered by the live
   // check recorded in the commit message and by the parseVerdict tests in safety.test.ts. The fail-closed 503 is asserted below.
+  it('rejects a hint request with a bad level, missing code or an unknown quest before anything is counted', async () => {
+    expect((await call('POST', '/api/ai/hint', { level: 4, code: 'FD 10', style: 'code' })).status).toBe(400);
+    expect((await call('POST', '/api/ai/hint', { level: 1, style: 'code' })).status).toBe(400);
+    const unknown = await call('POST', '/api/ai/hint', { level: 1, code: 'FD 10', style: 'code', questId: 'no-such-quest' });
+    expect(unknown.status).toBe(400);
+    expect(unknown.json.success).toBe(false);
+    // A coder quest asked for with the Little Turtles style is also a 400.
+    expect((await call('POST', '/api/ai/hint', { level: 1, code: 'FD 10', style: 'blocks', questId: 'c-square' })).status).toBe(400);
+  });
+
+  it('turns away a blocklisted word inside hint code, without using the daily cap', async () => {
+    const hint = await call('POST', '/api/ai/hint', { level: 1, code: 'FD 10 ; shit', style: 'code' });
+    expect(hint.status).toBe(422);
+    expect(hint.json).toMatchObject({ success: false, code: 'redirect' });
+  });
+
   it('stops all AI requests for the day once the site-wide cap is reached', async () => {
     const first = await call('POST', '/api/ai/logo', { prompt: 'a star' });
     const second = await call('POST', '/api/ai/explain', { code: 'FD 10' });
