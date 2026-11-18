@@ -10,12 +10,15 @@ export interface RewardsState {
   shell: (StickerId | null)[];
   /** Local calendar dates (YYYY-MM-DD) on which the child learned something. Oldest first. */
   days: string[];
+  /** Gio's golden shell, earned by becoming a Logo Master. It does not take a shell spot. */
+  goldenShell: boolean;
 }
 
 export type RewardEvent =
   | { kind: 'run-ok'; features: readonly Feature[]; colours: number; drewLines: boolean }
   | { kind: 'quest-done'; questId: string; features: readonly Feature[]; colours: number; newBadge: Concept | null }
-  | { kind: 'bug-fixed' };
+  | { kind: 'bug-fixed' }
+  | { kind: 'logo-master' };
 
 export interface RewardResult {
   state: RewardsState;
@@ -26,7 +29,7 @@ export interface RewardResult {
 export const MAX_DAYS = 400;
 
 export function emptyRewards(): RewardsState {
-  return { v: 1, friends: [], stickers: [], shell: Array.from({ length: SHELL_SLOTS }, () => null), days: [] };
+  return { v: 1, friends: [], stickers: [], shell: Array.from({ length: SHELL_SLOTS }, () => null), days: [], goldenShell: false };
 }
 
 /* ------------------------------------------------------------------ dates */
@@ -167,7 +170,7 @@ export function parseRewards(raw: unknown): RewardsState {
     ? [...new Set(o.days.filter((d): d is string => typeof d === 'string' && noon(d) !== null))].sort()
     : [];
 
-  return { v: 1, friends, stickers, shell, days: days.length > MAX_DAYS ? days.slice(days.length - MAX_DAYS) : days };
+  return { v: 1, friends, stickers, shell, days: days.length > MAX_DAYS ? days.slice(days.length - MAX_DAYS) : days, goldenShell: o.goldenShell === true };
 }
 
 /* ------------------------------------------------------------------ earning */
@@ -230,13 +233,14 @@ export function applyEvent(state: RewardsState, event: RewardEvent, today: strin
       friends.push('dot');
       stickers.push('bug-fixer');
     }
-  } else {
+  } else if (event.kind === 'bug-fixed') {
     friends.push('dot');
     stickers.push('bug-fixer');
   }
 
   const granted = grant(state, friends, stickers);
-  return { ...granted, state: { ...granted.state, days: withDay(state.days, today) } };
+  const goldenShell = state.goldenShell || event.kind === 'logo-master';
+  return { ...granted, state: { ...granted.state, days: withDay(state.days, today), goldenShell } };
 }
 
 /** Put a sticker the child has earned on a shell spot, or clear the spot with null. A sticker already worn moves. */

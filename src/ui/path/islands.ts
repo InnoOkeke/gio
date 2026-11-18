@@ -1,11 +1,23 @@
-import { QUESTS, type Concept, type Quest, type QuestAudience } from '../../logo/quests.js';
+import { CONCEPTS, QUESTS, type Concept, type Quest, type QuestAudience } from '../../logo/quests.js';
 import type { FriendId } from '../gio/catalog';
 
-/** One island is one concept for one mode. The key is `audience:concept`, for example `coder:loops`. */
+/** Which scene the island card draws. For now each scene is named after a concept; new stages add their own ids. */
+export type ArtId = Concept;
+
+/**
+ * One island is one stage of one mode (children see "Stage 7"). The key of the first stages is
+ * `audience:concept`, for example `coder:loops`, and never changes because saved progress uses it.
+ */
 export interface Island {
   key: string;
   audience: QuestAudience;
   concept: Concept;
+  /** The scene drawn on the island card. */
+  art: ArtId;
+  /** The sticker earned by sailing here for the first time, or null when this stage earns a stage stamp instead. */
+  badge: Concept | null;
+  /** The colour of the stage stamp. */
+  stamp: string;
   name: string;
   /** One kid-friendly line about what lives and grows here. */
   tagline: string;
@@ -19,6 +31,15 @@ export function islandKey(audience: QuestAudience, concept: Concept): string {
   return `${audience}:${concept}`;
 }
 
+interface IslandOptions {
+  /** A new stage gives its own key; the first stages keep `audience:concept`. */
+  key?: string;
+  art?: ArtId;
+  /** `null` for a stage that earns a stamp but no sticker. The first stages default to their concept's badge. */
+  badge?: Concept | null;
+  stamp?: string;
+}
+
 function island(
   audience: QuestAudience,
   concept: Concept,
@@ -26,8 +47,20 @@ function island(
   tagline: string,
   resident: FriendId,
   units: readonly (readonly [string, string, string])[],
+  options: IslandOptions = {},
 ): Island {
-  return { key: islandKey(audience, concept), audience, concept, name, tagline, resident, units };
+  return {
+    key: options.key ?? islandKey(audience, concept),
+    audience,
+    concept,
+    art: options.art ?? concept,
+    badge: options.badge === undefined ? concept : options.badge,
+    stamp: options.stamp ?? CONCEPTS[concept].color,
+    name,
+    tagline,
+    resident,
+    units,
+  };
 }
 
 const LITTLE: readonly Island[] = [
@@ -87,6 +120,16 @@ export const ALL_ISLANDS: readonly Island[] = [...LITTLE, ...CODER];
 /** The islands for one mode, in sailing order. */
 export function islandsFor(audience: QuestAudience): readonly Island[] {
   return ISLANDS[audience];
+}
+
+/** How many stages a mode has: 20 for Turtle Coders and 10 for Little Turtles once all content is in. */
+export function stageCount(audience: QuestAudience): number {
+  return ISLANDS[audience].length;
+}
+
+/** The stage number children see, starting at 1. 0 for an island that is not on the map. */
+export function stageNumber(i: Island): number {
+  return ISLANDS[i.audience].findIndex((x) => x.key === i.key) + 1;
 }
 
 export function islandByKey(key: string): Island | undefined {

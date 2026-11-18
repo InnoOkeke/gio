@@ -37,6 +37,10 @@ export interface PathState {
   reviews: Record<string, ReviewRecord>;
   /** The date of the last finished review, so there is at most one a day. */
   reviewedOn: string | null;
+  /** Stage key to the date the child passed a skill check and skipped it. Never undone. */
+  tested: Record<string, string>;
+  /** The date the child finished the last stage with every other stage sailed or tested out. Never undone. */
+  master: { little?: string; coder?: string };
 }
 
 /** Different gold stars needed to master a unit. The third quest of a unit is a bonus. */
@@ -55,7 +59,7 @@ const QUEST_IDS: ReadonlySet<string> = new Set(QUESTS.map((q) => q.id));
 const ISLAND_KEYS: ReadonlySet<string> = new Set(ALL_ISLANDS.map((i) => i.key));
 
 export function emptyPath(): PathState {
-  return { v: 1, quests: {}, sailed: {}, kept: [], reviews: {}, reviewedOn: null };
+  return { v: 1, quests: {}, sailed: {}, kept: [], reviews: {}, reviewedOn: null, tested: {}, master: {} };
 }
 
 /* ------------------------------------------------------------------ parsing */
@@ -100,6 +104,15 @@ export function parsePath(raw: unknown): PathState {
     }
   }
   if (isDate(o.reviewedOn)) out.reviewedOn = o.reviewedOn;
+  if (isObject(o.tested)) {
+    for (const [key, date] of Object.entries(o.tested)) {
+      if (ISLAND_KEYS.has(key) && isDate(date)) out.tested[key] = date;
+    }
+  }
+  if (isObject(o.master)) {
+    if (isDate(o.master.little)) out.master.little = o.master.little;
+    if (isDate(o.master.coder)) out.master.coder = o.master.coder;
+  }
   return out;
 }
 
@@ -129,6 +142,8 @@ export interface IslandView {
   status: 'locked' | 'open';
   sailed: boolean;
   sailedOn: string | null;
+  /** Skipped by passing a skill check. The stage stays playable and can still be sailed. */
+  tested: boolean;
   units: UnitView[];
   gold: number;
   silver: number;
@@ -177,7 +192,12 @@ function viewIsland(state: PathState, cleared: ReadonlySet<string>, island: Isla
   const previous = at > 0 ? all[at - 1] : undefined;
   const ids = islandQuestIds(island);
   const touched = ids.some((id) => cleared.has(id));
-  const open = previous === undefined || state.sailed[previous.key] !== undefined || touched;
+  const open =
+    previous === undefined ||
+    state.sailed[previous.key] !== undefined ||
+    state.tested[previous.key] !== undefined ||
+    state.tested[island.key] !== undefined ||
+    touched;
 
   const units: UnitView[] = island.units.map((unit, index) => {
     const unitTouched = unit.some((id) => cleared.has(id));
@@ -198,6 +218,7 @@ function viewIsland(state: PathState, cleared: ReadonlySet<string>, island: Isla
     status: open ? 'open' : 'locked',
     sailed: state.sailed[island.key] !== undefined,
     sailedOn: state.sailed[island.key] ?? null,
+    tested: state.tested[island.key] !== undefined,
     units,
     ...counts,
     total: ids.length,
@@ -286,6 +307,8 @@ export interface QuestEvents {
   islandSailed: boolean;
   /** The island that opened because this one was sailed. */
   opened: string | null;
+  /** The child became a Logo Master with this quest: the last stage is sailed and every other stage is sailed or tested out. */
+  masterEarned: boolean;
 }
 
 export interface RecordResult {
@@ -299,7 +322,7 @@ export function recordQuest(state: PathState, clearedIds: readonly string[], id:
   const place = placeOf(id);
   const played: Star = helped ? 'helped' : 'clean';
   if (!place || !QUEST_IDS.has(id)) {
-    return { state, cleared: [...clearedIds], events: { star: played, firstClear: false, upgraded: false, unitMastered: false, islandSailed: false, opened: null } };
+    return { state, cleared: [...clearedIds], events: { star: played, firstClear: false, upgraded: false, unitMastered: false, islandSailed: false, opened: null, masterEarned: false } };
   }
 
   const before = toSet(clearedIds);
@@ -327,11 +350,34 @@ export function recordQuest(state: PathState, clearedIds: readonly string[], id:
 
   const opened = islandSailed && following && !followingWasOpen && viewIsland(next, after, following).status === 'open' ? following.key : null;
 
+  const audience = place.island.audience;
+  const masterEarned = next.master[audience] === undefined && masterReady(next, audience);
+  if (masterEarned) next = recordMaster(next, audience, today);
+
   return {
     state: next,
     cleared: wasCleared ? [...clearedIds] : [...clearedIds, id],
-    events: { star, firstClear: !wasCleared, upgraded, unitMastered: !unitWas && unitNow, islandSailed, opened },
+    events: { star, firstClear: !wasCleared, upgraded, unitMastered: !unitWas && unitNow, islandSailed, opened, masterEarned },
   };
+}
+
+/* ------------------------------------------------------------------ Logo Master */
+
+/**
+ * True when the last stage is sailed and every other stage is sailed or tested out. The last stage cannot
+ * be tested out, so a Logo Master always finished the final stage by playing it.
+ */
+export function masterReady(state: PathState, audience: QuestAudience): boolean {
+  const all = islandsFor(audience);
+  const last = all[all.length - 1];
+  if (!last || state.sailed[last.key] === undefined) return false;
+  return all.slice(0, -1).every((i) => state.sailed[i.key] !== undefined || state.tested[i.key] !== undefined);
+}
+
+/** Remember the first day a mode was finished. A later call changes nothing. */
+export function recordMaster(state: PathState, audience: QuestAudience, today: string): PathState {
+  if (state.master[audience] !== undefined) return state;
+  return { ...state, master: { ...state.master, [audience]: today } };
 }
 
 /* ------------------------------------------------------------------ reviews */
@@ -413,7 +459,7 @@ export function nextStop(state: PathState, clearedIds: readonly string[], audien
   const views = islandViews(state, clearedIds, audience);
 
   for (const view of views) {
-    if (view.sailed || view.status !== 'open') continue;
+    if (view.sailed || view.tested || view.status !== 'open') continue;
     const unit = view.units.find((u) => u.status === 'open' && !u.mastered);
     if (!unit) continue;
     const fresh = unit.quests.find((q) => q.status === 'open');

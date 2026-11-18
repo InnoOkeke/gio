@@ -10,10 +10,12 @@ import {
   emptyPath,
   finishReview,
   islandState,
+  masterReady,
   migrate,
   nextStop,
   parsePath,
   questState,
+  recordMaster,
   recordQuest,
   reviewDue,
   reviewPlan,
@@ -475,5 +477,153 @@ describe('help tracker', () => {
 describe('island helpers', () => {
   it('lists every quest of an island in unit order', () => {
     expect(islandQuestIds(islandByKey('little:colours')!)).toEqual(['l-colours', 'l-rainbow-triangle', 'l-rainbow-box', 'l-colour-rings', 'l-sunshine', 'l-snowman']);
+  });
+});
+
+describe('stages: legacy ids keep their place', () => {
+  /** Every quest that existed before stages, by island key: unit by unit, in order. Saved progress is keyed by these. */
+  const PINNED: Record<string, string[][]> = {
+    'little:moves': [['l-walk', 'l-corner', 'l-zigzag'], ['l-square', 'l-rectangle', 'l-circle']],
+    'little:loops': [['l-repeat-square', 'l-triangle', 'l-hexagon'], ['l-stairs', 'l-flower-ring', 'l-octagon']],
+    'little:colours': [['l-colours', 'l-rainbow-triangle', 'l-rainbow-box'], ['l-colour-rings', 'l-sunshine', 'l-snowman']],
+    'coder:moves': [['c-line', 'c-ell', 'c-square'], ['c-rectangle', 'c-triangle', 'c-circle']],
+    'coder:loops': [['c-repeat', 'c-loop-triangle', 'c-loop-hexagon'], ['c-star', 'c-loop-spin', 'c-loop-sun']],
+    'coder:debugging': [['c-bug-square', 'c-bug-triangle', 'c-bug-star'], ['c-bug-hexagon', 'c-bug-typo', 'c-bug-missing-end']],
+    'coder:functions': [['c-box-command', 'c-triangle-command', 'c-function'], ['c-house', 'c-three-squares', 'c-square-ring']],
+    'coder:variables': [['c-make-size', 'c-make-double', 'c-shape'], ['c-make-growing', 'c-make-steps', 'c-two-inputs']],
+    'coder:decisions': [['c-half-and-half', 'c-gap-square', 'c-bend'], ['c-dashes', 'c-turn-choice', 'c-half-hexagon']],
+    'coder:events': [['c-one-key', 'c-game', 'c-space-square'], ['c-stamp', 'c-ticker', 'c-sketch']],
+    'coder:recursion': [['c-rec-stairs', 'c-rec-rays', 'c-spiral'], ['c-rec-triangle-spiral', 'c-rec-nested', 'c-rec-pentagon-spiral']],
+  };
+
+  it('pins 66 old quest ids to the same island key, unit and position', () => {
+    const ids = Object.values(PINNED).flat(2);
+    expect(ids).toHaveLength(66);
+    for (const [key, units] of Object.entries(PINNED)) {
+      units.forEach((unit, unitIndex) =>
+        unit.forEach((id, index) => {
+          const place = placeOf(id);
+          expect([id, place?.island.key, place?.unitIndex, place?.index]).toEqual([id, key, unitIndex, index]);
+        }),
+      );
+    }
+  });
+
+  it('gives the 11 old islands a badge equal to their concept and keeps their keys', () => {
+    for (const key of Object.keys(PINNED)) {
+      const island = islandByKey(key)!;
+      expect(island.badge).toBe(island.concept);
+      expect(island.key).toBe(key);
+      expect(island.art).toBe(island.concept);
+      expect(island.stamp).toMatch(/^#[0-9a-f]{6}$/i);
+    }
+  });
+});
+
+describe('stages: stored data from before this release', () => {
+  const old = {
+    v: 1,
+    quests: { 'c-line': { s: 'clean', d: '2026-03-02' }, 'c-ell': { s: 'helped', d: '2026-03-03' }, 'l-walk': { s: 'clean', d: '2026-03-02' } },
+    sailed: { 'coder:moves': '2026-03-04', 'little:moves': '2026-03-05' },
+    kept: ['coder:loops'],
+    reviews: { 'coder:moves': { box: 1, due: '2026-03-11', last: ['c-line', 'c-ell'] } },
+    reviewedOn: '2026-03-04',
+  };
+
+  it('parses to identical old data plus empty new fields', () => {
+    const parsed = parsePath(old);
+    expect({ ...parsed, tested: undefined, master: undefined }).toEqual({ ...old, tested: undefined, master: undefined });
+    expect(parsed.tested).toEqual({});
+    expect(parsed.master).toEqual({});
+  });
+
+  it('migrates without changing stars, sailing, badges or reviews, and does not treat it as a first load', () => {
+    const cleared = ['c-line', 'c-ell', 'l-walk'];
+    const state = migrate(cleared, old, '2026-04-01');
+    expect(state.quests).toEqual(parsePath(old).quests);
+    expect(state.sailed).toEqual(old.sailed);
+    expect(state.kept).toEqual(old.kept);
+    expect(state.reviews).toEqual(old.reviews);
+    expect(state.reviewedOn).toBe(old.reviewedOn);
+    expect(state.tested).toEqual({});
+    expect(state.master).toEqual({});
+  });
+
+  it('round trips new fields and drops bad ones without throwing', () => {
+    const state = { ...emptyPath(), tested: { 'coder:loops': '2026-03-02' }, master: { coder: '2026-05-01' } };
+    expect(parsePath(JSON.parse(JSON.stringify(state)))).toEqual(state);
+    const junk = parsePath({ v: 1, tested: { 'coder:nope': '2026-03-02', 'coder:loops': 'yesterday', 'little:moves': '2026-02-30' }, master: { coder: 5, little: '2026-13-01' } });
+    expect(junk.tested).toEqual({});
+    expect(junk.master).toEqual({});
+    expect(parsePath({ v: 1, tested: 'x', master: [] })).toEqual(emptyPath());
+  });
+});
+
+describe('stages: tested out and Logo Master', () => {
+  it('opens the next stage when the previous one is tested out, and the stage itself when it is tested', () => {
+    const base = fresh();
+    expect(islandState(base.state, base.cleared, 'coder:loops').status).toBe('locked');
+    const prev = { ...base.state, tested: { 'coder:moves': D1 } };
+    expect(islandState(prev, base.cleared, 'coder:loops').status).toBe('open');
+    expect(islandState(prev, base.cleared, 'coder:loops').tested).toBe(false);
+    expect(islandState(prev, base.cleared, 'coder:moves').tested).toBe(true);
+    const self = { ...base.state, tested: { 'coder:functions': D1 } };
+    expect(islandState(self, base.cleared, 'coder:functions').status).toBe('open');
+    expect(islandState(self, base.cleared, 'coder:debugging').status).toBe('locked');
+  });
+
+  it('sends the child past tested stages and still lets a tested stage be sailed later', () => {
+    const state = { ...emptyPath(), tested: { 'coder:moves': D1, 'coder:loops': D1 } };
+    expect(nextStop(state, [], 'coder', D1)).toMatchObject({ kind: 'quest', islandKey: 'coder:debugging', questId: 'c-bug-square' });
+    const w = sail({ state, cleared: [] }, 'coder:moves');
+    expect(w.state.sailed['coder:moves']).toBe(D1);
+    expect(w.state.tested['coder:moves']).toBe(D1);
+  });
+
+  it('is not Logo Master until the last stage is sailed and every other stage is sailed or tested', () => {
+    const keys = islandsFor('coder').map((i) => i.key);
+    const last = keys[keys.length - 1]!;
+    let w: World = fresh();
+    expect(masterReady(w.state, 'coder')).toBe(false);
+    for (const key of keys.slice(0, -1)) w = sail(w, key);
+    expect(masterReady(w.state, 'coder')).toBe(false);
+    w = sail(w, last);
+    expect(masterReady(w.state, 'coder')).toBe(true);
+    expect(masterReady(w.state, 'little')).toBe(false);
+  });
+
+  it('counts tested stages but never a tested last stage, and the first solve that completes it reports masterEarned once', () => {
+    const keys = islandsFor('coder').map((i) => i.key);
+    const last = islandByKey(keys[keys.length - 1]!)!;
+    const tested = Object.fromEntries(keys.slice(0, -1).map((k) => [k, D1]));
+    const state: PathState = { ...emptyPath(), tested };
+    expect(masterReady({ ...state, tested: { ...tested, [last.key]: D1 } }, 'coder')).toBe(false);
+
+    const [a, b] = [last.units[0]![0], last.units[0]![1]];
+    const [c, d] = [last.units[1]![0], last.units[1]![1]];
+    let w: World = { state, cleared: [] };
+    for (const id of [a, b, c]) {
+      const r = recordQuest(w.state, w.cleared, id, false, D2);
+      expect(r.events.masterEarned).toBe(false);
+      w = { state: r.state, cleared: r.cleared };
+    }
+    const finishing = recordQuest(w.state, w.cleared, d, false, D2);
+    expect(finishing.events.islandSailed).toBe(true);
+    expect(finishing.events.masterEarned).toBe(true);
+    expect(finishing.state.master.coder).toBe(D2);
+    const again = recordQuest(finishing.state, finishing.cleared, last.units[1]![2], false, '2026-04-01');
+    expect(again.events.masterEarned).toBe(false);
+    expect(again.state.master.coder).toBe(D2);
+  });
+
+  it('records the master date once and never clears it', () => {
+    const once = recordMaster(emptyPath(), 'little', D1);
+    expect(once.master).toEqual({ little: D1 });
+    expect(recordMaster(once, 'little', D2).master.little).toBe(D1);
+    expect(recordMaster(once, 'coder', D2).master).toEqual({ little: D1, coder: D2 });
+  });
+
+  it('lists a sticker only for stages that have one', () => {
+    expect(ALL_ISLANDS.every((i) => i.badge === null || i.badge === i.concept)).toBe(true);
   });
 });

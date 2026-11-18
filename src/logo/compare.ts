@@ -87,10 +87,44 @@ function matches(a: Run[], b: Run[]): boolean {
 
 const mirror = (segs: Seg[]): Seg[] => segs.map((s) => ({ x1: -s.x1, y1: s.y1, x2: -s.x2, y2: s.y2 }));
 
-/** True when two programs leave the same picture (ignoring colour and drawing order). Mirror images count when allowed. */
+export interface Dot {
+  x: number;
+  y: number;
+}
+
+/** The dots left on the stage since the last clear. */
+export function drawnDots(result: RunResult): Dot[] {
+  const dots: Dot[] = [];
+  for (const e of result.events) {
+    if (e.type === 'clear') dots.length = 0;
+    if (e.type === 'dot') dots.push({ x: e.x, y: e.y });
+  }
+  return dots;
+}
+
+function sameDots(a: Dot[], b: Dot[]): boolean {
+  if (a.length !== b.length) return false;
+  const unused = [...b];
+  for (const d of a) {
+    const k = unused.findIndex((o) => Math.abs(o.x - d.x) < DIST_TOL && Math.abs(o.y - d.y) < DIST_TOL);
+    if (k < 0) return false;
+    unused.splice(k, 1);
+  }
+  return true;
+}
+
+const mirrorDots = (dots: Dot[]): Dot[] => dots.map((d) => ({ x: -d.x, y: d.y }));
+
+/**
+ * True when two programs leave the same picture (ignoring colour and drawing order). Mirror images count when allowed.
+ * Dots are compared too, but only when either picture has any, so drawings without dots compare as they always did.
+ */
 export function sameDrawing(a: RunResult, b: RunResult, options: { allowMirror?: boolean } = {}): boolean {
   const segA = drawnSegments(a);
   const segB = drawnSegments(b);
-  if (matches(canonical(segA), canonical(segB))) return true;
-  return options.allowMirror === true && matches(canonical(mirror(segA)), canonical(segB));
+  const dotsA = drawnDots(a);
+  const dotsB = drawnDots(b);
+  const checkDots = dotsA.length > 0 || dotsB.length > 0;
+  if (matches(canonical(segA), canonical(segB)) && (!checkDots || sameDots(dotsA, dotsB))) return true;
+  return options.allowMirror === true && matches(canonical(mirror(segA)), canonical(segB)) && (!checkDots || sameDots(mirrorDots(dotsA), dotsB));
 }

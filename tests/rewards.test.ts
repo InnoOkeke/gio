@@ -316,3 +316,40 @@ describe('weekCopy', () => {
     expect(weekCopy(two, TODAY).headline).toBe('You learned on 2 days this week.');
   });
 });
+describe('golden shell', () => {
+  it('starts without one and parses old stored rewards to the same data plus no golden shell', () => {
+    expect(emptyRewards().goldenShell).toBe(false);
+    const old = { v: 1, friends: ['puff'], stickers: ['first-drawing'], shell: ['first-drawing', null, null, null, null, null, null], days: ['2025-06-01'] };
+    const parsed = parseRewards(old);
+    expect({ ...parsed, goldenShell: undefined }).toEqual({ ...emptyRewards(), ...old, shell: parsed.shell, goldenShell: undefined });
+    expect(parsed.friends).toEqual(['puff']);
+    expect(parsed.stickers).toEqual(['first-drawing']);
+    expect(parsed.days).toEqual(['2025-06-01']);
+    expect(parsed.goldenShell).toBe(false);
+  });
+
+  it('is earned by the logo-master event, takes no shell spot and records the day', () => {
+    const before = emptyRewards();
+    const r = applyEvent(before, { kind: 'logo-master' }, TODAY);
+    expect(r.state.goldenShell).toBe(true);
+    expect(r.newFriends).toEqual([]);
+    expect(r.newStickers).toEqual([]);
+    expect(r.state.shell).toEqual(before.shell);
+    expect(r.state.days).toEqual([TODAY]);
+  });
+
+  it('is kept by every later event and by a round trip through storage', () => {
+    const golden = applyEvent(emptyRewards(), { kind: 'logo-master' }, TODAY).state;
+    expect(applyEvent(golden, run(['REPEAT']), TODAY).state.goldenShell).toBe(true);
+    expect(applyEvent(golden, { kind: 'bug-fixed' }, TODAY).state.goldenShell).toBe(true);
+    expect(parseRewards(JSON.parse(JSON.stringify(golden)))).toEqual(golden);
+    expect(applyEvent(golden, { kind: 'logo-master' }, TODAY).state).toEqual(golden);
+  });
+
+  it('only believes a real true, and a run or bug fix alone never grants it', () => {
+    expect(parseRewards({ v: 1, goldenShell: 'yes' }).goldenShell).toBe(false);
+    expect(parseRewards({ v: 1, goldenShell: true }).goldenShell).toBe(true);
+    expect(applyEvent(emptyRewards(), run(['REPEAT']), TODAY).state.goldenShell).toBe(false);
+    expect(backfillFromProgress(QUESTS.map((q) => q.id), TODAY).goldenShell).toBe(false);
+  });
+});
