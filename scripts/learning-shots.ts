@@ -110,7 +110,11 @@ async function main() {
 
   const type = async (code: string, replace = false) => {
     await evaluate(`document.querySelector('.cm-content')?.focus()`);
-    if (replace) await evaluate(`document.execCommand('selectAll')`);
+    if (replace) {
+      // CodeMirror owns its selection, so select everything with its own Ctrl+A key binding.
+      await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', windowsVirtualKeyCode: 65, modifiers: 2 });
+      await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', windowsVirtualKeyCode: 65, modifiers: 2 });
+    }
     await send('Input.insertText', { text: code });
     await sleep(250);
   };
@@ -273,6 +277,7 @@ async function main() {
         await click('button', 'Run');
         await sleep(2500);
       }
+      await closeDialogs();
       await click('button', 'stuck');
       const levels = [
         { level: 1, label: 'Think' },
@@ -288,6 +293,7 @@ async function main() {
         const text = (await evaluate(`document.querySelector('[aria-label="Help from the turtle"] .hint-text')?.textContent ?? document.querySelector('[aria-label="Help from the turtle"]')?.textContent ?? ''`)) as string;
         expect(ready, `hint level ${l.level} (${l.label}) shows a hint: ${text.replace(/\s+/g, ' ').trim().slice(0, 110)}`);
         await sleep(400);
+        await closeDialogs();
         await shot(n(`hint-${l.level}-${l.label.toLowerCase()}`));
         await fits(`hint level ${l.level}`, '[aria-label="Help from the turtle"]');
       }

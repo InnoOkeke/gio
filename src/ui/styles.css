@@ -1187,6 +1187,16 @@
 .hint-chip-on:hover:not(:disabled) {
   background: #4a3000;
 }
+/* Phones: keep Think, Look and Fix on one row next to the close button. */
+@media (max-width: 479px) {
+  .hint-chip {
+    min-width: 56px;
+    padding: 0 12px;
+  }
+  .hint-icon {
+    display: none;
+  }
+}
 
 /* --------------------------------------------------------------------------
  * First win: one big button over the empty stage, then colours to make it yours

@@ -85,7 +85,7 @@ export function HintCard({ open, loading, error, notice, ladder, shown, little, 
       }}
     >
       <div className="flex items-center gap-2">
-        <span className="text-[#b86e00] shrink-0" aria-hidden="true">
+        <span className="hint-icon text-[#b86e00] shrink-0" aria-hidden="true">
           <HelpIcon size={26} />
         </span>
         <div className="flex flex-1 flex-wrap items-center gap-1.5" role="group" aria-label="Hint steps">
