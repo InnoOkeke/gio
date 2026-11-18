@@ -28,6 +28,7 @@ import {
 } from '../components/icons';
 import { ExportMenu } from '../components/ExportMenu';
 import { hasDrawing, toSVG } from '../export/svg';
+import { FirstWinOffer, FirstWinYours, FIRST_WIN_TEXT, useFirstWin } from '../components/FirstWin';
 import { FriendDialog } from '../components/FriendDialog';
 import { GardenSheet } from '../components/GardenSheet';
 import { AdventureMap } from '../components/AdventureMap';
@@ -40,6 +41,7 @@ import { TranslatedCode } from '../components/TranslatedCode';
 import { TurtleBubble, type BubbleMessage } from '../components/TurtleBubble';
 import { friendById, type FriendId } from '../gio/catalog';
 import { announce, hasEarned, mergeEarned, NOTHING, runSignals, stickerNames, type Earned, type RunSignals } from '../gio/earned';
+import { DEFAULT_FIRST_COLOUR, firstWinProgram, markFirstWinShown, readFirstWin, shouldOfferFirstWin, type BlockColour } from '../first-win';
 import { LINES, pickLine, welcomeBackLine } from '../gio/lines';
 import { moodFor, type GioMood } from '../gio/mood';
 import { daysAway, localDateKey } from '../gio/rewards';
@@ -160,6 +162,11 @@ function StudioView({ initial }: { initial: Loaded }) {
   const { state: rewards, record, wear } = useRewards();
   /** A child who has learned before and been away 3 or more days gets a warm welcome back. */
   const [cameBack] = useState(() => rewards.days.length > 0 && daysAway(rewards.days, localDateKey(new Date())) >= 3);
+  /** A brand-new child on an empty page is offered one big button that draws a star. */
+  const [offerFirstWin] = useState(() =>
+    shouldOfferFirstWin({ mode, shown: readFirstWin(), completedQuests: progress.completed, learnedDays: rewards.days, draftCode: initial.code, onSharedLink: initial.slug !== null }),
+  );
+  const firstWin = useFirstWin(offerFirstWin);
   const readAloud = useReadAloud(little);
   const undoStack = useRef<string[]>([]);
   const tutor = useTutor();
@@ -173,7 +180,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [savedSnapshot, setSavedSnapshot] = useState(initial.slug ? `${initial.title}\n${initial.code}` : '');
   const [status, setStatus] = useState<PlayerStatus>('idle');
   const [speed, setSpeed] = useState<Speed>(little ? 'turtle' : 'rabbit');
-  const [bubble, setBubble] = useState<BubbleMessage>(initial.code ? { kind: 'info', text: 'Press Run to watch me draw it!' } : cameBack ? { kind: 'info', text: welcomeBackLine() } : WELCOME[mode]);
+  const [bubble, setBubble] = useState<BubbleMessage>(initial.code ? { kind: 'info', text: 'Press Run to watch me draw it!' } : offerFirstWin ? { kind: 'info', text: FIRST_WIN_TEXT[mode].offer } : cameBack ? { kind: 'info', text: welcomeBackLine() } : WELCOME[mode]);
   const [prints, setPrints] = useState<string[]>([]);
   const [asking, setAsking] = useState(false);
   const [explaining, setExplaining] = useState(false);
@@ -362,6 +369,49 @@ function StudioView({ initial }: { initial: Loaded }) {
     return () => window.removeEventListener('keydown', onKey);
   }, [gameKeys, pressKey]);
 
+  /* ---------------- first win ---------------- */
+
+  const { phaseRef: firstWinPhase, end: endFirstWin, showYours: showFirstWinYours } = firstWin;
+
+  /** Skip, Done, asking for a drawing, starting a quest or clearing the stage all end the first win for good. */
+  const finishFirstWin = useCallback(() => {
+    if (firstWinPhase.current === 'off') return;
+    markFirstWinShown(modeRef.current);
+    endFirstWin();
+  }, [firstWinPhase, endFirstWin]);
+
+  /** The one big button: the turtle draws a star. The program is borrowed, so it earns nothing. */
+  const startFirstWin = () => {
+    markFirstWinShown(mode);
+    const program = firstWinProgram(mode, DEFAULT_FIRST_COLOUR);
+    borrowedRef.current.add(program.trim());
+    firstWin.setColour(DEFAULT_FIRST_COLOUR);
+    firstWin.begin();
+    if (little) setSpeed('turtle');
+    replaceCode(program);
+    run(program);
+    setBubble({ kind: 'info', text: FIRST_WIN_TEXT[mode].drawing });
+  };
+
+  /** A colour the child picked is the child's own change, so it is credited by the normal rewards path. */
+  const pickFirstColour = (colour: BlockColour) => {
+    const program = firstWinProgram(mode, colour);
+    borrowedRef.current.delete(program.trim());
+    firstWin.setColour(colour);
+    replaceCode(program);
+    run(program);
+  };
+
+  const skipFirstWin = () => {
+    finishFirstWin();
+    setBubble(WELCOME[mode]);
+  };
+
+  const askAfterFirstWin = () => {
+    if (little) document.getElementById('ask-input')?.focus();
+    else editorRef.current?.focus();
+  };
+
   /* ---------------- quests ---------------- */
 
   const setReviewRun = (r: ReviewRun | null) => {
@@ -370,6 +420,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const startQuest = (q: Quest, inReview = false) => {
+    finishFirstWin();
     setQuestsOpen(false);
     setMasteryMoment(null);
     if (!inReview) setReviewRun(null);
@@ -508,10 +559,15 @@ function StudioView({ initial }: { initial: Loaded }) {
           const names = stickerNames(earned);
           if (names.length) toast.show({ text: `New sticker: ${names.join(' and ')}!` }, 5000);
         }
+        // The first star is finished: invite the child to make it their own.
+        if (firstWinPhase.current === 'drawing') {
+          showFirstWinYours();
+          setBubble({ kind: 'success', text: FIRST_WIN_TEXT[modeRef.current].yours, mood: 'cheer' });
+        }
       }
       if (s === 'paused') setBubble((b) => (b.kind === 'problem' ? b : { kind: 'info', text: 'Paused. Press Step to go one command at a time.' }));
     },
-    [checkActiveQuest, creditRun, toast],
+    [checkActiveQuest, creditRun, toast, firstWinPhase, showFirstWinYours],
   );
 
   const onLine = useCallback((line: number | null) => {
@@ -539,6 +595,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const onReset = () => {
+    finishFirstWin();
     endGame();
     stageRef.current?.reset();
     editorRef.current?.setProblemLine(null);
@@ -621,6 +678,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   /* ---------------- AI ---------------- */
 
   const ask = async (prompt: string): Promise<boolean> => {
+    finishFirstWin();
     const command = parseVoiceCommand(prompt);
     if (command) {
       doCommand(command);
@@ -913,9 +971,13 @@ function StudioView({ initial }: { initial: Loaded }) {
 
           <section className="panel p-4 sm:p-5 flex flex-col gap-4 order-1 lg:order-2" aria-label="Turtle stage">
             {/* Square stage sized so the Run button stays on screen on laptops. */}
-            <div className="mx-auto w-full" style={{ maxWidth: 'max(320px, min(640px, calc(100vh - 470px)))' }}>
+            <div className="relative mx-auto w-full" style={{ maxWidth: 'max(320px, min(640px, calc(100vh - 470px)))' }}>
               <Stage ref={stageRef} onLine={onLine} onPrint={onPrint} onStatus={onStatus} onGameOver={onGameOver} mood={mood} stickers={rewards.shell} />
+              {firstWin.phase === 'offer' && <FirstWinOffer mode={mode} onStart={startFirstWin} onSkip={skipFirstWin} />}
             </div>
+            {firstWin.phase === 'yours' && (
+              <FirstWinYours mode={mode} colour={firstWin.colour} onPick={pickFirstColour} onAsk={askAfterFirstWin} onDone={finishFirstWin} />
+            )}
 
             <div className="flex flex-wrap items-center justify-center gap-3">
               <button type="button" className={`btn btn-lg ${playing ? 'btn-stop' : 'btn-primary'} min-w-[150px]`} onClick={onRunPress}>
@@ -1040,7 +1102,6 @@ function StudioView({ initial }: { initial: Loaded }) {
         onClose={() => setGardenOpen(false)}
       />
       {friendQueue[0] && <FriendDialog key={friendQueue[0]} friend={friendById(friendQueue[0])} onClose={() => setFriendQueue((f) => f.slice(1))} />}
-<<<<<<< HEAD
       {!friendQueue[0] && masteryMoment && (
         <MasteryMoment
           moment={masteryMoment}
@@ -1056,7 +1117,7 @@ function StudioView({ initial }: { initial: Loaded }) {
           }}
           onClose={() => setMasteryMoment(null)}
         />
-=======
+      )}
       {movie && (
         <Suspense fallback={null}>
           <ReplayDialog
@@ -1068,7 +1129,6 @@ function StudioView({ initial }: { initial: Loaded }) {
             onClose={() => setMovie(null)}
           />
         </Suspense>
->>>>>>> 4d68a00 (feat: Save menu with picture, movie (animated GIF) and SVG drawing file)
       )}
       {toast.view}
     </div>

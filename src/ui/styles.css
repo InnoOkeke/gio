@@ -1188,6 +1188,44 @@
   background: #4a3000;
 }
 
+/* --------------------------------------------------------------------------
+ * First win: one big button over the empty stage, then colours to make it yours
+ * -------------------------------------------------------------------------- */
+.first-win-offer {
+  border-radius: var(--radius-lg);
+  animation: first-win-in 420ms var(--spring);
+}
+@keyframes first-win-in {
+  from { transform: scale(0.96); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.first-win-ring {
+  position: absolute;
+  inset: -6px;
+  border-radius: 28px;
+  border: 3px solid var(--green);
+  opacity: 0;
+  pointer-events: none;
+  animation: first-win-ring 2s ease-out infinite;
+}
+@keyframes first-win-ring {
+  0% { transform: scale(0.96); opacity: 0.7; }
+  70%, 100% { transform: scale(1.1); opacity: 0; }
+}
+.first-win-yours {
+  animation: bubble-in 360ms var(--spring);
+}
+.first-win-swatch {
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition: transform 160ms var(--spring), border-color 160ms ease;
+}
+.first-win-swatch:hover {
+  transform: scale(1.06);
+}
+.first-win-swatch:active {
+  transform: scale(0.94);
+}
 /* Utilities come after the component styles so classes like hidden and sm:inline win. */
 @tailwind utilities;
 
@@ -1206,8 +1244,17 @@
   .hint-card,
   .hint-text,
   .save-panel,
-  .save-fade {
+  .save-fade,
+  .first-win-offer,
+  .first-win-yours {
     animation: none !important;
+  }
+  .first-win-ring {
+    animation: none !important;
+    opacity: 0.5 !important;
+  }
+  .first-win-swatch {
+    transition: none !important;
   }
   .crawl-fill,
   .crawl-gio {

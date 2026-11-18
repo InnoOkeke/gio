@@ -47,6 +47,10 @@ Kids pick a mode on the first screen and can switch any time. A link can choose 
 - 🗣️ **Voice controls the app**: say "run it", "stop", "slower", "faster", "explain", "save", "undo", "hint" or "start over". Only short exact phrases count as commands, so "draw a fast car" is still a drawing.
 - 🔊 **Reads aloud**: the turtle speaks its messages with the browser's built-in voices, on by default for Little Turtles, so children who can't read yet can still use GIO.
 - 🎤 **Talk to the turtle** using the browser's built-in speech recognition (tap to talk; shown only where the browser supports it).
+- **Tutor mode**: "I'm stuck" gives one hint at a time (Think, Look, Fix). GIO's own interpreter finds the line, and hints never change progress or stickers.
+- **A first win in one tap**: a brand-new child taps one big button, the turtle draws a star, and then they pick a colour to make it their own.
+- **Movies (animated GIF)**: any drawing can be saved as a "watch me draw" GIF, made on the child's own device.
+- **Drawing files (SVG)**: save a drawing at real size in millimetres for printers, plotters and cutters.
 - 🐢 **A real Logo interpreter**, written for GIO: `FD`, `BK`, `RT`, `LT`, `PU`, `PD`, `HOME`, `CS`, `SETXY`, `SETHEADING`, `ARC`, `CIRCLE`, `SETPENCOLOR`, `SETPENSIZE`, `SETBG`, `PRINT`, `REPEAT`, `TO … END` procedures with inputs, recursion with `STOP`, `MAKE` variables, `IF` / `IFELSE`, arithmetic, `RANDOM` and `REPCOUNT`.
 - 💬 **Error messages written for kids**, with the line highlighted: *"I don't know how to FORWRD. Did you mean FORWARD?"*
 - 🤖 **Ask the turtle**: describe a drawing (or a change to the current one) and GIO writes Logo with short comments a child can read. Every AI answer is parsed and test-run by GIO's interpreter before it reaches the editor.

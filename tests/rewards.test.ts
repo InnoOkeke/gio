@@ -11,6 +11,7 @@ import {
   parseRewards,
   placeSticker,
   totalDays,
+  weekCopy,
   weekView,
   type RewardEvent,
 } from '../src/ui/gio/rewards';
@@ -267,5 +268,51 @@ describe('mood and lines', () => {
   it('uses no emoji in any line', () => {
     const emoji = /\p{Extended_Pictographic}/u;
     for (const pools of Object.values(LINES)) for (const pool of Object.values(pools)) for (const line of pool) expect(emoji.test(line)).toBe(false);
+  });
+});
+
+describe('weekCopy', () => {
+  const sayings = (s: ReturnType<typeof emptyRewards>) => {
+    const c = weekCopy(s, TODAY);
+    return `${c.headline} ${c.footer}`;
+  };
+
+  it('welcomes a legacy child whose garden grew before days were counted', () => {
+    const legacy = backfillFromProgress(['l-walk', 'l-corner', 'l-square'], TODAY);
+    expect(legacy.days).toEqual([]);
+    expect(legacy.friends.length + legacy.stickers.length).toBeGreaterThan(0);
+    expect(weekCopy(legacy, TODAY)).toEqual({
+      headline: 'Your garden is already growing!',
+      footer: 'You started before we counted days. Learn something today and your first dot will light up.',
+    });
+    expect(sayings(legacy)).not.toMatch(/\b0 days?\b/);
+  });
+
+  it('invites a brand-new child to fill the first dot', () => {
+    expect(weekCopy(emptyRewards(), TODAY)).toEqual({
+      headline: 'Your first dot is waiting for you.',
+      footer: 'Learn something today to fill your first dot.',
+    });
+  });
+
+  it('is gentle after a quiet week, with singular and plural day counts', () => {
+    const one = { ...emptyRewards(), days: ['2025-05-01'] };
+    expect(weekCopy(one, TODAY)).toEqual({
+      headline: 'A fresh week is starting.',
+      footer: '1 day so far. Learn something today to light up a new dot.',
+    });
+    const three = { ...emptyRewards(), days: ['2025-05-01', '2025-05-02', '2025-05-03'] };
+    expect(weekCopy(three, TODAY).footer).toBe('3 days so far. Learn something today to light up a new dot.');
+    expect(sayings(three)).not.toMatch(/\b0 days?\b/);
+  });
+
+  it('keeps the existing wording when the child learned this week', () => {
+    const one = { ...emptyRewards(), days: ['2025-05-01', '2025-06-10'] };
+    expect(weekCopy(one, TODAY)).toEqual({
+      headline: 'You learned on 1 day this week.',
+      footer: '2 days in total. Every day counts, and your garden keeps what it grew.',
+    });
+    const two = { ...emptyRewards(), days: ['2025-06-09', '2025-06-10'] };
+    expect(weekCopy(two, TODAY).headline).toBe('You learned on 2 days this week.');
   });
 });

@@ -19,7 +19,8 @@
     "check:tutor": "tsx scripts/check-tutor.ts",
     "check:browser": "tsx scripts/browser-check.ts",
     "check:shots": "tsx scripts/gio-shots.ts",
-    "check:map-shots": "tsx scripts/map-shots.ts"
+    "check:map-shots": "tsx scripts/map-shots.ts",
+    "check:learning": "tsx scripts/learning-shots.ts"
   },
   "engines": {
     "node": ">=20.0.0"

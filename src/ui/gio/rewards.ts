@@ -96,6 +96,28 @@ export function totalDays(days: readonly string[]): number {
   return days.length;
 }
 
+/** The words on the garden's "Your learning days" card. Never says "0 days", and never scolds a quiet week. */
+export function weekCopy(state: RewardsState, today: string): { headline: string; footer: string } {
+  const total = totalDays(state.days);
+  const week = daysThisWeek(state.days, today);
+  const plural = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
+  if (total === 0) {
+    return state.friends.length > 0 || state.stickers.length > 0
+      ? {
+          headline: 'Your garden is already growing!',
+          footer: 'You started before we counted days. Learn something today and your first dot will light up.',
+        }
+      : { headline: 'Your first dot is waiting for you.', footer: 'Learn something today to fill your first dot.' };
+  }
+  if (week === 0) {
+    return { headline: 'A fresh week is starting.', footer: `${plural(total)} so far. Learn something today to light up a new dot.` };
+  }
+  return {
+    headline: `You learned on ${plural(week)} this week.`,
+    footer: `${plural(total)} in total. Every day counts, and your garden keeps what it grew.`,
+  };
+}
+
 /** Whole days since the child last learned something. 0 if never, or if the clock moved backwards. */
 export function daysAway(days: readonly string[], today: string): number {
   const last = days[days.length - 1];

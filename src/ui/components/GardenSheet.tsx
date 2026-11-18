@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Quest, QuestAudience } from '../../logo/quests.js';
 import { FRIENDS, SHELL_SLOTS, STICKERS, stickerById, type StickerId } from '../gio/catalog';
-import { daysThisWeek, localDateKey, totalDays, weekView, type RewardsState } from '../gio/rewards';
+import { localDateKey, weekCopy, weekView, type RewardsState } from '../gio/rewards';
 import type { Badge } from '../progress';
 import { FriendPicture } from './gio/FriendArt';
 import { StickerPicture } from './gio/StickerArt';
@@ -58,8 +58,7 @@ export function GardenSheet({ open, mode, rewards, quests, completed, badges, on
 
   const today = localDateKey(new Date());
   const week = weekView(rewards.days, today);
-  const learnedThisWeek = daysThisWeek(rewards.days, today);
-  const total = totalDays(rewards.days);
+  const copy = weekCopy(rewards, today);
 
   const stickers = STICKERS.filter((s) => s.modes.includes(mode) || rewards.stickers.includes(s.id));
   const friends = FRIENDS.filter((f) => f.modes.includes(mode) || rewards.friends.includes(f.id));
@@ -214,7 +213,7 @@ export function GardenSheet({ open, mode, rewards, quests, completed, badges, on
               Your learning days
             </h3>
             <p className="m-0 text-[17px] font-bold text-ink">
-              You learned on {learnedThisWeek} {learnedThisWeek === 1 ? 'day' : 'days'} this week.
+              {copy.headline}
             </p>
             <ul className="m-0 p-0 list-none flex justify-between gap-1">
               {week.map((d) => (
@@ -235,9 +234,7 @@ export function GardenSheet({ open, mode, rewards, quests, completed, badges, on
               ))}
             </ul>
             <p className="m-0 text-[15px] font-bold text-ink-2">
-              {total === 0
-                ? 'Learn something today to fill your first dot.'
-                : `${total} ${total === 1 ? 'day' : 'days'} in total. Every day counts, and your garden keeps what it grew.`}
+              {copy.footer}
             </p>
           </section>
         </div>
