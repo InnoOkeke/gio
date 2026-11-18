@@ -44,5 +44,5 @@ export function welcomeBackLine(): string {
 
 /** One bubble message, so it is spoken once and never cut off. */
 export function friendIntro(friend: Friend): string {
-  return `Meet ${friend.name} the ${friend.species}! ${friend.name} loves ${friend.idea.toLowerCase()} and now lives in your garden.`;
+  return `Meet ${friend.name} the ${friend.species}, who loves ${friend.idea.toLowerCase()} and now lives in your garden.`;
 }

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type GameKey, type GameSession, type TargetLanguage } from '../../logo/index.js';
 import { TICK_MS } from '../../logo/primitives.js';
-import { checkQuest, CONCEPTS, playWithPresses, type Quest } from '../../logo/quests.js';
+import { checkQuest, CONCEPTS, features, playWithPresses, type Quest } from '../../logo/quests.js';
 import { api, ApiError, local, type AssistantStyle } from '../api';
 import { AskTurtle } from '../components/AskTurtle';
 import { CommandShelf } from '../components/CommandShelf';
@@ -25,15 +25,21 @@ import {
   TrophyIcon,
   TurtleSpeedIcon,
 } from '../components/icons';
+import { FriendDialog } from '../components/FriendDialog';
 import { QuestCard, QuestMap } from '../components/Quests';
 import { Stage, type StageHandle } from '../components/Stage';
 import { useToast } from '../components/Toast';
 import { TranslatedCode } from '../components/TranslatedCode';
 import { TurtleBubble, type BubbleMessage } from '../components/TurtleBubble';
+import { friendById, type FriendId } from '../gio/catalog';
+import { announce, hasEarned, mergeEarned, NOTHING, runSignals, stickerNames, type Earned, type RunSignals } from '../gio/earned';
+import { LINES, pickLine } from '../gio/lines';
+import { moodFor, type GioMood } from '../gio/mood';
 import { BlocksEditor } from '../editor/BlocksEditor';
 import { LogoEditor, type LogoEditorHandle } from '../editor/LogoEditor';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
 import { useProgress } from '../progress';
+import { useRewards } from '../rewards';
 import { useReadAloud } from '../speech';
 import { parseVoiceCommand, type VoiceCommand } from '../voice-commands';
 import type { PlayerStatus, Speed } from '../runtime/player';
@@ -41,8 +47,8 @@ import type { PlayerStatus, Speed } from '../runtime/player';
 const DEFAULT_TITLE = 'My drawing';
 
 const WELCOME: Record<AgeMode, BubbleMessage> = {
-  little: { kind: 'info', text: "Hi, I'm Gio! Tap the blocks below to tell me where to go, then press Run." },
-  coder: { kind: 'info', text: "Hi, I'm Gio! Tell me what to draw up top, or type FD 100 in the code box and press Run." },
+  little: { kind: 'info', text: pickLine(LINES.little.greeting, 0) },
+  coder: { kind: 'info', text: pickLine(LINES.coder.greeting, 0) },
 };
 
 const SPEEDS: { id: Speed; label: string; Icon: typeof TurtleSpeedIcon }[] = [
@@ -129,6 +135,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const stageRef = useRef<StageHandle>(null);
   const toast = useToast();
   const progress = useProgress(mode);
+  const { state: rewards, record } = useRewards();
   const readAloud = useReadAloud(little);
   const undoStack = useRef<string[]>([]);
 
@@ -148,6 +155,17 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [codeTab, setCodeTab] = useState<CodeTab>('logo');
   const [runningLine, setRunningLine] = useState<number | null>(null);
   const [showLogoUnderBlocks, setShowLogoUnderBlocks] = useState(false);
+
+  /* Gio's reactions and rewards. Only the child's own working code earns anything. */
+  const [friendQueue, setFriendQueue] = useState<FriendId[]>([]);
+  const [moodLive, setMoodLive] = useState(true);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  /** Code someone or something else wrote: the latest AI answer, quest starters, a shared link. Unchanged, it earns nothing. */
+  const borrowedRef = useRef<Set<string>>(new Set(initial.slug && initial.code.trim() ? [initial.code.trim()] : []));
+  const lastRunRef = useRef<RunSignals | null>(null);
+  const failedCodeRef = useRef<string | null>(null);
+  const runCountRef = useRef(0);
 
   const [questsOpen, setQuestsOpen] = useState(false);
   const [quest, setQuest] = useState<Quest | null>(null);
@@ -194,6 +212,14 @@ function StudioView({ initial }: { initial: Loaded }) {
     // Speak only when the message changes, not when the speak function is recreated.
   }, [bubble.text]);
 
+  // A mood is a reaction, not a state: it fades back to a calm face after a few seconds.
+  useEffect(() => {
+    setMoodLive(true);
+    const id = window.setTimeout(() => setMoodLive(false), 5000);
+    return () => window.clearTimeout(id);
+  }, [bubble]);
+  const mood: GioMood = asking || explaining ? 'thinking' : moodLive ? moodFor(bubble) : 'idle';
+
   // Keep unsaved new work safe in this browser.
   useEffect(() => {
     if (!project) local.saveDraft(title, code);
@@ -213,6 +239,8 @@ function StudioView({ initial }: { initial: Loaded }) {
     setGameKeys(sessionRef.current ? sessionRef.current.keys : []);
     setGameTicks(sessionRef.current?.ticks ?? false);
     if (!res.ok) {
+      lastRunRef.current = null;
+      failedCodeRef.current = source;
       editorRef.current?.setProblemLine(res.problem.line);
       setBubble({ kind: 'problem', text: res.problem.message, line: res.problem.line });
       if (res.partial) {
@@ -221,6 +249,9 @@ function StudioView({ initial }: { initial: Loaded }) {
       }
       return;
     }
+    const checked = check(source);
+    lastRunRef.current = runSignals(source, !borrowedRef.current.has(source.trim()), res.result.events, checked.ok ? features(checked.program) : []);
+    runCountRef.current += 1;
     if (sessionRef.current) {
       // Let the arrow keys reach the game instead of the code editor.
       (document.activeElement as HTMLElement | null)?.blur?.();
@@ -230,11 +261,12 @@ function StudioView({ initial }: { initial: Loaded }) {
       return;
     }
     if (!res.result.events.length) {
+      lastRunRef.current = null;
       setBubble({ kind: 'info', text: 'There are no commands for me yet. Add one, then press Run.' });
       stageRef.current?.reset();
       return;
     }
-    setBubble({ kind: 'info', text: 'Here I go!' });
+    setBubble({ kind: 'info', text: pickLine(LINES[modeRef.current].runStart, runCountRef.current) });
     stageRef.current?.load(res.result);
     stageRef.current?.play();
   }, []);
@@ -301,6 +333,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     setQuest(q);
     setQuestDone(false);
     setQuestFeedback(null);
+    if (q.starter?.trim()) borrowedRef.current.add(q.starter.trim());
     replaceCode(q.starter ?? '');
     endGame();
     stageRef.current?.reset();
@@ -327,20 +360,48 @@ function StudioView({ initial }: { initial: Loaded }) {
     }
   };
 
-  const checkActiveQuest = useCallback(() => {
-    const q = questRef.current;
-    if (!q) return;
-    const result = checkQuest(q, codeRef.current);
-    setQuestFeedback(result.message);
-    if (!result.pass) {
-      setBubble({ kind: 'info', text: result.message });
-      return;
+  /** Count a finished run toward rewards, but only when the child wrote the code. */
+  const creditRun = useCallback((): { earned: Earned; run: RunSignals | null } => {
+    const run = lastRunRef.current;
+    lastRunRef.current = null;
+    if (!run?.credited) return { earned: NOTHING, run };
+    let earned = record({ kind: 'run-ok', features: run.features, colours: run.colours, drewLines: run.drewLines });
+    const failed = failedCodeRef.current;
+    if (failed !== null && failed !== run.code) {
+      failedCodeRef.current = null;
+      earned = mergeEarned(earned, record({ kind: 'bug-fixed' }));
     }
-    setQuestDone(true);
-    const { newBadge } = progress.complete(q.id);
-    setBubble({ kind: 'success', text: newBadge ? `You earned the ${CONCEPTS[newBadge].badge} badge!` : 'Quest complete! You did it!' });
-    toast.show({ text: newBadge ? `New badge: ${CONCEPTS[newBadge].badge}!` : `Quest complete: ${q.title}` }, 5000);
-  }, [progress, toast]);
+    return { earned, run };
+  }, [record]);
+
+  const checkActiveQuest = useCallback(
+    (earned: Earned, run: RunSignals | null) => {
+      const q = questRef.current;
+      if (!q) return;
+      const result = checkQuest(q, codeRef.current);
+      setQuestFeedback(result.message);
+      if (!result.pass) {
+        setFriendQueue((f) => [...f, ...earned.newFriends]);
+        setBubble(hasEarned(earned) ? { kind: 'info', text: announce(result.message, earned), mood: 'cheer' } : { kind: 'info', text: result.message });
+        const names = stickerNames(earned);
+        if (names.length) toast.show({ text: `New sticker: ${names.join(' and ')}!` }, 5000);
+        return;
+      }
+      setQuestDone(true);
+      const { newBadge } = progress.complete(q.id);
+      const credited = run?.credited === true;
+      const all = mergeEarned(
+        earned,
+        record({ kind: 'quest-done', questId: q.id, features: credited ? run.features : [], colours: credited ? run.colours : 0, newBadge }),
+      );
+      setFriendQueue((f) => [...f, ...all.newFriends]);
+      const base = newBadge ? `You earned the ${CONCEPTS[newBadge].badge} badge!` : 'Quest complete! You did it!';
+      setBubble({ kind: 'success', text: announce(base, all, newBadge), mood: hasEarned(all) ? 'cheer' : undefined });
+      const names = stickerNames(all, newBadge);
+      toast.show({ text: newBadge ? `New badge: ${CONCEPTS[newBadge].badge}!${names.length ? ` New sticker: ${names.join(' and ')}!` : ''}` : names.length ? `New sticker: ${names.join(' and ')}!` : `Quest complete: ${q.title}` }, 5000);
+    },
+    [progress, record, toast],
+  );
 
   /* ---------------- player ---------------- */
 
@@ -350,13 +411,23 @@ function StudioView({ initial }: { initial: Loaded }) {
       // A finished key press in a game is not the end of the program.
       if (s === 'done' && pressingRef.current) return;
       if (s === 'done') {
-        if (questRef.current) checkActiveQuest();
-        // A game keeps its "Game on!" message while it is being played.
-        else if (!sessionRef.current) setBubble((b) => (b.kind === 'problem' ? b : { kind: 'success', text: little ? 'Ta-da! You made that!' : 'Ta-da! Change a number and run it again to see what happens.' }));
+        const { earned, run } = creditRun();
+        if (questRef.current) checkActiveQuest(earned, run);
+        else {
+          setFriendQueue((f) => [...f, ...earned.newFriends]);
+          const cheer = hasEarned(earned);
+          // A game keeps its "Game on!" message while it is being played, unless something new arrived.
+          if (!sessionRef.current || cheer) {
+            const base = sessionRef.current ? 'Your game works!' : pickLine(LINES[modeRef.current].success, runCountRef.current);
+            setBubble((b) => (b.kind === 'problem' ? b : { kind: 'success', text: announce(base, earned), mood: cheer ? 'cheer' : undefined }));
+          }
+          const names = stickerNames(earned);
+          if (names.length) toast.show({ text: `New sticker: ${names.join(' and ')}!` }, 5000);
+        }
       }
       if (s === 'paused') setBubble((b) => (b.kind === 'problem' ? b : { kind: 'info', text: 'Paused. Press Step to go one command at a time.' }));
     },
-    [checkActiveQuest, little],
+    [checkActiveQuest, creditRun, toast],
   );
 
   const onLine = useCallback((line: number | null) => {
@@ -478,6 +549,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       const { code: aiCode } = await api.askTurtle(prompt, code.trim() ? code : undefined, style);
       const suggested = titleFromCode(aiCode);
       const next = little ? withoutComments(aiCode) : aiCode;
+      borrowedRef.current.add(next.trim());
       replaceCode(next);
       if (suggested && (title === DEFAULT_TITLE || !project)) setTitle(suggested);
       run(next);
@@ -708,7 +780,7 @@ function StudioView({ initial }: { initial: Loaded }) {
           <section className="panel p-4 sm:p-5 flex flex-col gap-4 order-1 lg:order-2" aria-label="Turtle stage">
             {/* Square stage sized so the Run button stays on screen on laptops. */}
             <div className="mx-auto w-full" style={{ maxWidth: 'max(320px, min(640px, calc(100vh - 470px)))' }}>
-              <Stage ref={stageRef} onLine={onLine} onPrint={onPrint} onStatus={onStatus} onGameOver={onGameOver} />
+              <Stage ref={stageRef} onLine={onLine} onPrint={onPrint} onStatus={onStatus} onGameOver={onGameOver} mood={mood} stickers={rewards.shell} />
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
@@ -741,7 +813,7 @@ function StudioView({ initial }: { initial: Loaded }) {
             {gameKeys.length > 0 && <GamePad keys={gameKeys} onPress={pressKey} />}
 
             <div className="flex flex-col gap-2">
-              <TurtleBubble message={bubble} onShowLine={(line) => editorRef.current?.setProblemLine(line)} />
+              <TurtleBubble message={bubble} mood={mood} stickers={rewards.shell} onShowLine={(line) => editorRef.current?.setProblemLine(line)} />
               <div className="flex justify-end gap-2">
                 {readAloud.supported && (
                   <button
@@ -791,6 +863,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         onPick={startQuest}
         onClose={() => setQuestsOpen(false)}
       />
+      {friendQueue[0] && <FriendDialog key={friendQueue[0]} friend={friendById(friendQueue[0])} onClose={() => setFriendQueue((f) => f.slice(1))} />}
       {toast.view}
     </div>
   );

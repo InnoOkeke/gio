@@ -1,6 +1,8 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { DEFAULT_BACKGROUND, type RunResult, type TurtleEvent } from '../../logo/index.js';
 import { Player, WORLD_HALF, type PlayerStatus, type Speed, type SpriteState } from '../runtime/player';
+import type { StickerId } from '../gio/catalog';
+import type { GioMood } from '../gio/mood';
 import { TurtleSprite } from './TurtleSprite';
 
 export interface StageHandle {
@@ -26,11 +28,13 @@ interface StageProps {
   onLine(line: number | null): void;
   onPrint(text: string): void;
   onStatus(status: PlayerStatus): void;
+  mood?: GioMood;
+  stickers?: readonly (StickerId | null)[];
 }
 
 const BURST_COLORS = ['#ffc93c', '#12a36b', '#2b9bf4', '#ec3f86', '#7a4cf0', '#ef5a4c'];
 
-export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine, onPrint, onStatus, onGameOver }, ref) {
+export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine, onPrint, onStatus, onGameOver, mood, stickers }, ref) {
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const guideRef = useRef<HTMLCanvasElement>(null);
@@ -208,7 +212,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
       <div ref={burstRef} className="burst" aria-hidden="true" />
       <div ref={scoreRef} className="scoreboard" role="status" aria-live="polite" hidden />
       <div ref={turtleRef} className="turtle is-idle">
-        <TurtleSprite />
+        <TurtleSprite mood={mood} stickers={stickers} />
       </div>
     </div>
   );

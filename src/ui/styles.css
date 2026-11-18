@@ -334,6 +334,103 @@
   100% { transform: scale(1); }
 }
 
+/* Gio's moods. The face is always drawn; these only add a short movement that ends at rest. */
+.gio-pose {
+  transform-box: fill-box;
+  transform-origin: 50% 60%;
+}
+.gio-pose[data-mood='happy'],
+.gio-pose[data-mood='cheer'] {
+  animation: gio-dance 0.6s ease-in-out 4;
+}
+.gio-pose[data-mood='curious'] {
+  animation: gio-tilt 1.3s ease-in-out 2;
+}
+.gio-pose[data-mood='calm'] {
+  animation: gio-nod 2.4s ease-in-out 2;
+}
+@keyframes gio-dance {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-3px) rotate(-9deg); }
+  75% { transform: translateY(-3px) rotate(9deg); }
+}
+@keyframes gio-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  35%, 65% { transform: rotate(-13deg); }
+}
+@keyframes gio-nod {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(1.5px); }
+}
+.gio-spark {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: gio-spark 0.9s ease-in-out 3 both;
+}
+.gio-spark-2 { animation-delay: 0.15s; }
+.gio-spark-3 { animation-delay: 0.3s; }
+@keyframes gio-spark {
+  0%, 100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  50% { transform: scale(1.35) rotate(25deg); opacity: 0.8; }
+}
+.gio-dot {
+  animation: gio-dot 1.2s ease-in-out 4;
+}
+.gio-dot-2 { animation-delay: 0.2s; }
+.gio-dot-3 { animation-delay: 0.4s; }
+@keyframes gio-dot {
+  0%, 100% { opacity: 1; }
+  40% { opacity: 0.25; }
+}
+/* Friends: small idle movements, each back at its rest pose when it ends. */
+.friend-art * {
+  transform-box: fill-box;
+}
+.fr-sway { transform-origin: 50% 8%; animation: fr-sway 3.2s ease-in-out infinite; }
+.fr-bob { transform-origin: 50% 90%; animation: fr-bob 2.4s ease-in-out infinite; }
+.fr-puff { transform-origin: 50% 50%; animation: fr-puff 3s ease-in-out infinite; }
+.fr-tilt { transform-origin: 50% 95%; animation: fr-tilt 3.6s ease-in-out infinite; }
+.fr-tail { transform-origin: 5% 60%; animation: fr-tail 2.2s ease-in-out infinite; }
+.fr-dangle { animation: fr-dangle 3s ease-in-out infinite; }
+.fr-hop { transform-origin: 50% 95%; animation: fr-hop 2.8s ease-in-out infinite; }
+.fr-eye { transform-origin: 50% 50%; animation: fr-blink 4.2s ease-in-out infinite; }
+@keyframes fr-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+@keyframes fr-bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes fr-puff {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+@keyframes fr-tilt {
+  0%, 100% { transform: rotate(0deg); }
+  30% { transform: rotate(-4deg); }
+  70% { transform: rotate(4deg); }
+}
+@keyframes fr-tail {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(10deg); }
+}
+@keyframes fr-dangle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(7px); }
+}
+@keyframes fr-hop {
+  0%, 60%, 100% { transform: translateY(0) scale(1, 1); }
+  70% { transform: translateY(1px) scale(1.04, 0.94); }
+  82% { transform: translateY(-10px) scale(0.97, 1.04); }
+}
+@keyframes fr-blink {
+  0%, 92%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+.friend-card {
+  animation: bubble-in 360ms var(--spring);
+}
 /* SHOW: the game's scoreboard */
 .scoreboard {
   position: absolute;
