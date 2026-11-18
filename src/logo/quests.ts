@@ -1,4 +1,5 @@
 import { sameDrawing } from './compare.js';
+import { NEW_QUESTS } from './quest-bank.js';
 import { check, press, start, type RunResult } from './index.js';
 import type { GameKey } from './primitives.js';
 import type { Program, Stmt } from './parser.js';
@@ -44,7 +45,7 @@ export const CONCEPTS: Record<Concept, { name: string; badge: string; python: st
   events: { name: 'Games and events', badge: 'Game Maker', python: 'onkey(on_up, "Up")', color: '#14b8a6' },
 };
 
-export const QUESTS: Quest[] = [
+const BASE_QUESTS: Quest[] = [
   // ---- Little Turtles (under 8): blocks ----
   { id: 'l-walk', audience: 'little', concept: 'moves', title: 'Go for a walk', goal: 'Make the turtle walk and draw a line.', hint: 'Tap the green Forward block, then press Run.', needs: { drawsSomething: true } },
   { id: 'l-corner', audience: 'little', concept: 'moves', title: 'Turn the corner', goal: 'Draw this corner shape.', hint: 'Forward 100, turn, then Forward 100 again.', target: 'FD 100 RT 90 FD 100', allowMirror: true },
@@ -70,6 +71,8 @@ export const QUESTS: Quest[] = [
   { id: 'c-spiral', audience: 'coder', concept: 'recursion', title: 'Spiral wizard', goal: 'Make a command that uses itself to draw this square spiral, starting at 10 and growing by 10 until it passes 100.', hint: 'TO SPIRAL :n  IF :n > 100 [STOP]  FD :n RT 90  SPIRAL :n + 10  END', target: 'MAKE "n 10 REPEAT 10 [FD :n RT 90 MAKE "n :n + 10]', allowMirror: true, needs: { uses: ['RECURSION'] } },
 ];
 
+/** Every quest: the 20 original ones first, then the adventure map's 46 new ones. */
+export const QUESTS: Quest[] = [...BASE_QUESTS, ...NEW_QUESTS];
 /* ------------------------------------------------------------------ program features */
 
 function walk(stmts: Stmt[], visit: (s: Stmt) => void): void {

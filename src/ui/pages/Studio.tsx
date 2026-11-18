@@ -41,6 +41,8 @@ import { daysAway, localDateKey } from '../gio/rewards';
 import { BlocksEditor } from '../editor/BlocksEditor';
 import { LogoEditor, type LogoEditorHandle } from '../editor/LogoEditor';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
+import { useQuestHelp } from '../path/help';
+import { islandOf } from '../path/islands';
 import { useProgress } from '../progress';
 import { useRewards } from '../rewards';
 import { useReadAloud } from '../speech';
@@ -138,6 +140,8 @@ function StudioView({ initial }: { initial: Loaded }) {
   const stageRef = useRef<StageHandle>(null);
   const toast = useToast();
   const progress = useProgress(mode);
+  /** Where the child got help on the current quest. It decides gold or silver stars. */
+  const help = useQuestHelp();
   const { state: rewards, record, wear } = useRewards();
   /** A child who has learned before and been away 3 or more days gets a warm welcome back. */
   const [cameBack] = useState(() => rewards.days.length > 0 && daysAway(rewards.days, localDateKey(new Date())) >= 3);
@@ -336,6 +340,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   const startQuest = (q: Quest) => {
     setQuestsOpen(false);
+    help.reset();
     setQuest(q);
     setQuestDone(false);
     setQuestFeedback(null);
@@ -355,14 +360,21 @@ function StudioView({ initial }: { initial: Loaded }) {
     setBubble(WELCOME[mode]);
   };
 
+  /** The hint is help. Note it, and tell the child plainly what it means for the star. */
+  const giveHint = (q: Quest): string => {
+    const firstHelp = !help.used();
+    if (!questDone) help.note('hint');
+    const silver = !questDone && firstHelp && progress.quest(q.id).star !== 'clean';
+    return silver ? `Hint used, so this one will be a silver star. You can try it again later for gold. Hint: ${q.hint}` : `Hint: ${q.hint}`;
+  };
   const nextQuest = () => {
-    const list = progress.quests;
-    const at = quest ? list.findIndex((q) => q.id === quest.id) : -1;
-    const next = list.slice(at + 1).find((q) => !progress.completed.includes(q.id)) ?? list.find((q) => !progress.completed.includes(q.id));
+    const stop = progress.nextStop();
+    const id = stop.kind === 'quest' || stop.kind === 'retry' || stop.kind === 'bonus' ? stop.questId : null;
+    const next = id ? progress.quests.find((q) => q.id === id) : undefined;
     if (next) startQuest(next);
     else {
       leaveQuest();
-      toast.show({ text: 'You finished every quest! Amazing!' }, 6000);
+      toast.show({ text: 'You sailed every island! Amazing!' }, 6000);
     }
   };
 
@@ -394,14 +406,17 @@ function StudioView({ initial }: { initial: Loaded }) {
         return;
       }
       setQuestDone(true);
-      const { newBadge } = progress.complete(q.id);
+      const { newBadge, star, unitMastered, islandSailed } = progress.complete(q.id, help.used());
+      const island = islandOf(q.id);
       const credited = run?.credited === true;
       const all = mergeEarned(
         earned,
         record({ kind: 'quest-done', questId: q.id, features: credited ? run.features : [], colours: credited ? run.colours : 0, newBadge }),
       );
       setFriendQueue((f) => [...f, ...all.newFriends]);
-      const base = newBadge ? `You earned the ${CONCEPTS[newBadge].badge} badge!` : 'Quest complete! You did it!';
+      const starLine = star === 'clean' ? ' Gold star!' : ' Silver star. Try it again without a hint for gold.';
+      const headline = newBadge ? `You earned the ${CONCEPTS[newBadge].badge} badge!` : islandSailed && island ? `You sailed ${island.name}!` : unitMastered ? 'Unit mastered!' : 'Quest complete! You did it!';
+      const base = `${headline}${starLine}`;
       setBubble({ kind: 'success', text: announce(base, all, newBadge), mood: hasEarned(all) ? 'cheer' : undefined });
       const names = stickerNames(all, newBadge);
       toast.show({ text: newBadge ? `New badge: ${CONCEPTS[newBadge].badge}!${names.length ? ` New sticker: ${names.join(' and ')}!` : ''}` : names.length ? `New sticker: ${names.join(' and ')}!` : `Quest complete: ${q.title}` }, 5000);
@@ -528,7 +543,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         setQuestsOpen(true);
         return;
       case 'hint':
-        setBubble({ kind: 'info', text: quest ? `Hint: ${quest.hint}` : 'Open Quests to find a challenge, and I can give you hints!' });
+        setBubble({ kind: 'info', text: quest ? giveHint(quest) : 'Open Quests to find a challenge, and I can give you hints!' });
         return;
       case 'quiet':
         readAloud.setEnabled(false);
@@ -581,6 +596,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       setBubble({ kind: 'info', text: little ? 'Add some blocks first, then I can tell you what they do!' : 'Write some code first, then I can explain it.' });
       return;
     }
+    if (quest && !questDone) help.note('explain');
     setExplaining(true);
     setBubble({ kind: 'info', text: 'Let me look at your code…' });
     try {
@@ -774,7 +790,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
       <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
         {quest ? (
-          <QuestCard quest={quest} done={questDone} feedback={questFeedback} onHint={() => setBubble({ kind: 'info', text: `Hint: ${quest.hint}` })} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
+          <QuestCard quest={quest} done={questDone} feedback={questFeedback} onHint={() => setBubble({ kind: 'info', text: giveHint(quest) })} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
             const command = parseVoiceCommand(text);
             if (command) doCommand(command);
             else setBubble({ kind: 'info', text: 'In a quest you write the code yourself! You can say run, hint, explain or step.' });

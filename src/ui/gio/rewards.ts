@@ -1,5 +1,6 @@
 import { QUESTS, type Concept, type Feature, type QuestAudience } from '../../logo/quests.js';
 import { FRIEND_IDS, SHELL_SLOTS, STICKER_IDS, type FriendId, type StickerId } from './catalog';
+import { LEGACY_QUEST_IDS } from '../path/legacy';
 
 export interface RewardsState {
   v: 1;
@@ -53,14 +54,19 @@ function noon(key: string): Date | null {
   return date.getFullYear() === y && date.getMonth() === mo - 1 && date.getDate() === d ? date : null;
 }
 
-function addDays(key: string, n: number): string {
+/** True when the key is a real local calendar date written as YYYY-MM-DD. */
+export function isDateKey(key: string): boolean {
+  return noon(key) !== null;
+}
+
+export function addDays(key: string, n: number): string {
   const base = noon(key);
   if (!base) return key;
   return localDateKey(new Date(base.getFullYear(), base.getMonth(), base.getDate() + n, 12));
 }
 
 /** Whole calendar days from a to b (negative if b is earlier). */
-function dayDiff(a: string, b: string): number {
+export function dayDiff(a: string, b: string): number {
   const da = noon(a);
   const db = noon(b);
   if (!da || !db) return 0;
@@ -247,7 +253,8 @@ export function backfillFromProgress(completedQuestIds: readonly string[], today
   const concepts = [...new Set(QUESTS.map((q) => q.concept))];
   for (const concept of concepts) {
     const complete = audiences.some((a) => {
-      const inConcept = QUESTS.filter((q) => q.audience === a && q.concept === concept);
+      // Badges were earned by clearing the original quests of a concept; new adventure map quests do not change that.
+      const inConcept = QUESTS.filter((q) => q.audience === a && q.concept === concept && LEGACY_QUEST_IDS.includes(q.id));
       return inConcept.length > 0 && inConcept.every((q) => done.has(q.id));
     });
     if (complete) stickers.push(concept);

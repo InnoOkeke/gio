@@ -43,15 +43,15 @@ export const FRIENDS: readonly Friend[] = [
 ];
 
 const CONCEPT_HINT: Record<Concept, string> = {
-  moves: 'Finish all the First steps quests.',
-  colours: 'Finish the Colours quest.',
-  loops: 'Finish all the Loops quests.',
-  functions: 'Finish the Functions quest.',
-  variables: 'Finish the Inputs and variables quest.',
-  decisions: 'Finish the Decisions quest.',
-  recursion: 'Finish the Recursion quest.',
-  debugging: 'Finish all the Debugging quests.',
-  events: 'Finish all the Games and events quests.',
+  moves: 'Sail Shape Shore: win two gold stars in each of its two units.',
+  colours: 'Sail Colour Cove: win two gold stars in each of its two units.',
+  loops: 'Sail Loop Lagoon: win two gold stars in each of its two units.',
+  functions: 'Sail Function Falls: win two gold stars in each of its two units.',
+  variables: 'Sail Variable Valley: win two gold stars in each of its two units.',
+  decisions: 'Sail Decision Dunes: win two gold stars in each of its two units.',
+  recursion: 'Sail Recursion Ridge: win two gold stars in each of its two units.',
+  debugging: 'Sail Bug Burrow: win two gold stars in each of its two units.',
+  events: 'Sail Event Forest: win two gold stars in each of its two units.',
 };
 
 /** Concept stickers wear the existing quest badge names. */
