@@ -236,7 +236,8 @@ export const ArrowLeftIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M19 12H5M11 6l-6 6 6 6" />
   </Icon>
-);`n`nexport const HelpIcon = (p: IconProps) => (
+);
+export const HelpIcon = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="12" cy="12" r="8.5" fill="currentColor" fillOpacity={0.14} />
     <circle cx="12" cy="12" r="3.6" />

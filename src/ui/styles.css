@@ -110,7 +110,7 @@
 }
 
 /* --------------------------------------------------------------------------
- * Buttons — 44px minimum touch targets, springy press
+ * Buttons â€” 44px minimum touch targets, springy press
  * -------------------------------------------------------------------------- */
 .btn {
   display: inline-flex;
@@ -846,7 +846,6 @@
   to { transform: none; opacity: 1; }
 }
 
-<<<<<<< HEAD
 /* --------------------------------------------------------------------------
  * Adventure map
  * -------------------------------------------------------------------------- */
@@ -1038,7 +1037,7 @@
 @keyframes moment-pop {
   from { transform: scale(0) rotate(-40deg); opacity: 0; }
   to { transform: none; opacity: 1; }
-=======
+}
 /* Save menu: a popover on desktop, a bottom sheet on phones */
 .save-panel {
   animation: save-pop 220ms var(--spring);
@@ -1118,7 +1117,6 @@
   margin-left: -22px;
   transform: rotate(90deg);
   transition: left 200ms ease-out;
->>>>>>> 4d68a00 (feat: Save menu with picture, movie (animated GIF) and SVG drawing file)
 }
 /* Mic button while listening */
 .mic-live {
