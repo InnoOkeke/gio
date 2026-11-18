@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type GameKey, type GameSession, type TargetLanguage } from '../../logo/index.js';
+import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type GameKey, type GameSession, type TargetLanguage, type TurtleEvent } from '../../logo/index.js';
 import { TICK_MS } from '../../logo/primitives.js';
 import { checkQuest, CONCEPTS, features, playWithPresses, type Quest } from '../../logo/quests.js';
 import { api, ApiError, local, type AssistantStyle } from '../api';
@@ -10,7 +10,6 @@ import { GamePad } from '../components/GamePad';
 import { Wordmark } from '../components/GioMark';
 import {
   BulbIcon,
-  DownloadIcon,
   HelpIcon,
   PauseIcon,
   PlayIcon,
@@ -27,6 +26,8 @@ import {
   MapIcon,
   TurtleSpeedIcon,
 } from '../components/icons';
+import { ExportMenu } from '../components/ExportMenu';
+import { hasDrawing, toSVG } from '../export/svg';
 import { FriendDialog } from '../components/FriendDialog';
 import { GardenSheet } from '../components/GardenSheet';
 import { AdventureMap } from '../components/AdventureMap';
@@ -92,10 +93,11 @@ function withoutComments(code: string): string {
     .join('\n');
 }
 
-function fileName(title: string): string {
+function fileName(title: string, ext: string): string {
   const safe = title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase();
-  return `${safe || 'gio-drawing'}.png`;
+  return `${safe || 'gio-drawing'}.${ext}`;
 }
+const ReplayDialog = lazy(() => import('../components/ReplayDialog'));
 
 interface ReviewRun {
   islandKey: string;
@@ -193,6 +195,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   const [questsOpen, setQuestsOpen] = useState(false);
   const [gardenOpen, setGardenOpen] = useState(false);
+  const [movie, setMovie] = useState<{ events: readonly TurtleEvent[]; background: string } | null>(null);
   const [quest, setQuest] = useState<Quest | null>(null);
   const [questFeedback, setQuestFeedback] = useState<string | null>(null);
   const [questDone, setQuestDone] = useState(false);
@@ -742,13 +745,30 @@ function StudioView({ initial }: { initial: Loaded }) {
     }
   };
 
-  const download = () => {
+  const exportPicture = () => {
     const url = stageRef.current?.toPNG();
     if (!url) return;
     const a = document.createElement('a');
     a.href = url;
-    a.download = fileName(title);
+    a.download = fileName(title, 'png');
     a.click();
+    toast.show({ text: 'Saved your picture!' });
+  };
+  const exportSvg = () => {
+    const svg = toSVG(stageRef.current?.events() ?? [], { title: title || 'GIO drawing' });
+    if (!svg) return;
+    const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName(title, 'svg');
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    toast.show({ text: 'Saved your drawing file!' });
+  };
+  const openMovie = () => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    setMovie({ events: [...stage.events()], background: stage.background() });
   };
 
   const startNew = () => {
@@ -918,9 +938,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                 <button type="button" className="btn btn-ghost btn-icon" onClick={onReset} aria-label="Clear the drawing" title="Clear the drawing">
                   <ResetIcon />
                 </button>
-                <button type="button" className="btn btn-ghost btn-icon" onClick={download} aria-label="Download picture" title="Download picture">
-                  <DownloadIcon />
-                </button>
+                <ExportMenu empty={!hasDrawing(stageRef.current?.events() ?? [])} little={little} onPicture={exportPicture} onMovie={openMovie} onDrawingFile={exportSvg} />
               </div>
             </div>
 
@@ -1022,6 +1040,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         onClose={() => setGardenOpen(false)}
       />
       {friendQueue[0] && <FriendDialog key={friendQueue[0]} friend={friendById(friendQueue[0])} onClose={() => setFriendQueue((f) => f.slice(1))} />}
+<<<<<<< HEAD
       {!friendQueue[0] && masteryMoment && (
         <MasteryMoment
           moment={masteryMoment}
@@ -1037,6 +1056,19 @@ function StudioView({ initial }: { initial: Loaded }) {
           }}
           onClose={() => setMasteryMoment(null)}
         />
+=======
+      {movie && (
+        <Suspense fallback={null}>
+          <ReplayDialog
+            events={movie.events}
+            background={movie.background}
+            title={title || 'My GIO drawing'}
+            fileName={fileName(title, 'gif')}
+            onSaved={() => toast.show({ text: 'Saved your movie!' })}
+            onClose={() => setMovie(null)}
+          />
+        </Suspense>
+>>>>>>> 4d68a00 (feat: Save menu with picture, movie (animated GIF) and SVG drawing file)
       )}
       {toast.view}
     </div>

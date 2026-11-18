@@ -112,6 +112,10 @@ export class Player {
     }
   }
 
+  /** Every event of the drawing so far: the loaded run plus moves appended by game key presses. */
+  getEvents(): readonly TurtleEvent[] {
+    return this.events;
+  }
   /** Empty stage with the turtle at home. */
   reset(): void {
     this.cancel();

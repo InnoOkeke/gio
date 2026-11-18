@@ -79,6 +79,21 @@ export const DownloadIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const MovieIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="3" />
+    <path d="m10.5 9.5 4 2.5-4 2.5z" />
+  </Icon>
+);
+
+export const ShapesIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="7.5" cy="7.5" r="3.5" />
+    <rect x="13" y="13" width="7" height="7" rx="1.5" />
+    <path d="m7.5 13 3.5 7h-7z" />
+  </Icon>
+);
+
 export const UndoIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M9 14 4 9l5-5" />

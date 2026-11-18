@@ -15,6 +15,10 @@ export interface StageHandle {
   setSpeed(speed: Speed): void;
   /** PNG of the drawing on its background, for downloading. */
   toPNG(): string;
+  /** Every event of the drawing so far, for saving it as a movie or a drawing file. */
+  events(): readonly TurtleEvent[];
+  /** The stage background colour. */
+  background(): string;
   /** Games: draw the moves from one key press, without a celebration each time. */
   appendEvents(events: TurtleEvent[]): void;
   /** How many moves are still waiting to be drawn. */
@@ -188,6 +192,8 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
     },
     setSpeed: (speed) => playerRef.current?.setSpeed(speed),
     pending: () => playerRef.current?.pending() ?? 0,
+    events: () => playerRef.current?.getEvents() ?? [],
+    background: () => backgroundRef.current,
     setGuide(result) {
       guideResultRef.current = result;
       drawGuide();
