@@ -38,7 +38,7 @@ Giggle Academy teaches language, with a funded team producing content at scale. 
 
 ### Roadmap to a Giggle-level experience
 
-**A. A turtle with a personality (characters).**
+**A. A turtle with a personality (characters). Built.** Gio has moods, nine friends and shell stickers (the original plan follows).
 Gio the turtle gets a name, moods, a voice and reactions: happy dances when code works, a curious tilt when it doesn't. Friends join as the child learns: one character per big idea (a looping octopus for `REPEAT`, a squirrel who stores things for `MAKE`, an owl for `IF`). The child decorates Gio's shell with stickers earned by learning, not by tapping.
 
 **B. An adventure map (learning path).**
@@ -62,7 +62,7 @@ Units that teach angles, shapes, symmetry, multiplication (`REPEAT 3 [REPEAT 4 â
 **H. Parents learn along.**
 A weekly progress card kept in the browser ("This week Ada learned loops and drew 12 pictures"), suggested things to try together, and a short guide for parents who have never coded. No accounts needed; parents open it on the same device.
 
-**I. Gentle rewards.**
+**I. Gentle rewards. Built.** Gio's garden shows friends, stickers, a growing scene and a calm week strip, kept in the browser under `gio.rewards` (the original plan follows).
 Badges, a growing garden or aquarium that fills up as the child learns, and a calm streak that never shames a missed day. No leaderboards against strangers.
 
 **J. Free for every child.**

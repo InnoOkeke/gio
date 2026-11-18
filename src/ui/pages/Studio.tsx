@@ -18,6 +18,7 @@ import {
   ResetIcon,
   RocketSpeedIcon,
   SaveIcon,
+  LeafIcon,
   ShareIcon,
   SpeakerIcon,
   SpeakerOffIcon,
@@ -26,6 +27,7 @@ import {
   TurtleSpeedIcon,
 } from '../components/icons';
 import { FriendDialog } from '../components/FriendDialog';
+import { GardenSheet } from '../components/GardenSheet';
 import { QuestCard, QuestMap } from '../components/Quests';
 import { Stage, type StageHandle } from '../components/Stage';
 import { useToast } from '../components/Toast';
@@ -33,8 +35,9 @@ import { TranslatedCode } from '../components/TranslatedCode';
 import { TurtleBubble, type BubbleMessage } from '../components/TurtleBubble';
 import { friendById, type FriendId } from '../gio/catalog';
 import { announce, hasEarned, mergeEarned, NOTHING, runSignals, stickerNames, type Earned, type RunSignals } from '../gio/earned';
-import { LINES, pickLine } from '../gio/lines';
+import { LINES, pickLine, welcomeBackLine } from '../gio/lines';
 import { moodFor, type GioMood } from '../gio/mood';
+import { daysAway, localDateKey } from '../gio/rewards';
 import { BlocksEditor } from '../editor/BlocksEditor';
 import { LogoEditor, type LogoEditorHandle } from '../editor/LogoEditor';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
@@ -135,7 +138,9 @@ function StudioView({ initial }: { initial: Loaded }) {
   const stageRef = useRef<StageHandle>(null);
   const toast = useToast();
   const progress = useProgress(mode);
-  const { state: rewards, record } = useRewards();
+  const { state: rewards, record, wear } = useRewards();
+  /** A child who has learned before and been away 3 or more days gets a warm welcome back. */
+  const [cameBack] = useState(() => rewards.days.length > 0 && daysAway(rewards.days, localDateKey(new Date())) >= 3);
   const readAloud = useReadAloud(little);
   const undoStack = useRef<string[]>([]);
 
@@ -147,7 +152,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [savedSnapshot, setSavedSnapshot] = useState(initial.slug ? `${initial.title}\n${initial.code}` : '');
   const [status, setStatus] = useState<PlayerStatus>('idle');
   const [speed, setSpeed] = useState<Speed>(little ? 'turtle' : 'rabbit');
-  const [bubble, setBubble] = useState<BubbleMessage>(initial.code ? { kind: 'info', text: 'Press Run to watch me draw it!' } : WELCOME[mode]);
+  const [bubble, setBubble] = useState<BubbleMessage>(initial.code ? { kind: 'info', text: 'Press Run to watch me draw it!' } : cameBack ? { kind: 'info', text: welcomeBackLine() } : WELCOME[mode]);
   const [prints, setPrints] = useState<string[]>([]);
   const [asking, setAsking] = useState(false);
   const [explaining, setExplaining] = useState(false);
@@ -168,6 +173,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const runCountRef = useRef(0);
 
   const [questsOpen, setQuestsOpen] = useState(false);
+  const [gardenOpen, setGardenOpen] = useState(false);
   const [quest, setQuest] = useState<Quest | null>(null);
   const [questFeedback, setQuestFeedback] = useState<string | null>(null);
   const [questDone, setQuestDone] = useState(false);
@@ -724,7 +730,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   return (
     <div className="min-h-full flex flex-col">
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-[rgba(245,242,234,0.82)] border-b border-line">
-        <div className="mx-auto max-w-[1360px] px-4 sm:px-6 h-[72px] flex items-center gap-3">
+        <div className="mx-auto max-w-[1360px] px-4 sm:px-6 h-[72px] flex items-center gap-2 sm:gap-3">
           <a href="/" onClick={(e) => (e.preventDefault(), startNew())} aria-label="GIO home" className="shrink-0 rounded-2xl">
             <Wordmark />
           </a>
@@ -740,11 +746,14 @@ function StudioView({ initial }: { initial: Loaded }) {
               className="w-full max-w-[320px] min-h-[44px] px-4 rounded-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-line focus:border-line text-center text-[18px] font-extrabold text-ink outline-none transition-colors"
             />
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button type="button" className="btn btn-ghost hidden xl:inline-flex" onClick={chooseAgain} title="Switch age mode">
               {MODE_LABEL[mode]}
             </button>
-            <button type="button" className="btn btn-quiet" onClick={() => setQuestsOpen(true)} aria-label={`Quests, ${doneCount} of ${progress.quests.length} done`}>
+            <button type="button" className="btn btn-quiet max-sm:px-3" onClick={() => setGardenOpen(true)} aria-label="Gio's garden">
+              <LeafIcon className="text-[#12a36b]" /> <span className="hidden md:inline">Garden</span>
+            </button>
+            <button type="button" className="btn btn-quiet max-sm:px-3" onClick={() => setQuestsOpen(true)} aria-label={`Quests, ${doneCount} of ${progress.quests.length} done`}>
               <TrophyIcon className="text-[#f4a72c]" /> <span className="hidden md:inline">Quests</span>
               <span className="rounded-full bg-paper-3 px-2 py-0.5 text-[13px] font-black tabular-nums">
                 {doneCount}/{progress.quests.length}
@@ -753,10 +762,10 @@ function StudioView({ initial }: { initial: Loaded }) {
             <button type="button" className="btn btn-ghost hidden lg:inline-flex" onClick={startNew}>
               <PlusIcon /> New
             </button>
-            <button type="button" className="btn btn-quiet" onClick={() => void save()} disabled={saving || (!dirty && owned)} aria-label={project && !owned ? 'Save a copy' : 'Save'}>
+            <button type="button" className="btn btn-quiet max-sm:px-3" onClick={() => void save()} disabled={saving || (!dirty && owned)} aria-label={project && !owned ? 'Save a copy' : 'Save'}>
               <SaveIcon /> <span className="hidden sm:inline">{project && !owned ? 'Save a copy' : 'Save'}</span>
             </button>
-            <button type="button" className="btn btn-primary" onClick={() => void share()} disabled={saving} aria-label="Share">
+            <button type="button" className="btn btn-primary max-sm:px-3" onClick={() => void share()} disabled={saving} aria-label="Share">
               <ShareIcon /> <span className="hidden sm:inline">Share</span>
             </button>
           </div>
@@ -774,7 +783,7 @@ function StudioView({ initial }: { initial: Loaded }) {
           <AskTurtle mode={mode} hasCode={code.trim().length > 0} busy={asking} onAsk={ask} />
         )}
 
-        <div className="grid gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start">
           {codePanel}
 
           <section className="panel p-4 sm:p-5 flex flex-col gap-4 order-1 lg:order-2" aria-label="Turtle stage">
@@ -862,6 +871,16 @@ function StudioView({ initial }: { initial: Loaded }) {
         showPython={!little}
         onPick={startQuest}
         onClose={() => setQuestsOpen(false)}
+      />
+      <GardenSheet
+        open={gardenOpen}
+        mode={mode}
+        rewards={rewards}
+        quests={progress.quests}
+        completed={progress.completed}
+        badges={progress.badges}
+        onWear={wear}
+        onClose={() => setGardenOpen(false)}
       />
       {friendQueue[0] && <FriendDialog key={friendQueue[0]} friend={friendById(friendQueue[0])} onClose={() => setFriendQueue((f) => f.slice(1))} />}
       {toast.view}

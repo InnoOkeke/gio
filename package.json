@@ -16,7 +16,8 @@
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc -p tsconfig.api.json --noEmit && tsc -p tsconfig.ui.json --noEmit",
     "check:python": "tsx scripts/check-python.ts",
-    "check:browser": "tsx scripts/browser-check.ts"
+    "check:browser": "tsx scripts/browser-check.ts",
+    "check:shots": "tsx scripts/gio-shots.ts"
   },
   "engines": {
     "node": ">=20.0.0"
