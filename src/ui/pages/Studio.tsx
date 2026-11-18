@@ -565,7 +565,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       return true;
     } catch (err) {
       if (err instanceof ApiError && err.redirect) {
-        setBubble({ kind: 'info', text: err.message });
+        setBubble({ kind: 'info', text: err.message, mood: 'calm' });
         toast.show({ text: "Let's draw something else!" });
       } else {
         setBubble({ kind: 'problem', text: err instanceof Error ? err.message : 'Something went wrong. Try again?' });
@@ -588,7 +588,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       setBubble({ kind: 'info', text });
     } catch (err) {
       const redirect = err instanceof ApiError && err.redirect;
-      setBubble({ kind: redirect ? 'info' : 'problem', text: err instanceof Error ? err.message : 'I could not explain that right now.' });
+      setBubble({ kind: redirect ? 'info' : 'problem', text: err instanceof Error ? err.message : 'I could not explain that right now.', mood: redirect ? 'calm' : undefined });
     } finally {
       setExplaining(false);
     }
