@@ -54,6 +54,7 @@
     "autoprefixer": "10.4.20",
     "eslint": "^8.57.1",
     "fast-check": "3.22.0",
+    "gifenc": "^1.0.3",
     "postcss": "8.4.41",
     "react": "18.3.1",
     "react-dom": "18.3.1",
