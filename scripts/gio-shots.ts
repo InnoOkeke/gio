@@ -170,9 +170,11 @@ async function main() {
     await shotGio(n('coder-curious-close'));
 
     // A new friend: complete c-repeat by typing the answer.
-    await seed({ 'gio.mode': 'coder', 'gio.progress': ['c-line', 'c-square'] }, '?mode=coder');
-    await click('button', 'Quests');
+    await seed({ 'gio.mode': 'coder', 'gio.progress': ['c-line', 'c-square', 'c-rectangle', 'c-triangle'] }, '?mode=coder');
+    await click('button', 'Adventure map');
     await sleep(500);
+    await click('button', 'Loop Lagoon');
+    await sleep(400);
     await click('button', 'Loop it');
     await sleep(400);
     await type(SQUARE);

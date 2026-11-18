@@ -23,12 +23,14 @@ import {
   SpeakerIcon,
   SpeakerOffIcon,
   StepIcon,
-  TrophyIcon,
+  MapIcon,
   TurtleSpeedIcon,
 } from '../components/icons';
 import { FriendDialog } from '../components/FriendDialog';
 import { GardenSheet } from '../components/GardenSheet';
-import { QuestCard, QuestMap } from '../components/Quests';
+import { AdventureMap } from '../components/AdventureMap';
+import { MasteryMoment, type Moment } from '../components/MasteryMoment';
+import { QuestCard } from '../components/Quests';
 import { Stage, type StageHandle } from '../components/Stage';
 import { useToast } from '../components/Toast';
 import { TranslatedCode } from '../components/TranslatedCode';
@@ -42,7 +44,8 @@ import { BlocksEditor } from '../editor/BlocksEditor';
 import { LogoEditor, type LogoEditorHandle } from '../editor/LogoEditor';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
 import { useQuestHelp } from '../path/help';
-import { islandOf } from '../path/islands';
+import { islandOf, placeOf } from '../path/islands';
+import type { NextStop, Star } from '../path/state';
 import { useProgress } from '../progress';
 import { useRewards } from '../rewards';
 import { useReadAloud } from '../speech';
@@ -89,6 +92,13 @@ function withoutComments(code: string): string {
 function fileName(title: string): string {
   const safe = title.replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-').toLowerCase();
   return `${safe || 'gio-drawing'}.png`;
+}
+
+interface ReviewRun {
+  islandKey: string;
+  ids: string[];
+  index: number;
+  results: { questId: string; helped: boolean }[];
 }
 
 type Loaded = { title: string; code: string; slug: string | null; editKey: string | null };
@@ -181,6 +191,14 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [quest, setQuest] = useState<Quest | null>(null);
   const [questFeedback, setQuestFeedback] = useState<string | null>(null);
   const [questDone, setQuestDone] = useState(false);
+  const [questStar, setQuestStar] = useState<Star | null>(null);
+  const [hinted, setHinted] = useState(false);
+  /** A review in play: the two quests of one island, and how each went. */
+  const [review, setReview] = useState<ReviewRun | null>(null);
+  const reviewRef = useRef(review);
+  const [masteryMoment, setMasteryMoment] = useState<Moment | null>(null);
+  const momentTimer = useRef<number | null>(null);
+  useEffect(() => () => window.clearTimeout(momentTimer.current ?? undefined), []);
   const codeRef = useRef(code);
   codeRef.current = code;
   const questRef = useRef(quest);
@@ -338,9 +356,18 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   /* ---------------- quests ---------------- */
 
-  const startQuest = (q: Quest) => {
+  const setReviewRun = (r: ReviewRun | null) => {
+    reviewRef.current = r;
+    setReview(r);
+  };
+
+  const startQuest = (q: Quest, inReview = false) => {
     setQuestsOpen(false);
+    setMasteryMoment(null);
+    if (!inReview) setReviewRun(null);
     help.reset();
+    setHinted(false);
+    setQuestStar(null);
     setQuest(q);
     setQuestDone(false);
     setQuestFeedback(null);
@@ -354,6 +381,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const leaveQuest = () => {
+    setReviewRun(null);
     setQuest(null);
     setQuestFeedback(null);
     stageRef.current?.setGuide(null);
@@ -363,14 +391,17 @@ function StudioView({ initial }: { initial: Loaded }) {
   /** The hint is help. Note it, and tell the child plainly what it means for the star. */
   const giveHint = (q: Quest): string => {
     const firstHelp = !help.used();
-    if (!questDone) help.note('hint');
+    if (!questDone) {
+      help.note('hint');
+      setHinted(true);
+    }
     const silver = !questDone && firstHelp && progress.quest(q.id).star !== 'clean';
     return silver ? `Hint used, so this one will be a silver star. You can try it again later for gold. Hint: ${q.hint}` : `Hint: ${q.hint}`;
   };
-  const nextQuest = () => {
-    const stop = progress.nextStop();
-    const id = stop.kind === 'quest' || stop.kind === 'retry' || stop.kind === 'bonus' ? stop.questId : null;
-    const next = id ? progress.quests.find((q) => q.id === id) : undefined;
+  /** Follow the path: the next quest, a review visit, or the end of the map. */
+  const goTo = (stop: NextStop) => {
+    if (stop.kind === 'review') return startReview(stop.islandKey);
+    const next = stop.kind === 'done' ? undefined : progress.quests.find((q) => q.id === stop.questId);
     if (next) startQuest(next);
     else {
       leaveQuest();
@@ -378,6 +409,28 @@ function StudioView({ initial }: { initial: Loaded }) {
     }
   };
 
+  /** A review visits two quests of a sailed island. It is quiet and optional, and never locks anything. */
+  const startReview = (islandKey: string) => {
+    const ids = progress.reviewPlan(islandKey);
+    const first = progress.quests.find((q) => q.id === ids[0]);
+    if (!first) return;
+    setReviewRun({ islandKey, ids, index: 0, results: [] });
+    startQuest(first, true);
+  };
+
+  const nextQuest = () => {
+    const r = reviewRef.current;
+    if (!r) return goTo(progress.nextStop());
+    const following = progress.quests.find((q) => q.id === r.ids[r.index + 1]);
+    if (following) {
+      setReviewRun({ ...r, index: r.index + 1 });
+      return startQuest(following, true);
+    }
+    progress.finishReview(r.islandKey, r.results);
+    const helped = r.results.some((x) => x.helped);
+    leaveQuest();
+    setMasteryMoment({ kind: 'review', islandKey: r.islandKey, helped });
+  };
   /** Count a finished run toward rewards, but only when the child wrote the code. */
   const creditRun = useCallback((): { earned: Earned; run: RunSignals | null } => {
     const run = lastRunRef.current;
@@ -406,8 +459,18 @@ function StudioView({ initial }: { initial: Loaded }) {
         return;
       }
       setQuestDone(true);
-      const { newBadge, star, unitMastered, islandSailed } = progress.complete(q.id, help.used());
+      const helped = help.used();
+      const { newBadge, star, unitMastered, islandSailed, opened } = progress.complete(q.id, helped);
+      setQuestStar(star);
       const island = islandOf(q.id);
+      const visit = reviewRef.current;
+      if (visit) setReviewRun({ ...visit, results: [...visit.results.filter((x) => x.questId !== q.id), { questId: q.id, helped }] });
+      else if (island && (islandSailed || unitMastered)) {
+        // Let the child see the finished drawing before the celebration arrives.
+        const moment: Moment = islandSailed ? { kind: 'island', islandKey: island.key, opened, badge: newBadge } : { kind: 'unit', islandKey: island.key, unitIndex: placeOf(q.id)?.unitIndex ?? 0 };
+        window.clearTimeout(momentTimer.current ?? undefined);
+        momentTimer.current = window.setTimeout(() => setMasteryMoment(moment), 800);
+      }
       const credited = run?.credited === true;
       const all = mergeEarned(
         earned,
@@ -543,7 +606,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         setQuestsOpen(true);
         return;
       case 'hint':
-        setBubble({ kind: 'info', text: quest ? giveHint(quest) : 'Open Quests to find a challenge, and I can give you hints!' });
+        setBubble({ kind: 'info', text: quest ? giveHint(quest) : 'Open the map to find a quest, and I can give you hints!' });
         return;
       case 'quiet':
         readAloud.setEnabled(false);
@@ -679,7 +742,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const playing = status === 'playing';
-  const doneCount = progress.completed.filter((id) => progress.quests.some((q) => q.id === id)).length;
+  const sailedCount = progress.islands.filter((i) => i.sailed).length;
 
   /* ---------------- render ---------------- */
 
@@ -769,11 +832,12 @@ function StudioView({ initial }: { initial: Loaded }) {
             <button type="button" className="btn btn-quiet max-sm:px-3" onClick={() => setGardenOpen(true)} aria-label="Gio's garden">
               <LeafIcon className="text-[#12a36b]" /> <span className="hidden md:inline">Garden</span>
             </button>
-            <button type="button" className="btn btn-quiet max-sm:px-3" onClick={() => setQuestsOpen(true)} aria-label={`Quests, ${doneCount} of ${progress.quests.length} done`}>
-              <TrophyIcon className="text-[#f4a72c]" /> <span className="hidden md:inline">Quests</span>
+            <button type="button" className="btn btn-quiet max-sm:px-3 relative" onClick={() => setQuestsOpen(true)} aria-label={`Adventure map, ${sailedCount} of ${progress.islands.length} islands sailed${progress.reviewDue ? ', a review is waiting' : ''}`}>
+              <MapIcon className="text-[#0f8fa6]" /> <span className="hidden md:inline">Map</span>
               <span className="rounded-full bg-paper-3 px-2 py-0.5 text-[13px] font-black tabular-nums">
-                {doneCount}/{progress.quests.length}
+                {sailedCount}/{progress.islands.length}
               </span>
+              {progress.reviewDue && <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-[#ffc93c] ring-2 ring-white" aria-hidden="true" />}
             </button>
             <button type="button" className="btn btn-ghost hidden lg:inline-flex" onClick={startNew}>
               <PlusIcon /> New
@@ -790,7 +854,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
       <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
         {quest ? (
-          <QuestCard quest={quest} done={questDone} feedback={questFeedback} onHint={() => setBubble({ kind: 'info', text: giveHint(quest) })} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
+          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted} review={review ? { index: review.index, total: review.ids.length } : null} nextLabel={review ? (review.index + 1 < review.ids.length ? 'Next review quest' : 'Finish review') : 'Next quest'} onHint={() => setBubble({ kind: 'info', text: giveHint(quest) })} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
             const command = parseVoiceCommand(text);
             if (command) doCommand(command);
             else setBubble({ kind: 'info', text: 'In a quest you write the code yourself! You can say run, hint, explain or step.' });
@@ -879,13 +943,25 @@ function StudioView({ initial }: { initial: Loaded }) {
         </footer>
       </main>
 
-      <QuestMap
+      <AdventureMap
         open={questsOpen}
-        quests={progress.quests}
-        completed={progress.completed}
-        badges={progress.badges}
-        showPython={!little}
-        onPick={startQuest}
+        mode={mode}
+        islands={progress.islands}
+        friends={rewards.friends}
+        next={progress.nextStop()}
+        reviewKey={progress.reviewDue}
+        mood={mood}
+        shell={rewards.shell}
+        onPlay={(id) => {
+          const picked = progress.quests.find((q) => q.id === id);
+          if (picked) startQuest(picked);
+        }}
+        onGo={() => goTo(progress.nextStop())}
+        onReview={startReview}
+        onGarden={() => {
+          setQuestsOpen(false);
+          setGardenOpen(true);
+        }}
         onClose={() => setQuestsOpen(false)}
       />
       <GardenSheet
@@ -899,6 +975,22 @@ function StudioView({ initial }: { initial: Loaded }) {
         onClose={() => setGardenOpen(false)}
       />
       {friendQueue[0] && <FriendDialog key={friendQueue[0]} friend={friendById(friendQueue[0])} onClose={() => setFriendQueue((f) => f.slice(1))} />}
+      {!friendQueue[0] && masteryMoment && (
+        <MasteryMoment
+          moment={masteryMoment}
+          mode={mode}
+          shell={rewards.shell}
+          onContinue={() => {
+            setMasteryMoment(null);
+            goTo(progress.nextStop());
+          }}
+          onMap={() => {
+            setMasteryMoment(null);
+            setQuestsOpen(true);
+          }}
+          onClose={() => setMasteryMoment(null)}
+        />
+      )}
       {toast.view}
     </div>
   );

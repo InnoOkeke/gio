@@ -1,8 +1,8 @@
-import type { ReactElement } from 'react';
 import { CONCEPTS, type Concept, type Quest } from '../../logo/quests.js';
 import { friendById, type FriendId } from '../gio/catalog';
 import type { Badge } from '../progress';
 import { FRIEND_ART } from './gio/FriendArt';
+import { Flower, Tree } from './gio/GardenArt';
 import { TurtleSprite } from './TurtleSprite';
 
 interface GardenSceneProps {
@@ -28,31 +28,6 @@ const SPOTS: Record<FriendId, { x: number; y: number; s: number }> = {
   hop: { x: 72, y: 152, s: 38 },
 };
 
-const PETALS = [0, 72, 144, 216, 288];
-
-function Flower({ x, y, color }: { x: number; y: number; color: string }): ReactElement {
-  return (
-    <g transform={`translate(${x} ${y}) scale(1.35) translate(${-x} ${-y})`}>
-      <path d={`M ${x} ${y} L ${x} ${y + 15}`} stroke="#2f8f4e" strokeWidth="2.4" strokeLinecap="round" />
-      <path d={`M ${x} ${y + 10} q 5 -1 6 -5`} stroke="#2f8f4e" strokeWidth="2" strokeLinecap="round" fill="none" />
-      {PETALS.map((a) => (
-        <circle key={a} cx={x + 4.2 * Math.cos((a * Math.PI) / 180)} cy={y + 4.2 * Math.sin((a * Math.PI) / 180)} r="3.4" fill={color} stroke="#17261f" strokeOpacity="0.35" strokeWidth="0.8" />
-      ))}
-      <circle cx={x} cy={y} r="2.6" fill="#ffd84a" stroke="#17261f" strokeOpacity="0.4" strokeWidth="0.8" />
-    </g>
-  );
-}
-
-function Tree({ x, color }: { x: number; color: string }): ReactElement {
-  return (
-    <g>
-      <rect x={x - 2.5} y={102} width="5" height="16" rx="2" fill="#8a5a2b" />
-      <circle cx={x} cy={96} r="14" fill={color} stroke="#17261f" strokeOpacity="0.35" strokeWidth="1" />
-      <circle cx={x - 4} cy={92} r="3" fill="#ffffff" fillOpacity="0.28" />
-    </g>
-  );
-}
-
 function plural(n: number, one: string, many: string): string {
   return `${n} ${n === 1 ? one : many}`;
 }
@@ -63,11 +38,15 @@ export function GardenScene({ quests, completed, badges, friends }: GardenSceneP
   const trees = badges.filter((b) => b.earned);
   const empty = done.length === 0 && trees.length === 0 && friends.length === 0;
 
-  const cols = Math.max(1, Math.ceil(quests.length / 2));
+  // Up to 24 flowers sit in two staggered rows. A full garden (48 quests) uses three, so none overlap.
+  const rows = quests.length > 24 ? 3 : 2;
+  const cols = Math.max(1, Math.ceil(quests.length / rows));
   const flowerAt = (i: number) => ({
-    x: 16 + (Math.floor(i / 2) + (i % 2 ? 0.5 : 0)) * ((368 - 16) / cols),
-    y: 194 + (i % 2) * 16,
+    x: 16 + (Math.floor(i / rows) + (i % rows) / rows) * ((368 - 16) / cols),
+    y: (rows === 3 ? 186 : 194) + (i % rows) * (rows === 3 ? 14 : 16),
   });
+  // Draw the front row last so nearer flowers sit on top of the ones behind.
+  done.sort((a, b) => (a.i % rows) - (b.i % rows) || a.i - b.i);
 
   const names = friends.map((id) => friendById(id).name);
   const label = empty

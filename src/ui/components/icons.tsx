@@ -196,3 +196,29 @@ export const CheckIcon = (p: IconProps) => (
     <path d="m5 12.5 4.5 4.5L19 7.5" />
   </Icon>
 );
+
+export const MapIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M3.5 6.5 9 4.5l6 2 5.5-2v13L15 19.5l-6-2-5.5 2Z" fill="currentColor" fillOpacity={0.2} />
+    <path d="M9 4.5v13M15 6.5v13" />
+  </Icon>
+);
+
+export const StarIcon = (p: IconProps) => (
+  <Icon {...p} strokeWidth={1.6}>
+    <path d="m12 3.2 2.6 5.3 5.8.8-4.2 4.1 1 5.8L12 16.5l-5.2 2.7 1-5.8-4.2-4.1 5.8-.8Z" fill="currentColor" />
+  </Icon>
+);
+
+export const LockIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="5.5" y="10.5" width="13" height="9.5" rx="2.4" fill="currentColor" fillOpacity={0.2} />
+    <path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5" />
+  </Icon>
+);
+
+export const ArrowLeftIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M19 12H5M11 6l-6 6 6 6" />
+  </Icon>
+);

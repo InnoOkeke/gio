@@ -41,7 +41,7 @@ Giggle Academy teaches language, with a funded team producing content at scale. 
 **A. A turtle with a personality (characters). Built.** Gio has moods, nine friends and shell stickers (the original plan follows).
 Gio the turtle gets a name, moods, a voice and reactions: happy dances when code works, a curious tilt when it doesn't. Friends join as the child learns: one character per big idea (a looping octopus for `REPEAT`, a squirrel who stores things for `MAKE`, an owl for `IF`). The child decorates Gio's shell with stickers earned by learning, not by tapping.
 
-**B. An adventure map (learning path).**
+**B. An adventure map (learning path). Built.** The quest list is now a map of 3 islands in Little Turtles and 8 in Turtle Coders, each with two units of three quests (66 quests). A quest solved with no hint earns a gold star, a quest solved after help earns a silver star, two different gold stars master a unit, and a sailed island grows its tree, sticker and friend in the garden. Sailed islands invite a quiet two-quest review after 2, 7, 21 and 60 days (the original plan follows).
 Replace the quest list with a world map of islands, one per concept (Shape Shore, Loop Lagoon, Variable Valley, Event Forest, Recursion Ridge). Each island holds ten-minute units around one theme, with built-in repetition. Mastery-based: a child moves on after showing they can do it twice without hints. Earlier islands come back as short reviews days later (spaced repetition).
 
 **C. Talk with Gio (voice conversation).**
