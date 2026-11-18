@@ -95,7 +95,7 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, o
   const locked = view.status === 'locked';
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="mx-auto flex w-full max-w-[540px] flex-col gap-4">
       <div className="overflow-hidden rounded-[28px] bg-white shadow-[var(--shadow-2)] border border-line">
         <IslandArt island={island} locked={locked} sailed={view.sailed} met={met} className="block h-auto w-full" />
         <div className="flex flex-col gap-2 px-5 pb-5 pt-3">

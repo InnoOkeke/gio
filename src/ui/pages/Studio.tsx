@@ -903,7 +903,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
             <div className="flex flex-col gap-2">
               <TurtleBubble message={bubble} mood={mood} stickers={rewards.shell} onShowLine={(line) => editorRef.current?.setProblemLine(line)} />
-              <div className="flex justify-end gap-2">
+              <div className="flex flex-wrap justify-end gap-2">
                 {readAloud.supported && (
                   <button
                     type="button"

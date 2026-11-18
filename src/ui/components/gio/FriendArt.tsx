@@ -101,7 +101,7 @@ export const FRIEND_ART: Record<FriendId, () => ReactElement> = {
   puff: () => (
     <g className="fr-puff">
       <polygon points={spikes(50, 52, 25, 38, 12)} fill="#c9741a" stroke="#c9741a" strokeWidth="1.5" strokeLinejoin="round" />
-      <ellipse cx="22" cy="58" rx="8" ry="4.5" fill="#ffd27a" stroke="#c9741a" strokeWidth="2.4" transform="rotate(-25 22 58)" />
+      <ellipse cx="22" cy="58" rx="8" ry="4.5" fill="#ffd27a" stroke="#c9741a" strokeWidth="2.4" style={{ transform: 'rotate(-25deg)', transformOrigin: 'center' }} />
       <circle cx="50" cy="52" r="28" fill="#ffb347" stroke="#c9741a" strokeWidth="3" />
       <ellipse cx="50" cy="66" rx="17" ry="10" fill="#ffe0a8" />
       <Eye x={39} y={46} r={5.6} />
@@ -155,7 +155,7 @@ export const FRIEND_ART: Record<FriendId, () => ReactElement> = {
   bree: () => (
     <g>
       <g className="fr-tail">
-        <ellipse cx="80" cy="78" rx="17" ry="8" fill="#5c3a1c" stroke="#3a2310" strokeWidth="3" transform="rotate(-20 80 78)" />
+        <ellipse cx="80" cy="78" rx="17" ry="8" fill="#5c3a1c" stroke="#3a2310" strokeWidth="3" style={{ transform: 'rotate(-20deg)', transformOrigin: 'center' }} />
         <path d="M 70 78 L 77 84 M 77 72 L 85 80 M 85 68 L 91 75" stroke="#8b6139" strokeWidth="2" strokeLinecap="round" />
       </g>
       <ellipse cx="46" cy="68" rx="22" ry="23" fill="#8d5a2b" stroke="#4e2f12" strokeWidth="3" />
@@ -200,8 +200,8 @@ export const FRIEND_ART: Record<FriendId, () => ReactElement> = {
   ),
   hop: () => (
     <g className="fr-hop">
-      <ellipse cx="22" cy="78" rx="13" ry="8" fill="#3fbf6f" stroke="#1f7a43" strokeWidth="3" transform="rotate(-20 22 78)" />
-      <ellipse cx="78" cy="78" rx="13" ry="8" fill="#3fbf6f" stroke="#1f7a43" strokeWidth="3" transform="rotate(20 78 78)" />
+      <ellipse cx="22" cy="78" rx="13" ry="8" fill="#3fbf6f" stroke="#1f7a43" strokeWidth="3" style={{ transform: 'rotate(-20deg)', transformOrigin: 'center' }} />
+      <ellipse cx="78" cy="78" rx="13" ry="8" fill="#3fbf6f" stroke="#1f7a43" strokeWidth="3" style={{ transform: 'rotate(20deg)', transformOrigin: 'center' }} />
       <ellipse cx="50" cy="64" rx="30" ry="23" fill="#3fbf6f" stroke="#1f7a43" strokeWidth="3" />
       <ellipse cx="50" cy="73" rx="19" ry="12" fill="#c8f0c0" />
       <ellipse cx="38" cy="88" rx="9" ry="4.5" fill="#3fbf6f" stroke="#1f7a43" strokeWidth="2.6" />
@@ -224,7 +224,7 @@ export function FriendPicture({ id, size = 120, className }: { id: FriendId; siz
   const Art = FRIEND_ART[id];
   const f = friendById(id);
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={`${f.name} the ${f.species}`} className={`friend-art ${className ?? ''}`}>
+    <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={`${f.name} the ${f.species}`} className={`friend-art overflow-visible ${className ?? ''}`}>
       <Art />
     </svg>
   );

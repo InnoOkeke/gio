@@ -22,8 +22,8 @@ export interface MapLines {
 
 export const MAP_LINES: Record<QuestAudience, MapLines> = {
   little: {
-    unitMastered: ['You mastered this unit! Two gold stars!', 'Two gold stars! This unit is yours!'],
-    islandSailed: ['You sailed {island}! Hooray!', '{island} is yours! What a sailor!'],
+    unitMastered: ['Two gold stars! You are a star!', 'Two gold stars! This unit is yours!'],
+    islandSailed: ['Hooray! What a sailor you are!', 'Whoosh! You are a real sailor now!'],
     opened: ['{island} is open now. Let us sail there next!', 'Look! {island} is open. Ready to explore?'],
     reviewDone: ['{island} is so happy to see you again!', 'You remembered it all! What a great visit.'],
     reviewHelped: ['Good try! We will visit {island} again soon.', 'Nice visit! {island} will see you again soon.'],
@@ -34,8 +34,8 @@ export const MAP_LINES: Record<QuestAudience, MapLines> = {
     allDone: ['You sailed every island! Gio is so proud of you.'],
   },
   coder: {
-    unitMastered: ['Unit mastered! Two gold stars, no hints.', 'Unit mastered! You can do this on your own.'],
-    islandSailed: ['You sailed {island}!', '{island} is sailed! Nicely done.'],
+    unitMastered: ['Two gold stars, no hints.', 'You can do this on your own.'],
+    islandSailed: ['Every unit is mastered. Nicely done.', 'Two units, all mastered. Nicely done.'],
     opened: ['{island} is open now. Ready for the next island?', '{island} just opened. Sail on when you are ready.'],
     reviewDone: ['{island} review done. Your memory is sharp.', 'You remembered {island}. That is how skills stick.'],
     reviewHelped: ['Review done with some help. {island} will come back in 2 days.', 'Good try. {island} will come back in 2 days for another go.'],
