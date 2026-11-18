@@ -39,7 +39,7 @@ export default function Privacy() {
         </Section>
 
         <Section title="What stays in the browser">
-          <p className="m-0">Quest progress and badges, the age mode a child picked, the read-aloud setting, an unsaved draft and the edit keys for saved drawings are kept in the browser&rsquo;s own storage (localStorage) on that device. GIO&rsquo;s server never receives them. Clearing the browser&rsquo;s site data removes them.</p>
+          <p className="m-0">Quest progress and badges, the age mode a child picked, the read-aloud setting, an unsaved draft and the edit keys for saved drawings are kept in the browser&rsquo;s own storage (localStorage) on that device. GIO&rsquo;s server never receives the progress, settings or draft. A drawing&rsquo;s edit key is stored in the browser and sent to GIO only when the child saves changes to that drawing. Clearing the browser&rsquo;s site data removes them.</p>
         </Section>
 
         <Section title="The turtle helper (AI)">
