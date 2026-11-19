@@ -20,11 +20,8 @@
     "check:browser": "tsx scripts/browser-check.ts",
     "check:shots": "tsx scripts/gio-shots.ts",
     "check:map-shots": "tsx scripts/map-shots.ts",
-<<<<<<< HEAD
-    "check:learning": "tsx scripts/learning-shots.ts"
-=======
+    "check:learning": "tsx scripts/learning-shots.ts",
     "report:stages": "tsx scripts/stages-report.ts"
->>>>>>> 6212742 (feat: skill check flow, Logo Master certificate, golden shell, privacy text, stages report (typecheck, lint, npm test 1325 pass in 20 files, build, check:python, check:browser on port 3301, report:stages all exit 0; headless browser run of skill pass/fail, master moment, certificate print on A4 and Letter 1 page passed))
   },
   "engines": {
     "node": ">=20.0.0"

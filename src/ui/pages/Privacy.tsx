@@ -40,16 +40,13 @@ export default function Privacy() {
 
         <Section title="What stays in the browser">
           <p className="m-0">Quest progress and badges, which quests earned a gold or silver star, which islands on the adventure map are sailed, the calendar dates used to plan short review visits, the age mode a child picked, the read-aloud setting, an unsaved draft and the edit keys for saved drawings are kept in the browser&rsquo;s own storage (localStorage) on that device. GIO&rsquo;s server never receives the progress, settings or draft. A drawing&rsquo;s edit key is stored in the browser and sent to GIO only when the child saves changes to that drawing. Clearing the browser&rsquo;s site data removes them.</p>
-<<<<<<< HEAD
           <p className="m-0">GIO also remembers, for each age group, whether the first-drawing welcome has already been shown (the key is called gio.firstWin). It stays on the device and is never sent to GIO.</p>
+          <p className="m-0">Stages are kept the same way. Which stages a child sailed, which ones they tested out of with a skill check, and the date they became a Logo Master (all in <code>gio.path</code>), and whether Gio wears the golden shell (<code>gio.rewards</code>) never leave the browser. A skill check itself is not saved: leaving it simply ends it.</p>
+          <p className="m-0">The Logo Master certificate has a box for a name. If someone types one, it is kept in the browser (<code>gio.certificate</code>), up to 40 characters, so it is still there next time. It is never sent to GIO&rsquo;s server and is not put in the link. The &ldquo;Forget my name&rdquo; button on the certificate page deletes it, and so does clearing the site data. The name only appears on the printed page if someone prints it.</p>
         </Section>
 
         <Section title="Pictures, movies and drawing files">
           <p className="m-0">Pictures, movies and drawing files (SVG) are made on the child&rsquo;s own device and saved to its downloads folder, or shared through the phone&rsquo;s own share menu. Nothing is uploaded to GIO. A movie carries only the drawing and a small &ldquo;Made with GIO&rdquo; mark.</p>
-=======
-          <p className="m-0">Stages are kept the same way. Which stages a child sailed, which ones they tested out of with a skill check, and the date they became a Logo Master (all in <code>gio.path</code>), and whether Gio wears the golden shell (<code>gio.rewards</code>) never leave the browser. A skill check itself is not saved: leaving it simply ends it.</p>
-          <p className="m-0">The Logo Master certificate has a box for a name. If someone types one, it is kept in the browser (<code>gio.certificate</code>), up to 40 characters, so it is still there next time. It is never sent to GIO&rsquo;s server and is not put in the link. The &ldquo;Forget my name&rdquo; button on the certificate page deletes it, and so does clearing the site data. The name only appears on the printed page if someone prints it.</p>
->>>>>>> 6212742 (feat: skill check flow, Logo Master certificate, golden shell, privacy text, stages report (typecheck, lint, npm test 1325 pass in 20 files, build, check:python, check:browser on port 3301, report:stages all exit 0; headless browser run of skill pass/fail, master moment, certificate print on A4 and Letter 1 page passed))
         </Section>
 
         <Section title="The turtle helper (AI)">
