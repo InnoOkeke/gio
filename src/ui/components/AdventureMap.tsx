@@ -1,9 +1,11 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { QuestAudience } from '../../logo/quests.js';
 import type { FriendId, StickerId } from '../gio/catalog';
 import type { GioMood } from '../gio/mood';
 import { islandByKey, questById, stageCount, stageNumber } from '../path/islands';
 import { MAP_LINES, reviewInvite, say } from '../path/lines';
+import type { SkillChallenge } from '../path/skill';
 import type { IslandView, NextStop } from '../path/state';
 import { worldStartingAt } from '../path/worlds';
 import { useDialog } from '../useDialog';
@@ -24,7 +26,13 @@ interface AdventureMapProps {
   reviewKey: string | null;
   mood: GioMood;
   shell: readonly (StickerId | null)[];
+  /** The challenges of a skill check that opens a stage. Empty when the stage cannot be skipped to. */
+  skillPlan(islandKey: string): readonly SkillChallenge[];
+  /** The Logo Master certificate is earned in this mode. */
+  certificate: boolean;
   onPlay(questId: string): void;
+  /** Start the skill check that opens a stage. */
+  onSkip(islandKey: string): void;
   /** The one Go button: follow the next stop. */
   onGo(): void;
   onReview(islandKey: string): void;
@@ -73,7 +81,7 @@ export function AdventureMap(props: AdventureMapProps) {
   return props.open ? <MapDialog {...props} /> : null;
 }
 
-function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPlay, onGo, onReview, onGarden, onClose }: AdventureMapProps) {
+function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skillPlan, certificate, onPlay, onSkip, onGo, onReview, onGarden, onClose }: AdventureMapProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const backRef = useRef<HTMLButtonElement>(null);
@@ -89,6 +97,8 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
   useDialog(panelRef, closeRef, () => (selectedRef.current ? setSelected(null) : onClose()));
 
   const here = currentKey(islands, next);
+  /** The first locked stage a skill check can open: the way in for a confident child or a grown-up. */
+  const firstSkippable = islands.find((v) => v.status === 'locked' && skillPlan(v.island.key).length > 0)?.island.key ?? null;
   const sailedCount = islands.filter((i) => i.sailed).length;
   const total = islands.length || stageCount(mode);
 
@@ -183,12 +193,29 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
               met={friends.includes(selectedView.island.resident)}
               nextQuestId={(next.kind === 'quest' || next.kind === 'retry' || next.kind === 'bonus') && next.islandKey === selected ? next.questId : null}
               reviewWaiting={reviewKey === selected}
+              skill={skillPlan(selectedView.island.key)}
+              certificate={certificate}
+              onSkip={() => onSkip(selectedView.island.key)}
               onPlay={onPlay}
               onReview={() => onReview(selectedView.island.key)}
               onGoTo={setSelected}
             />
           ) : (
             <div className="flex flex-col">
+              {(certificate || firstSkippable) && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {firstSkippable && (
+                    <button type="button" className="btn btn-quiet" onClick={() => setSelected(firstSkippable)}>
+                      Skip ahead
+                    </button>
+                  )}
+                  {certificate && (
+                    <Link to="/certificate" className="btn btn-quiet">
+                      My certificate
+                    </Link>
+                  )}
+                </div>
+              )}
               {reviewKey && reviewName && next.kind !== 'review' && (
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] bg-[#fff4cc] px-4 py-3 shadow-[var(--shadow-1)]">
                   <p className="m-0 flex items-center gap-2.5 text-[16px] font-extrabold text-[#5a3b00]">
@@ -270,6 +297,13 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
                         </span>
                       </button>
                     </div>
+                    {locked && skillPlan(key).length > 0 && (
+                      <div className={`mt-2 flex ${side === 'left' ? 'justify-start' : 'justify-end'}`}>
+                        <button type="button" className="btn btn-quiet w-[68%] max-w-[300px]" onClick={() => setSelected(key)} aria-label={`Skip ahead to ${view.island.name}: take a skill check`}>
+                          Skip ahead
+                        </button>
+                      </div>
+                    )}
                     {i < islands.length - 1 && <Trail from={side} to={nextSide} sailed={view.sailed} />}
                   </Fragment>
                 );

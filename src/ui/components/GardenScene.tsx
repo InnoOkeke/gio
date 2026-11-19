@@ -11,6 +11,8 @@ interface GardenSceneProps {
   completed: readonly string[];
   badges: readonly Badge[];
   friends: readonly FriendId[];
+  /** The child is a Logo Master: a golden shell shines on the grass. */
+  golden?: boolean;
 }
 
 const CONCEPT_ORDER = Object.keys(CONCEPTS) as Concept[];
@@ -33,7 +35,7 @@ function plural(n: number, one: string, many: string): string {
 }
 
 /** The garden, drawn from what the child has really done. It is never stored, so it cannot drift from their progress. */
-export function GardenScene({ quests, completed, badges, friends }: GardenSceneProps) {
+export function GardenScene({ quests, completed, badges, friends, golden = false }: GardenSceneProps) {
   const done = quests.map((q, i) => ({ q, i })).filter(({ q }) => completed.includes(q.id));
   const trees = badges.filter((b) => b.earned);
   const empty = done.length === 0 && trees.length === 0 && friends.length === 0;
@@ -51,7 +53,7 @@ export function GardenScene({ quests, completed, badges, friends }: GardenSceneP
   const names = friends.map((id) => friendById(id).name);
   const label = empty
     ? 'Your garden is empty for now. Gio is waiting for you to learn something new.'
-    : `Your garden has ${plural(done.length, 'flower', 'flowers')}, ${plural(trees.length, 'tree', 'trees')} and ${plural(friends.length, 'friend', 'friends')}${names.length ? `: ${names.join(', ')}` : ''}.`;
+    : `Your garden has ${plural(done.length, 'flower', 'flowers')}, ${plural(trees.length, 'tree', 'trees')} and ${plural(friends.length, 'friend', 'friends')}${names.length ? `: ${names.join(', ')}` : ''}.${golden ? ' Gio has a golden shell.' : ''}`;
 
   return (
     <div className="relative">
@@ -92,6 +94,16 @@ export function GardenScene({ quests, completed, badges, friends }: GardenSceneP
           const p = flowerAt(i);
           return <Flower key={q.id} x={p.x} y={p.y} color={CONCEPTS[q.concept].color} />;
         })}
+
+        {golden && (
+          <g data-testid="garden-golden-shell" transform="translate(372 128)">
+            <circle r="17" fill="#fff8dc" fillOpacity="0.55" />
+            <ellipse rx="11" ry="13" fill="#f2b705" stroke="#a86f00" strokeWidth="1.8" />
+            <path d="M 0 -5 L 4.5 -2.5 L 4.5 2.5 L 0 5 L -4.5 2.5 L -4.5 -2.5 Z" fill="#ffe27a" stroke="#a86f00" strokeWidth="1.2" strokeLinejoin="round" />
+            <path d="M -7 -8 Q -9 -3 -8 2" fill="none" stroke="#fff8dc" strokeWidth="1.6" strokeLinecap="round" />
+            <path className="gio-spark" d="M 13 -14 L 14.5 -11 L 17.5 -9.5 L 14.5 -8 L 13 -5 L 11.5 -8 L 8.5 -9.5 L 11.5 -11 Z" fill="#fff8dc" stroke="#a86f00" strokeWidth="0.8" strokeLinejoin="round" />
+          </g>
+        )}
       </svg>
       {empty && (
         <div className="absolute inset-x-0 bottom-3 flex flex-col items-center gap-1 pointer-events-none">

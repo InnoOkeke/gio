@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { Wordmark } from './components/GioMark';
 import { ModePicker } from './components/ModePicker';
 import { ModeProvider, useMode } from './mode';
+import Certificate from './pages/Certificate';
 import NotFound from './pages/NotFound';
 import Privacy from './pages/Privacy';
 import Studio from './pages/Studio';
@@ -53,6 +54,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<StudioGate />} />
           <Route path="/p/:slug" element={<StudioGate />} />
+          <Route path="/certificate" element={<Certificate />} />
           <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

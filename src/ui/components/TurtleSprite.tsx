@@ -1,5 +1,6 @@
-import type { ReactElement } from 'react';
+import { useContext, type ReactElement } from 'react';
 import { SHELL_SLOTS, type StickerId } from '../gio/catalog';
+import { GoldenShellContext } from '../gio/golden';
 import type { GioMood } from '../gio/mood';
 import { STICKER_ART } from './gio/StickerArt';
 
@@ -91,7 +92,8 @@ function Face({ mood }: { mood: GioMood }): ReactElement {
  * Gio, drawn facing up (heading 0). Rotation is applied by the stage.
  * The face shows his mood and the shell shows the stickers he wears, so it reads without motion.
  */
-export function TurtleSprite({ mood = 'idle', stickers }: { mood?: GioMood; stickers?: readonly (StickerId | null)[] }) {
+export function TurtleSprite({ mood = 'idle', stickers, golden }: { mood?: GioMood; stickers?: readonly (StickerId | null)[]; golden?: boolean }) {
+  const wearsGold = useContext(GoldenShellContext) || golden === true;
   return (
     <svg viewBox="-60 -60 120 120" width="100%" height="100%" aria-hidden="true" className="turtle-body">
       <g className="gio-pose" data-mood={mood}>
@@ -104,9 +106,16 @@ export function TurtleSprite({ mood = 'idle', stickers }: { mood?: GioMood; stic
         <path d="M -6 40 L 0 52 L 6 40 Z" fill="#5fd39b" stroke="#0b7a4f" strokeWidth="3" strokeLinejoin="round" />
         <circle cx="0" cy="-44" r="14" fill="#5fd39b" stroke="#0b7a4f" strokeWidth="3" />
         <Face mood={mood} />
-        <ellipse cx="0" cy="0" rx="34" ry="40" fill="#ffd166" stroke="#0b7a4f" strokeWidth="3.5" />
-        <path d="M 0 -15 L 13 -7.5 L 13 7.5 L 0 15 L -13 7.5 L -13 -7.5 Z" fill="#ffe8a3" stroke="#e8962a" strokeWidth="3" strokeLinejoin="round" />
-        <path d="M 0 -15 L 0 -38 M 13 -7.5 L 31 -16 M 13 7.5 L 31 16 M 0 15 L 0 38 M -13 7.5 L -31 16 M -13 -7.5 L -31 -16" stroke="#e8962a" strokeWidth="3" strokeLinecap="round" />
+        <ellipse cx="0" cy="0" rx="34" ry="40" fill={wearsGold ? '#f2b705' : '#ffd166'} stroke="#0b7a4f" strokeWidth="3.5" data-golden={wearsGold ? 'true' : undefined} />
+        <path d="M 0 -15 L 13 -7.5 L 13 7.5 L 0 15 L -13 7.5 L -13 -7.5 Z" fill={wearsGold ? '#ffe27a' : '#ffe8a3'} stroke={wearsGold ? '#a86f00' : '#e8962a'} strokeWidth="3" strokeLinejoin="round" />
+        <path d="M 0 -15 L 0 -38 M 13 -7.5 L 31 -16 M 13 7.5 L 31 16 M 0 15 L 0 38 M -13 7.5 L -31 16 M -13 -7.5 L -31 -16" stroke={wearsGold ? '#a86f00' : '#e8962a'} strokeWidth="3" strokeLinecap="round" />
+        {wearsGold && (
+          <>
+            <path d="M -22 -26 Q -28 -10 -26 4" fill="none" stroke="#fff8dc" strokeWidth="3.5" strokeLinecap="round" opacity="0.9" />
+            <path className="gio-spark" d={sparkle(26, -33, 1)} fill="#fff8dc" stroke="#a86f00" strokeWidth="1" strokeLinejoin="round" />
+            <path className="gio-spark gio-spark-2" d={sparkle(-27, 30, 0.8)} fill="#fff8dc" stroke="#a86f00" strokeWidth="1" strokeLinejoin="round" />
+          </>
+        )}
         {stickers?.slice(0, SHELL_SLOTS).map((id, i) => {
           if (!id) return null;
           const slot = SLOTS[i]!;

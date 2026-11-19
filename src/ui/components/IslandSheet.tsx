@@ -1,7 +1,9 @@
 import type { ReactElement } from 'react';
+import { Link } from 'react-router-dom';
 import { CONCEPTS } from '../../logo/quests.js';
 import { friendById } from '../gio/catalog';
-import { questById, stageCount, stageNumber } from '../path/islands';
+import { islandByKey, questById, stageCount, stageNumber } from '../path/islands';
+import type { SkillChallenge } from '../path/skill';
 import { MASTER_RULE, UNIT_TIME, reviewInvite, say, MAP_LINES } from '../path/lines';
 import { GOLD_TO_MASTER, type IslandView, type QuestView, type UnitView } from '../path/state';
 import { FriendPicture } from './gio/FriendArt';
@@ -18,9 +20,14 @@ interface IslandSheetProps {
   nextQuestId: string | null;
   /** A review of this island is waiting. */
   reviewWaiting: boolean;
+  /** The challenges of a skill check that opens this stage. Empty when it cannot be skipped to. */
+  skill: readonly SkillChallenge[];
+  /** The Logo Master certificate is earned in this mode. */
+  certificate: boolean;
   onPlay(questId: string): void;
   onReview(): void;
   onGoTo(islandKey: string): void;
+  onSkip(): void;
 }
 
 function Star({ star, size = 30 }: { star: QuestView['star']; size?: number }): ReactElement {
@@ -88,7 +95,7 @@ function Unit({ unit, number, color, nextQuestId, onPlay }: { unit: UnitView; nu
 }
 
 /** One island: who lives there, its units of three quests with their stars, and the way back if it is still locked. */
-export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, onPlay, onReview, onGoTo }: IslandSheetProps) {
+export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, skill, certificate, onPlay, onReview, onGoTo, onSkip }: IslandSheetProps) {
   const { island } = view;
   const color = CONCEPTS[island.concept].color;
   const friend = friendById(island.resident);
@@ -126,6 +133,7 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, o
       </div>
 
       {locked ? (
+        <>
         <div className="rounded-[24px] border border-line bg-white p-5 text-center shadow-[var(--shadow-1)]" role="status">
           <span className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-paper-3 text-[#44554c]" aria-hidden="true">
             <LockIcon size={26} />
@@ -137,6 +145,22 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, o
             </button>
           )}
         </div>
+        {skill.length > 0 && (
+          <section aria-labelledby="skill-title" className="rounded-[24px] border-2 border-[#2b9bf4] bg-[#e3f2ff] p-5 shadow-[var(--shadow-1)]">
+            <h3 id="skill-title" className="m-0 text-[18px] font-black text-ink">
+              Already know this? Take a skill check
+            </h3>
+            <p className="m-0 mt-1.5 text-[15px] font-bold leading-snug text-ink-2">
+              Solve {skill.length} {skill.length === 1 ? 'quest' : 'quests'} on your own, with no hints, no Explain and no tutor:{' '}
+              {skill.map((c) => islandByKey(c.stageKey)?.name ?? c.stageKey).join(', ')}. Pass them all and {island.name} opens. The stages before it count as tested out, and you can still play them any time.
+            </p>
+            <p className="m-0 mt-1.5 text-[14px] font-bold text-ink-2">You can try as often as you like. No stars are won in a skill check.</p>
+            <button type="button" className="btn btn-primary btn-lg mt-3" onClick={onSkip}>
+              Start the skill check
+            </button>
+          </section>
+        )}
+        </>
       ) : (
         <>
           {view.tested && !view.sailed && (
@@ -148,6 +172,11 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, o
             <p className="m-0 rounded-[20px] bg-[#e1f7ec] px-4 py-3 text-[15px] font-extrabold text-[#08603e]">
               You sailed {island.name}. Replay any quest to win a gold star.
             </p>
+          )}
+          {certificate && stageNumber(island) === stageCount(island.audience) && (
+            <Link to="/certificate" className="btn btn-primary btn-lg w-full">
+              See my Logo Master certificate
+            </Link>
           )}
           {reviewWaiting && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] bg-[#fff4cc] px-4 py-3">

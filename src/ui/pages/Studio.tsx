@@ -35,11 +35,13 @@ import { AdventureMap } from '../components/AdventureMap';
 import { MasteryMoment, type Moment } from '../components/MasteryMoment';
 import { QuestCard } from '../components/Quests';
 import { HintCard } from '../components/HintCard';
+import { SkillCheckBanner } from '../components/SkillCheckBanner';
 import { Stage, type StageHandle } from '../components/Stage';
 import { useToast } from '../components/Toast';
 import { TranslatedCode } from '../components/TranslatedCode';
 import { TurtleBubble, type BubbleMessage } from '../components/TurtleBubble';
 import { friendById, type FriendId } from '../gio/catalog';
+import { GoldenShellContext } from '../gio/golden';
 import { announce, hasEarned, mergeEarned, NOTHING, runSignals, stickerNames, type Earned, type RunSignals } from '../gio/earned';
 import { DEFAULT_FIRST_COLOUR, firstWinProgram, markFirstWinShown, readFirstWin, shouldOfferFirstWin, type BlockColour } from '../first-win';
 import { LINES, pickLine, welcomeBackLine } from '../gio/lines';
@@ -50,7 +52,8 @@ import { LogoEditor, type LogoEditorHandle } from '../editor/LogoEditor';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
 import { createDelayed } from '../path/delayed';
 import { useQuestHelp } from '../path/help';
-import { islandOf, placeOf } from '../path/islands';
+import { islandByKey, islandOf, placeOf } from '../path/islands';
+import { useSkillCheck } from '../path/useSkillCheck';
 import type { NextStop, Star } from '../path/state';
 import { useProgress } from '../progress';
 import { useRewards } from '../rewards';
@@ -144,7 +147,7 @@ export default function Studio() {
       />
     );
   }
-  if (!loaded) return <CenteredMessage title="Getting the turtle ready…" />;
+  if (!loaded) return <CenteredMessage title="Getting the turtle readyâ€¦" />;
   return <StudioView key={loaded.slug ?? 'new'} initial={loaded} />;
 }
 
@@ -160,6 +163,9 @@ function StudioView({ initial }: { initial: Loaded }) {
   const progress = useProgress(mode);
   /** Where the child got help on the current quest. It decides gold or silver stars. */
   const help = useQuestHelp();
+  /** A skill check in play: the stages to skip and which challenge the child is on. */
+  const skill = useSkillCheck();
+  const navigate = useNavigate();
   const { state: rewards, record, wear } = useRewards();
   /** A child who has learned before and been away 3 or more days gets a warm welcome back. */
   const [cameBack] = useState(() => rewards.days.length > 0 && daysAway(rewards.days, localDateKey(new Date())) >= 3);
@@ -421,11 +427,9 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const startQuest = (q: Quest, inReview = false) => {
-<<<<<<< HEAD
     finishFirstWin();
-=======
     momentTimer.current.cancel();
->>>>>>> 3ccf801 (feat: stage map, 19 island scenes and review fixes)
+    skill.questStarted();
     setQuestsOpen(false);
     setMasteryMoment(null);
     if (!inReview) setReviewRun(null);
@@ -447,6 +451,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   const leaveQuest = () => {
     momentTimer.current.cancel();
+    skill.stop();
     setReviewRun(null);
     tutor.reset();
     setQuest(null);
@@ -475,7 +480,18 @@ function StudioView({ initial }: { initial: Loaded }) {
     startQuest(first, true);
   };
 
+  /** Start a skill check: its challenges play as ordinary quests, but no star, clear or review is recorded for them. */
+  const startSkillCheck = (key: string) => {
+    const first = skill.begin(key, progress.skillCheck(key));
+    const q = first ? progress.quests.find((x) => x.id === first) : undefined;
+    if (q) startQuest(q);
+    else skill.stop();
+  };
+
   const nextQuest = () => {
+    const challenge = skill.advance();
+    const upNext = challenge ? progress.quests.find((x) => x.id === challenge) : undefined;
+    if (upNext) return startQuest(upNext);
     const r = reviewRef.current;
     if (!r) return goTo(progress.nextStop());
     const following = progress.quests.find((q) => q.id === r.ids[r.index + 1]);
@@ -517,14 +533,28 @@ function StudioView({ initial }: { initial: Loaded }) {
       }
       setQuestDone(true);
       const helped = help.used();
-      const { newBadge, star, unitMastered, islandSailed, opened } = progress.complete(q.id, helped);
+      if (skill.isActive(q.id)) {
+        // A skill check challenge: no star, clear, review or sticker for the quest. Only the verdict counts.
+        setFriendQueue((f) => [...f, ...earned.newFriends]);
+        const step = skill.solved(q.id, helped);
+        if (step?.kind === 'end') {
+          const passed = step.passed ? progress.passSkillCheck(step.targetKey) : null;
+          if (passed?.masterEarned) record({ kind: 'logo-master' });
+          const moment: Moment = passed?.masterEarned ? { kind: 'master', islandKey: step.targetKey } : { kind: 'skill', islandKey: step.targetKey, passed: step.passed };
+          setBubble({ kind: 'success', text: step.passed ? 'Skill check passed!' : 'Not yet. You used help, so this check cannot be passed this time.' });
+          momentTimer.current.schedule(() => setMasteryMoment(moment), 800);
+        } else setBubble({ kind: 'success', text: 'Challenge solved! Press Next challenge when you are ready.' });
+        return;
+      }
+      const { newBadge, star, unitMastered, islandSailed, opened, masterEarned } = progress.complete(q.id, helped);
+      if (masterEarned) record({ kind: 'logo-master' });
       setQuestStar(star);
       const island = islandOf(q.id);
       const visit = reviewRef.current;
       if (visit) setReviewRun({ ...visit, results: [...visit.results.filter((x) => x.questId !== q.id), { questId: q.id, helped }] });
       else if (island && (islandSailed || unitMastered)) {
         // Let the child see the finished drawing before the celebration arrives.
-        const moment: Moment = islandSailed ? { kind: 'island', islandKey: island.key, opened, badge: newBadge } : { kind: 'unit', islandKey: island.key, unitIndex: placeOf(q.id)?.unitIndex ?? 0 };
+        const moment: Moment = masterEarned ? { kind: 'master', islandKey: island.key } : islandSailed ? { kind: 'island', islandKey: island.key, opened, badge: newBadge } : { kind: 'unit', islandKey: island.key, unitIndex: placeOf(q.id)?.unitIndex ?? 0 };
         momentTimer.current.schedule(() => setMasteryMoment(moment), 800);
       }
       const credited = run?.credited === true;
@@ -534,7 +564,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       );
       setFriendQueue((f) => [...f, ...all.newFriends]);
       const starLine = star === 'clean' ? ' Gold star!' : ' Silver star. Try it again without a hint for gold.';
-      const headline = newBadge ? `You earned the ${CONCEPTS[newBadge].badge} badge!` : islandSailed && island ? `You sailed ${island.name}!` : unitMastered ? 'Unit mastered!' : 'Quest complete! You did it!';
+      const headline = masterEarned ? 'You are a Logo Master!' : newBadge ? `You earned the ${CONCEPTS[newBadge].badge} badge!` : islandSailed && island ? `You sailed ${island.name}!` : unitMastered ? 'Unit mastered!' : 'Quest complete! You did it!';
       const base = `${headline}${starLine}`;
       setBubble({ kind: 'success', text: announce(base, all, newBadge), mood: hasEarned(all) ? 'cheer' : undefined });
       const names = stickerNames(all, newBadge);
@@ -690,7 +720,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       return true;
     }
     setAsking(true);
-    setBubble({ kind: 'info', text: 'Hmm, let me think about how to draw that…' });
+    setBubble({ kind: 'info', text: 'Hmm, let me think about how to draw thatâ€¦' });
     const before = code;
     try {
       const { code: aiCode } = await api.askTurtle(prompt, code.trim() ? code : undefined, style);
@@ -749,9 +779,12 @@ function StudioView({ initial }: { initial: Loaded }) {
       setBubble({ kind: 'info', text: little ? 'Add some blocks first, then I can tell you what they do!' : 'Write some code first, then I can explain it.' });
       return;
     }
-    if (quest && !questDone) help.note('explain');
+    if (quest && !questDone) {
+      help.note('explain');
+      if (skill.isActive(quest.id)) setHinted(true);
+    }
     setExplaining(true);
-    setBubble({ kind: 'info', text: 'Let me look at your code…' });
+    setBubble({ kind: 'info', text: 'Let me look at your codeâ€¦' });
     try {
       const { text } = await api.explain(code, style);
       setBubble({ kind: 'info', text });
@@ -798,7 +831,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     const url = `${window.location.origin}/p/${slug}`;
     try {
       if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
-        await navigator.share({ title: `${title} · GIO`, text: 'Look what I drew with code!', url });
+        await navigator.share({ title: `${title} Â· GIO`, text: 'Look what I drew with code!', url });
         return;
       }
       await navigator.clipboard.writeText(url);
@@ -915,6 +948,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   );
 
   return (
+    <GoldenShellContext.Provider value={rewards.goldenShell}>
     <div className="min-h-full flex flex-col">
       <header className="sticky top-0 z-30 backdrop-blur-xl bg-[rgba(245,242,234,0.82)] border-b border-line">
         <div className="mx-auto max-w-[1360px] px-4 sm:px-6 h-[72px] flex items-center gap-2 sm:gap-3">
@@ -961,8 +995,20 @@ function StudioView({ initial }: { initial: Loaded }) {
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
+        {skill.run && quest && (
+          <SkillCheckBanner
+            stageName={islandByKey(skill.run.targetKey)?.name ?? 'the stage'}
+            position={skill.run.index + 1}
+            total={skill.run.plan.length}
+            helped={hinted}
+            onStop={() => {
+              leaveQuest();
+              toast.show({ text: 'Skill check stopped. Nothing was lost.' });
+            }}
+          />
+        )}
         {quest ? (
-          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted} review={review ? { index: review.index, total: review.ids.length } : null} nextLabel={review ? (review.index + 1 < review.ids.length ? 'Next review quest' : 'Finish review') : 'Next quest'} onHint={() => void askForHint()} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
+          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted && !skill.run} review={review ? { index: review.index, total: review.ids.length } : null} nextLabel={skill.run ? 'Next challenge' : review ? (review.index + 1 < review.ids.length ? 'Next review quest' : 'Finish review') : 'Next quest'} onHint={() => void askForHint()} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
             const command = parseVoiceCommand(text);
             if (command) doCommand(command);
             else setBubble({ kind: 'info', text: 'In a quest you write the code yourself! You can say run, hint, explain or step.' });
@@ -1045,7 +1091,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                   </button>
                 )}
                 <button type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void explain()} disabled={explaining || asking}>
-                  <BulbIcon className="text-[#f4a72c]" /> {explaining ? 'Thinking…' : little ? 'What did I make?' : 'Explain my code'}
+                  <BulbIcon className="text-[#f4a72c]" /> {explaining ? 'Thinkingâ€¦' : little ? 'What did I make?' : 'Explain my code'}
                 </button>
                 <button ref={stuckRef} type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void askForHint()} disabled={tutor.loading || asking || explaining}>
                   <HelpIcon className="text-[#e0861a]" /> I&rsquo;m stuck
@@ -1084,6 +1130,9 @@ function StudioView({ initial }: { initial: Loaded }) {
         reviewKey={progress.reviewDue}
         mood={mood}
         shell={rewards.shell}
+        skillPlan={progress.skillCheck}
+        certificate={progress.masterOn !== null}
+        onSkip={startSkillCheck}
         onPlay={(id) => {
           const picked = progress.quests.find((q) => q.id === id);
           if (picked) startQuest(picked);
@@ -1121,6 +1170,11 @@ function StudioView({ initial }: { initial: Loaded }) {
             setQuestsOpen(true);
           }}
           onClose={() => setMasteryMoment(null)}
+          onCertificate={() => navigate('/certificate')}
+          onGarden={() => {
+            setMasteryMoment(null);
+            setGardenOpen(true);
+          }}
         />
       )}
       {movie && (
@@ -1137,6 +1191,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       )}
       {toast.view}
     </div>
+    </GoldenShellContext.Provider>
   );
 }
 

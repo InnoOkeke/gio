@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Quest, QuestAudience } from '../../logo/quests.js';
 import { FRIENDS, SHELL_SLOTS, STICKERS, stickerById, type StickerId } from '../gio/catalog';
 import { localDateKey, weekCopy, weekView, type RewardsState } from '../gio/rewards';
@@ -205,7 +206,15 @@ export function GardenSheet({ open, mode, rewards, quests, completed, badges, on
             <h3 id="scene-title" className="m-0 text-[18px] font-black">
               My garden
             </h3>
-            <GardenScene quests={quests} completed={completed} badges={badges} friends={rewards.friends} />
+            <GardenScene quests={quests} completed={completed} badges={badges} friends={rewards.friends} golden={rewards.goldenShell} />
+            {rewards.goldenShell && (
+              <p className="m-0 flex flex-wrap items-center justify-between gap-2 rounded-[20px] bg-[#fff4cc] px-4 py-3 text-[16px] font-extrabold text-[#5a3b00]">
+                Gio has a golden shell!
+                <Link to="/certificate" className="btn btn-quiet">
+                  See my certificate
+                </Link>
+              </p>
+            )}
           </section>
 
           <section aria-labelledby="week-title" className="rounded-[24px] bg-white p-5 shadow-[var(--shadow-1)] flex flex-col gap-3">

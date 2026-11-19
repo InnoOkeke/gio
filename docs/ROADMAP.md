@@ -68,13 +68,13 @@ Badges, a growing garden or aquarium that fills up as the child learns, and a ca
 **J. Free for every child.**
 Keep GIO free for children. Fund it through school and NGO partnerships (Phase 5 classrooms), grants, and cloud credits. Offline-first (Phase 3) so it works where data is scarce. Add more languages as native speakers volunteer, e.g. Yoruba, Hausa, Igbo and Swahili.
 
-## Stages: quests that keep getting harder
+## Stages: quests that keep getting harder (done)
 
-Today's quests become Stage 1. Turtle Coders get **20 stages**, Little Turtles get **10**, each harder than the last, with about 5–6 automatically checked quests per stage. Stages unlock in order; confident kids and adults can skip ahead by passing a short skill check. Finishing the last stage earns a printable **Logo Master certificate** for parents and a **golden shell** for Gio.
+Turtle Coders have **20 stages** (120 quests) and Little Turtles have **10** (60 quests), six automatically checked quests per stage in two units of three, each stage harder than the last. The first stages are the original islands, so no progress was lost. Stages unlock in order, and confident kids and adults can skip ahead: a **skill check** is a few of the "own" quests of the stages being skipped, solved with no hint, Explain or tutor. Passing opens the stage and marks the earlier ones "tested out", and no stars or clears come from it. Finishing the last stage earns a printable **Logo Master certificate** (one landscape page, the typed name stays in the browser) and a **golden shell** for Gio. `docs/STAGES.md` lists every stage with its measured difficulty (`npm run report:stages`).
 
-Draft Turtle Coders stages: 1 First steps, 2 Shape Shore (polygons, 360 ÷ sides), 3 Loop Lagoon (nested loops, spirals), 4 Colour Cove, 5 Recipe Reef (procedures), 6 Ingredient Island (procedures with inputs), 7 Variable Valley, 8 Grid Garden (coordinates), 9 Decision Desert (`IF`), 10 Surprise Springs (`RANDOM`), 11 Event Forest (keys), 12 Clockwork Canyon (game clock, score), 13 Recursion Ridge, 14 Fractal Falls, 15 Bug Bay (fix broken programs), 16 Tiny Code Temple (fewest commands), 17 Mirror Mountains (symmetry, tiling), 18 Physics Peak (bouncing, gravity), 19 Game Studio (multi-level games), 20 Logo Master (capstone).
+Turtle Coders stages: 1 Shape Shore, 2 Loop Lagoon, 3 Colour Cove, 4 Bug Burrow, 5 Function Falls, 6 Ingredient Island, 7 Variable Valley, 8 Grid Garden, 9 Decision Dunes, 10 Surprise Springs, 11 Event Forest, 12 Clockwork Canyon, 13 Recursion Ridge, 14 Fractal Falls, 15 Bug Bay, 16 Tiny Code Temple, 17 Mirror Mountains, 18 Physics Peak, 19 Game Studio, 20 Logo Master.
 
-Little Turtles stages stay gentle and block-based: shapes, colours, patterns, simple loops and simple games. Stages extend the adventure map (B): stages are its islands.
+Little Turtles stages are block-based: Shape Shore, Loop Lagoon, Colour Cove, Pen Playground, Flower Fields, Pattern Park, Picture Town, Star Sky, Block Saver and Logo Master Lighthouse. Simple games for Little Turtles are not in the stages. They need new blocks and arrive with Gio's Adventure.
 
 ## Fun features
 
