@@ -41,6 +41,8 @@ import { SkillCheckBanner } from '../components/SkillCheckBanner';
 import { Stage, type StageHandle } from '../components/Stage';
 import { useToast } from '../components/Toast';
 import { TranslatedCode } from '../components/TranslatedCode';
+import { PythonPanel } from '../components/PythonPanel';
+import { usePythonRun } from '../python/usePythonRun';
 import { TurtleBubble, type BubbleMessage } from '../components/TurtleBubble';
 import { friendById, type FriendId } from '../gio/catalog';
 import { GoldenShellContext } from '../gio/golden';
@@ -229,7 +231,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   questRef.current = quest;
 
   /* Games: the running program stays alive so WHEN handlers can answer key presses. */
-  const [gameKeys, setGameKeys] = useState<GameKey[]>([]);
+  const [logoKeys, setGameKeys] = useState<GameKey[]>([]);
   const [gameTicks, setGameTicks] = useState(false);
   const sessionRef = useRef<GameSession | null>(null);
   const sessionCodeRef = useRef('');
@@ -239,6 +241,21 @@ function StudioView({ initial }: { initial: Loaded }) {
     setGameKeys([]);
     setGameTicks(false);
   }, []);
+
+  /* Python: real Python in a locked box. Its runs never earn rewards or finish quests (see lastRunRef and onStatus). */
+  const py = usePythonRun({
+    stageRef,
+    logo: code,
+    docKey: project?.slug ?? 'draft',
+    locked: quest !== null,
+    setBubble,
+    onStart: () => {
+      lastRunRef.current = null;
+      endGame();
+      setPrints([]);
+    },
+  });
+  const gameKeys = py.active ? py.gameKeys : logoKeys;
 
   const owned = project?.editKey != null;
   const dirty = `${title}\n${code}` !== savedSnapshot;
@@ -282,6 +299,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   }, [speed]);
 
   const run = useCallback((source: string) => {
+    py.release();
     setPrints([]);
     editorRef.current?.setProblemLine(null);
     pressingRef.current = false;
@@ -334,6 +352,10 @@ function StudioView({ initial }: { initial: Loaded }) {
   }, [code, endGame]);
 
   const pressKey = useCallback((key: GameKey) => {
+    if (py.activeRef.current) {
+      void py.pressKey(key);
+      return;
+    }
     const session = sessionRef.current;
     if (!session || session.isOver()) return;
     if (key === 'TICK' ? !session.ticks : !session.keys.includes(key)) return;
@@ -447,6 +469,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     endGame();
     stageRef.current?.reset();
     const target = q.target ? playWithPresses(q.target, q.presses) : null;
+    py.release();
     stageRef.current?.setGuide(target?.ok ? target.result : null);
     setBubble({ kind: 'info', text: q.starter ? 'This code has a bug. Press Run to see what goes wrong!' : q.goal });
   };
@@ -580,6 +603,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const onStatus = useCallback(
     (s: PlayerStatus) => {
       setStatus(s);
+      if (py.handleStatus(s)) return;
       // A finished key press in a game is not the end of the program.
       if (s === 'done' && pressingRef.current) return;
       if (s === 'done' && lastRunRef.current && stageRef.current?.events().some((e) => e.type === 'frame')) {
@@ -611,18 +635,28 @@ function StudioView({ initial }: { initial: Loaded }) {
   );
 
   const onLine = useCallback((line: number | null) => {
+    if (py.activeRef.current) return py.setLine(line);
     editorRef.current?.setRunningLine(line);
     setRunningLine(line);
   }, []);
   const onPrint = useCallback((text: string) => setPrints((p) => [...p, text].slice(-50)), []);
 
+  /** The Python tab is open and no quest is: the big buttons run Python instead of Logo. */
+  const pythonOpen = codeTab === 'python' && !little && !quest;
   const onRunPress = () => {
     if (status === 'playing') return stageRef.current?.pause();
     if (status === 'paused') return stageRef.current?.play();
-    run(code);
+    if (pythonOpen) void py.run();
+    else run(code);
   };
 
   const onStep = () => {
+    if (pythonOpen) {
+      if (status === 'idle' || status === 'done') void py.run(true);
+      else stageRef.current?.step();
+      return;
+    }
+    py.release();
     if (status === 'idle' || status === 'done') {
       setPrints([]);
       editorRef.current?.setProblemLine(null);
@@ -635,6 +669,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const onReset = () => {
+    py.stop();
     finishFirstWin();
     endGame();
     sound.stop();
@@ -946,7 +981,11 @@ function StudioView({ initial }: { initial: Loaded }) {
       </div>
       {codeTab !== 'logo' && (
         <div id={`panel-${codeTab}`} role="tabpanel" aria-labelledby={`tab-${codeTab}`} className="flex-1 min-h-0">
-          <TranslatedCode language={codeTab} logo={code} runningLine={runningLine} onCopied={() => toast.show({ text: 'Copied!' })} />
+          {codeTab === 'python' ? (
+            <PythonPanel py={py} logo={code} logoRunningLine={runningLine} onCopied={() => toast.show({ text: 'Copied!' })} />
+          ) : (
+            <TranslatedCode language={codeTab} logo={code} runningLine={runningLine} onCopied={() => toast.show({ text: 'Copied!' })} />
+          )}
         </div>
       )}
       {codeTab === 'logo' && <CommandShelf onInsert={(snippet) => editorRef.current?.insert(snippet)} />}

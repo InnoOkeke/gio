@@ -7,6 +7,7 @@ import healthRouter from './routes/health.js';
 import projectsRouter from './routes/projects.js';
 import aiRouter from './routes/ai.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { pyHeaders } from './middleware/py.js';
 
 export function createApp(): Express {
   const app = express();
@@ -17,6 +18,7 @@ export function createApp(): Express {
 
   app.use(cors({ origin: ['http://localhost:5173', 'http://127.0.0.1:5173'] }));
   app.use(helmet());
+  app.use('/py', pyHeaders);
   app.use(express.json({ limit: '100kb' }));
 
   app.use('/api/health', healthRouter);

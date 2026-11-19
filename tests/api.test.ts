@@ -151,3 +151,37 @@ describe('AI endpoint input checks (no model call)', () => {
     expect(json).toMatchObject({ success: false });
   });
 });
+
+describe('/py headers for the sandboxed Python frame', () => {
+  it('sends CORS, CORP, an immutable cache for the engine and a strict CSP for the runner page', async () => {
+    const [{ default: express }, { default: helmet }, { pyHeaders, RUNNER_CSP }] = await Promise.all([import('express'), import('helmet'), import('../src/api/middleware/py.js')]);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-py-'));
+    fs.mkdirSync(path.join(dir, 'py', 'pyodide-314.0.8'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'py', 'runner.html'), '<!doctype html>');
+    fs.writeFileSync(path.join(dir, 'py', 'pyodide-314.0.8', 'pyodide.asm.wasm'), 'wasm');
+    const app = express();
+    app.use(helmet());
+    app.use('/py', pyHeaders);
+    app.use(express.static(dir));
+    const py = await new Promise<Server>((resolve) => {
+      const s = app.listen(0, '127.0.0.1', () => resolve(s));
+    });
+    try {
+      const origin = `http://127.0.0.1:${(py.address() as AddressInfo).port}`;
+      const runner = await fetch(`${origin}/py/runner.html`);
+      expect(runner.headers.get('access-control-allow-origin')).toBe('*');
+      expect(runner.headers.get('cross-origin-resource-policy')).toBe('cross-origin');
+      expect(runner.headers.get('content-security-policy')).toBe(RUNNER_CSP);
+      expect(RUNNER_CSP).toContain("script-src 'self' blob: 'wasm-unsafe-eval'");
+      const wasm = await fetch(`${origin}/py/pyodide-314.0.8/pyodide.asm.wasm`);
+      expect(wasm.headers.get('access-control-allow-origin')).toBe('*');
+      expect(wasm.headers.get('cross-origin-resource-policy')).toBe('cross-origin');
+      expect(wasm.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
+      expect(wasm.headers.get('content-security-policy')).not.toBe(RUNNER_CSP);
+      expect(runner.headers.get('cache-control')).not.toContain('immutable');
+    } finally {
+      await new Promise<void>((resolve) => py.close(() => resolve()));
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+});

@@ -53,7 +53,7 @@ const logoParser: StreamParser<LogoState> = {
   languageData: { commentTokens: { line: ';' } },
 };
 
-const logoHighlight = HighlightStyle.define([
+export const logoHighlight = HighlightStyle.define([
   { tag: t.keyword, color: '#7a4cf0', fontWeight: '800' },
   { tag: t.atom, color: '#0b7a4f', fontWeight: '800' },
   { tag: t.definition(t.variableName), color: '#c2410c', fontWeight: '700' },
@@ -124,12 +124,15 @@ function lineField(effect: typeof setRunningLine, deco: Decoration) {
   });
 }
 
+/** The running-line and problem-line markers, shared with the Python editor. */
+export function lineHighlights(): Extension {
+  return [lineField(setRunningLine, runningDeco), lineField(setProblemLine, problemDeco)];
+}
 export function logoLanguage(): Extension {
   return [
     StreamLanguage.define(logoParser),
     syntaxHighlighting(logoHighlight),
     autocompletion({ override: [logoCompletions], icons: false }),
-    lineField(setRunningLine, runningDeco),
-    lineField(setProblemLine, problemDeco),
+    lineHighlights(),
   ];
 }

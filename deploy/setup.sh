@@ -105,6 +105,10 @@ http {
     access_log /var/log/nginx/access.log;
     error_log /var/log/nginx/error.log;
     client_max_body_size 200k;
+    # The Python engine (about 13.5 MB, the wasm is 9.6 MB) shrinks to about 7.5 MB with gzip.
+    gzip on;
+    gzip_types application/wasm application/javascript text/javascript application/zip application/json text/css image/svg+xml;
+    gzip_min_length 1024;
     # API Gateway reports the visitor in the last "Forwarded: ...;for=<ip>" entry and sends no
     # X-Forwarded-For. Pass that IP on so per-visitor rate limits work (TRUST_PROXY=1).
     # Entries a visitor adds themselves come earlier in the list, so they can't spoof it.

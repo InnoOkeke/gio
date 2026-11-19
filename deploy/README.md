@@ -28,6 +28,15 @@ API Gateway reports the visitor's address in a `Forwarded: ...;for=<ip>` header 
    ```
 4. Create the HTTP API with an `HTTP_PROXY` integration to `http://<instance public DNS>`, request parameters `overwrite:path` = `$request.path` and `append:header.x-gio-origin` = the secret, a `$default` route, and an auto-deployed `$default` stage.
 
+## Python files
+
+Turtle Coders can run real Python in the browser (Pyodide, which is CPython compiled to WebAssembly). The engine is served by GIO's own server, never from a CDN, under `/py/pyodide-314.0.8/`. `vite build` copies six files there from `node_modules/pyodide` (the build fails if any file passes 10 000 000 bytes):
+
+- `pyodide.asm.wasm` 9.6 MB, `python_stdlib.zip` 2.5 MB, `pyodide.asm.mjs` 1.25 MB, `pyodide-lock.json` 0.12 MB, `pyodide.js` and `pyodide.mjs` about 18 KB each. About 13.5 MB raw, about 7.5 MB when compressed.
+- **API Gateway:** an HTTP API response is limited to 10 MB, so the wasm has to stay under it (it is 9 597 892 bytes). Do not add files over that limit, and do not upgrade Pyodide without checking the size of `pyodide.asm.wasm` first.
+- **Compression:** `deploy/setup.sh` turns on nginx `gzip` for `application/wasm`, JavaScript, zip and JSON. On an existing server add the same three `gzip` lines to the `http` block of `/etc/nginx/nginx.conf` and reload nginx.
+- **Caching:** Express sends `Cache-Control: public, max-age=31536000, immutable` for `/py/pyodide-*/` (the version is in the path, so a new version gets a new path). `/py/*` also sends `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy: cross-origin` because the sandboxed frame has no origin of its own, and `/py/runner.html` has its own strict Content-Security-Policy. Do not strip those headers in nginx or API Gateway.
+- Nothing downloads until a child taps "Get Python ready" (or has done so before on that device).
 ## Updating
 
 Run as root on the server, for example with Systems Manager Run Command:

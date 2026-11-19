@@ -53,6 +53,11 @@ export default function Privacy() {
           <p className="m-0">Notes from <code>PLAY</code> are made on the child&rsquo;s own device by the browser&rsquo;s built-in audio. GIO plays no recordings, never uses the microphone for music, and uploads nothing. The sound on/off setting is kept in the browser (the key is called gio.sound) and is never sent to GIO.</p>
         </Section>
 
+        <Section title="Python in the browser">
+          <p className="m-0">Turtle Coders can run real Python. It runs on the child&rsquo;s own device, inside a locked box in the browser that cannot see GIO&rsquo;s saved settings, cannot use the internet and cannot reach anything else on the device.</p>
+          <p className="m-0">The Python engine files (about 13 MB) come from GIO&rsquo;s own server, never from another website. They are downloaded only after a child taps &ldquo;Get Python ready&rdquo;, and the browser then keeps them on the device. The browser setting that remembers this is called gio.pythonReady.</p>
+          <p className="m-0">Python a child types stays in the browser (the key is called gio.python). It is not saved to GIO&rsquo;s server and it is not part of Save or Share, which keep only the Logo. Clearing the browser&rsquo;s site data removes it.</p>
+        </Section>
         <Section title="The turtle helper (AI)">
           <p className="m-0">When a child asks the turtle to draw or explain something, the words they typed or said, and the code in the editor, are sent to Amazon Bedrock, an AWS service, which runs the Qwen3 Coder model.</p>
           <p className="m-0">When a child taps &ldquo;I&rsquo;m stuck&rdquo;, the code in the editor, which quest they are on and which hint step they asked for (Think, Look or Fix) are sent to Amazon Bedrock the same way. Hints go through the same two checks and count toward the same daily limits. Hints are not stored, and they never change progress, badges or stickers.</p>

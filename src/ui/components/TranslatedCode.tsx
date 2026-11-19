@@ -47,11 +47,13 @@ interface TranslatedCodeProps {
   language: TargetLanguage;
   logo: string;
   runningLine: number | null;
+  /** The line of this Python that a Python run is on (numbered as shown here). */
+  pythonLine?: number | null;
   onCopied(): void;
 }
 
 /** Read-only view of the current Logo program in Python or JavaScript, with lines linked back to Logo. */
-export function TranslatedCode({ language, logo, runningLine, onCopied }: TranslatedCodeProps) {
+export function TranslatedCode({ language, logo, runningLine, pythonLine = null, onCopied }: TranslatedCodeProps) {
   const [picked, setPicked] = useState<number | null>(null);
 
   const result = useMemo((): { ok: true; t: Translation } | { ok: false; line: number } | { ok: 'empty' } => {
@@ -107,7 +109,7 @@ export function TranslatedCode({ language, logo, runningLine, onCopied }: Transl
       </div>
       <ol className="flex-1 min-h-0 overflow-auto m-0 py-3 list-none font-mono text-[16px] leading-[1.7]" aria-label={`${name} code`}>
         {lines.map((l, k) => {
-          const running = runningLine !== null && l.src === runningLine;
+          const running = (runningLine !== null && l.src === runningLine) || (pythonLine !== null && k + 1 === pythonLine);
           const isPicked = picked !== null && l.src === picked;
           return (
             <li key={k} className="flex">
