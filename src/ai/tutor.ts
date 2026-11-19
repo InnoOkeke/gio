@@ -51,6 +51,15 @@ export function leaksFix(text: string): boolean {
   return text.includes('```') || COMMAND_WITH_INPUT.test(text);
 }
 
+const NUMBER_WORDS =
+  'two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|half|quarter|double|twice';
+const NUMBER_LEAK = new RegExp(`\\d|\\b(?:${NUMBER_WORDS})\\b`, 'i');
+
+/** True when a hint contains a digit or a spelled-out number word. "one" is allowed: it is an ordinary pronoun. Hints are read aloud, so a number would give the answer away. */
+export function numberLeak(text: string): boolean {
+  return NUMBER_LEAK.test(text);
+}
+
 /* ------------------------------------------------------------------ line diff */
 
 const MAX_DIFF_LINES = 200;
@@ -141,11 +150,13 @@ export function buildHintPrompt(style: AssistantStyle, level: HintLevel, ctx: Hi
     lines.push(
       'Ask exactly ONE question that makes the child think about what the turtle does, or about what they want to draw.',
       'Do not give the answer. Do not write any code. Do not write any command with a number, like a turn or a move.',
+      'Do not write any digit or number word such as ninety or four. Never say how many sides, corners or steps; say "the sides" or "the turns" instead.',
     );
   } else if (level === 2) {
     lines.push(
       'Say in words where the problem is: which part of the program or which turn of the drawing is not doing what the child wants.',
       'Do not give the corrected code, no code block, and no command with a number. Do not state the exact number that fixes it.',
+      'Do not write any digit or number word such as ninety or four. Never say how many sides, corners or steps; say "the sides" or "the turns" instead.',
       'Do not write a line number. GIO shows the line itself.',
     );
   } else {
@@ -203,9 +214,10 @@ function sentenceCount(text: string): number {
 }
 
 /** Problems with the words of a hint that the model is allowed one try to fix. Null when the text is fine. */
-function textProblem(text: string, level: HintLevel, style: AssistantStyle, checkLeak: boolean): string | null {
+export function textProblem(text: string, level: HintLevel, style: AssistantStyle, checkLeak: boolean): string | null {
   if (!text) return 'the reply had no words for the child';
   if (checkLeak && leaksFix(text)) return 'the reply gave away code or a command with a number';
+  if (level <= 2 && numberLeak(text)) return 'the reply used a number, which would be spoken aloud';
   if (level === 1 && !text.includes('?')) return 'the reply was not a question';
   if (style === 'blocks') {
     if (sentenceCount(text) > 2) return 'the reply was longer than 2 short sentences';
@@ -238,15 +250,29 @@ export function assertQuestMatches(questId: string | undefined, style: Assistant
 }
 
 /**
+ * Synchronous checks that need no model call: the quest exists and is for this age group, a free-mode request has something in it,
+ * and a quest is not already solved. Run by the route before the daily cap is used, and again by hintLogo.
+ */
+export function assertHintable(body: { code: string; style: AssistantStyle; questId?: string }): void {
+  const quest = findQuest(body.questId, body.style);
+  const diagnosis = diagnose(body.code, quest);
+  if (diagnosis.kind === 'works' && quest) throw badRequest('You already did it! Press Run to see it again.');
+  if (diagnosis.kind === 'empty' && !quest) throw badRequest('Add something first, then tap "I\'m stuck" and I can help.');
+}
+
+/**
  * One hint for a stuck child. The diagnosis and the line number come from GIO's own interpreter, never from the model.
  * Levels 1 and 2 are rejected if they give away code; level 3 is only returned if GIO ran the fix (and, in a quest, it passes).
  * If the model cannot produce a usable hint, the error is thrown; GIO never invents one.
+ *
+ * Level 3 is not gated on having seen levels 1 and 2. The site has no accounts or per-child state, so the server cannot know which hints a child has seen.
+ * A proof token would need a secret shared by every server instance and would stop nothing: /api/ai/logo already writes a whole program for any request.
+ * The ladder is a teaching nudge in the UI (nextLevel); cost is capped by the rate limiter and the daily cap.
  */
 export async function hintLogo(req: HintRequest): Promise<HintResult> {
+  assertHintable(req);
   const quest = findQuest(req.questId, req.style);
   const diagnosis = diagnose(req.code, quest);
-  if (diagnosis.kind === 'works' && quest) throw badRequest('You already did it! Press Run to see it again.');
-  if (diagnosis.kind === 'empty' && !quest) throw badRequest('Add something first, then tap "I\'m stuck" and I can help.');
 
   const ctx: HintContext = { diagnosis: diagnosisText(diagnosis), goal: quest?.goal, target: quest?.target };
   const messages: ChatMessage[] = [
@@ -265,11 +291,12 @@ export async function hintLogo(req: HintRequest): Promise<HintResult> {
       return line === undefined ? { text } : { text, line };
     }
     problem = issue;
+    if (process.env['NODE_ENV'] !== 'production') console.warn(`[ai/hint] level ${req.level} attempt ${attempt} rejected: ${issue}: ${text}`);
     messages.push(
       { role: 'assistant', content: text || '(empty)' },
       {
         role: 'user',
-        content: `That cannot be used: ${issue}. Try again. ${req.level === 1 ? 'Ask one question only.' : 'Describe the problem in words only.'} No code, and no command with a number.`,
+        content: `That cannot be used: ${issue}. Try again. ${req.level === 1 ? 'Ask one question only.' : 'Describe the problem in words only.'} No code, no command with a number, and no digit or number word such as four, ninety or quarter.${req.style === 'blocks' ? ' At most 2 very short sentences.' : ''}`,
       },
     );
   }

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { isBlocked } from '../../ai/blocklist.js';
 import { explainLogo, generateLogo } from '../../ai/logo-assistant.js';
 import { moderate } from '../../ai/moderation.js';
-import { assertQuestMatches, hintLogo } from '../../ai/tutor.js';
+import { assertHintable, hintLogo } from '../../ai/tutor.js';
 import { takeDailySlot } from '../../db/ai-usage.js';
 import { db } from '../../db/client.js';
 import { dailyCap, rateLimit } from '../middleware/rate-limit.js';
@@ -25,6 +25,10 @@ const explainSchema = z.object({
   style,
 });
 
+// Level 3 (the fix) can be requested directly, without levels 1 and 2. This is deliberate: the site has no accounts or per-child state,
+// so the server cannot know which hints a child has seen. A proof token would need a secret shared by every server instance and would
+// stop nothing, because /api/ai/logo already writes a whole program for any request. The ladder is a teaching nudge in the UI, and cost
+// is capped by the rate limiter and the daily cap.
 const hintSchema = z.object({
   level: z.union([z.literal(1), z.literal(2), z.literal(3)]),
   code: z.string().max(MAX_CODE_LENGTH),
@@ -95,11 +99,11 @@ function fail(res: Response, label: string, err: unknown): void {
   res.status(status).json({ success: false, error: err instanceof Error ? err.message : 'The turtle helper is not available right now' });
 }
 
-/** Part of validation: an unknown quest, or one for the other age group, is a 400 before anything is counted or sent. */
-function questCheck(req: Request, res: Response, next: NextFunction): void {
+/** Part of validation: an unknown or wrong-age quest, an empty free-mode request or a solved quest is a 400 before anything is counted or sent. */
+function hintCheck(req: Request, res: Response, next: NextFunction): void {
   try {
     const body = req.body as z.infer<typeof hintSchema>;
-    assertQuestMatches(body.questId, body.style);
+    assertHintable(body);
     next();
   } catch (err) {
     fail(res, 'hint', err);
@@ -124,7 +128,7 @@ router.post('/explain', limiter, validate(explainSchema), blocklist, siteCap, mo
   }
 });
 
-router.post('/hint', limiter, validate(hintSchema), questCheck, blocklist, siteCap, moderation, async (req, res) => {
+router.post('/hint', limiter, validate(hintSchema), hintCheck, blocklist, siteCap, moderation, async (req, res) => {
   try {
     const body = req.body as z.infer<typeof hintSchema>;
     const hint = await hintLogo(body);

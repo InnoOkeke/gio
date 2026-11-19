@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyChanges, buildHintPrompt, leaksFix, lineDiff } from '../src/ai/tutor.js';
+import { applyChanges, buildHintPrompt, leaksFix, lineDiff, numberLeak, textProblem } from '../src/ai/tutor.js';
 import { diagnose, diagnosisKey } from '../src/logo/diagnose.js';
 import { QUESTS } from '../src/logo/quests.js';
 import type { Hint } from '../src/ui/api.js';
@@ -61,6 +61,26 @@ describe('leaksFix', () => {
 
   it.each(['What happens at each corner?', 'How far does the turtle turn before it walks again?', 'Look at the turn inside your loop.', 'Think about the number of sides.'])('allows "%s"', (text) => {
     expect(leaksFix(text)).toBe(false);
+  });
+});
+
+describe('numberLeak', () => {
+  it.each(['Turn 72 degrees', 'Try seventy-two', 'Make a quarter turn', 'Go twice as far', 'Use a hundred steps'])('flags "%s"', (text) => {
+    expect(numberLeak(text)).toBe(true);
+  });
+
+  it.each(['What happens at one corner?', 'How many sides?', 'Look at the turn inside your loop.'])('allows "%s"', (text) => {
+    expect(numberLeak(text)).toBe(false);
+  });
+});
+
+describe('textProblem', () => {
+  it('rejects a number at levels 1 and 2 in both styles, but not at level 3', () => {
+    for (const style of ['code', 'blocks'] as const) {
+      expect(textProblem('How far is a quarter turn?', 1, style, false)).toContain('number');
+      expect(textProblem('The turn is about seventy-two.', 2, style, false)).toContain('number');
+      expect(textProblem('Turn 72 degrees.', 3, style, false)).toBeNull();
+    }
   });
 });
 
@@ -143,6 +163,12 @@ describe('buildHintPrompt', () => {
       expect(prompt).toContain('ANSWER KEY');
       expect(prompt).toContain('REPEAT 4 [FD 100 RT 90]');
     }
+  });
+
+  it('tells levels 1 and 2 not to write any number, but not level 3', () => {
+    expect(buildHintPrompt('code', 1, ctx)).toContain('Do not write any digit or number word');
+    expect(buildHintPrompt('blocks', 2, ctx)).toContain('Do not write any digit or number word');
+    expect(buildHintPrompt('code', 3, ctx)).not.toContain('Do not write any digit or number word');
   });
 
   it('always carries the diagnosis and the goal', () => {

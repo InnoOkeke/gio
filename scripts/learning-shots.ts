@@ -8,174 +8,29 @@
  * gio-learning folder inside the system temp folder, and so are the downloaded files.
  * Every assertion is printed; the exit code is 1 if any fails.
  */
-import { spawn } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { gzipSync } from 'zlib';
+import { QUESTS } from '../src/logo/quests.js';
+import { ISLANDS, islandOf, islandQuestIds } from '../src/ui/path/islands.js';
 import { readGif } from '../tests/helpers/gif.js';
+import { addFailure, expect, failureCount, launchBrowser, sleep, type BrowserSession } from './lib/browser.js';
 
 const base = process.env['GIO_URL'] ?? 'http://localhost:3001';
 const outDir = path.join(os.tmpdir(), 'gio-learning');
-fs.mkdirSync(outDir, { recursive: true });
-
-const browsers = [
-  'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-  'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe',
-  'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-  '/usr/bin/google-chrome',
-  '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-];
-const exe = browsers.find((b) => fs.existsSync(b));
-if (!exe) throw new Error('No Edge or Chrome found');
-
-const port = 9300 + Math.floor(Math.random() * 500);
-const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-cdp-'));
-const browser = spawn(exe, ['--headless=new', '--disable-gpu', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 const CODER_PROGRESS = ['c-line', 'c-square', 'c-bug-square', 'c-function', 'c-dashes', 'c-game'];
 const LITTLE_PROGRESS = ['l-walk', 'l-corner', 'l-square'];
 const SQUARE = 'REPEAT 4 [FD 100 RT 90]';
 
-let failures = 0;
-function expect(ok: boolean, what: string): void {
-  console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${what}`);
-  if (!ok) failures += 1;
-}
-
 type Mode = 'little' | 'coder';
 
+let session: BrowserSession | null = null;
+
 async function main() {
-  let wsUrl = '';
-  for (let k = 0; k < 50 && !wsUrl; k++) {
-    await sleep(200);
-    try {
-      const pages = (await (await fetch(`http://127.0.0.1:${port}/json`)).json()) as { type: string; webSocketDebuggerUrl: string }[];
-      wsUrl = pages.find((p) => p.type === 'page')?.webSocketDebuggerUrl ?? '';
-    } catch {
-      /* browser still starting */
-    }
-  }
-  if (!wsUrl) throw new Error('Could not connect to the browser');
-
-  const ws = new WebSocket(wsUrl);
-  await new Promise((r) => ws.addEventListener('open', r, { once: true }));
-  let id = 0;
-  const pending = new Map<number, (v: unknown) => void>();
-  ws.addEventListener('message', (m) => {
-    const msg = JSON.parse(String(m.data)) as { id?: number; result?: unknown };
-    if (msg.id && pending.has(msg.id)) pending.get(msg.id)!(msg.result);
-  });
-  interface CdpResult {
-    result?: { value?: unknown };
-    data?: string;
-  }
-  const send = (method: string, params: object = {}) =>
-    new Promise<CdpResult>((resolve) => {
-      const n = ++id;
-      pending.set(n, resolve as (v: unknown) => void);
-      ws.send(JSON.stringify({ id: n, method, params }));
-    });
-  // While a page is navigating the browser answers with an error and no result; treat that as "not yet".
-  const evaluate = async (expr: string) => (await send('Runtime.evaluate', { expression: expr, returnByValue: true }))?.result?.value;
-  const waitFor = async (expr: string, ms = 8000) => {
-    for (let t = 0; t < ms; t += 150) {
-      if (await evaluate(expr)) return true;
-      await sleep(150);
-    }
-    return false;
-  };
-
-  /** Click the first element matching a selector whose label or text contains the given text. */
-  const click = async (selector: string, text = '') => {
-    const ok = await evaluate(`(() => {
-      const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find((e) => (e.getAttribute('aria-label') ?? '').includes(${JSON.stringify(text)}) || (e.textContent ?? '').includes(${JSON.stringify(text)}));
-      if (!el) return false;
-      el.click();
-      return true;
-    })()`);
-    if (!ok) throw new Error(`Nothing to click: ${selector} ${text}`);
-  };
-
-  const seed = async (entries: Record<string, unknown>, query: string) => {
-    await send('Page.navigate', { url: `${base}/?x=${Date.now()}` });
-    await sleep(1200);
-    await evaluate(`(() => { localStorage.clear(); const e = ${JSON.stringify(entries)}; for (const k of Object.keys(e)) localStorage.setItem(k, typeof e[k] === 'string' ? e[k] : JSON.stringify(e[k])); })()`);
-    await send('Page.navigate', { url: `${base}/${query}` });
-    await waitFor(`!!document.querySelector('#title')`, 15000);
-    await sleep(700);
-  };
-
-  const type = async (code: string, replace = false) => {
-    await evaluate(`document.querySelector('.cm-content')?.focus()`);
-    if (replace) {
-      // CodeMirror owns its selection, so select everything with its own Ctrl+A key binding.
-      await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'a', code: 'KeyA', windowsVirtualKeyCode: 65, modifiers: 2 });
-      await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'a', code: 'KeyA', windowsVirtualKeyCode: 65, modifiers: 2 });
-    }
-    await send('Input.insertText', { text: code });
-    await sleep(250);
-  };
-
-  const shot = async (name: string) => {
-    const r = await send('Page.captureScreenshot', { format: 'png' });
-    const file = path.join(outDir, `${name}.png`);
-    fs.writeFileSync(file, Buffer.from(r.data ?? '', 'base64'));
-    console.log(`  saved ${file}`);
-  };
-
-  const escape = async () => {
-    await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-    await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 });
-    await sleep(300);
-  };
-
-  /** Close friend dialogs so the studio is visible. */
-  const closeDialogs = async () => {
-    for (let k = 0; k < 4 && (await evaluate(`!!document.querySelector('[aria-labelledby="friend-title"]')`)); k++) await escape();
-  };
-
-  /** Nothing may be wider than the screen: the page itself and every visible button inside the given area. */
-  const fits = async (label: string, area = 'body') => {
-    const r = (await evaluate(`(() => {
-      const w = window.innerWidth;
-      const page = document.documentElement.scrollWidth - w;
-      const out = [...document.querySelectorAll(${JSON.stringify(`${area} button`)})].filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && r.height > 0 && (r.right > w + 1 || r.left < -1); }).map((b) => (b.getAttribute('aria-label') || b.textContent || '').trim().slice(0, 30));
-      return { page, out };
-    })()`)) as { page: number; out: string[] };
-    expect(r.page <= 0 && r.out.length === 0, `${label}: nothing is wider than the screen${r.page > 0 ? ` (page overflows by ${r.page}px)` : ''}${r.out.length ? ` (cut off: ${r.out.join(', ')})` : ''}`);
-  };
-
-  const size = async (selector: string, text = '') =>
-    (await evaluate(`(() => { const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find((e) => (e.getAttribute('aria-label') ?? '').includes(${JSON.stringify(text)}) || (e.textContent ?? '').includes(${JSON.stringify(text)})); if (!el) return null; const r = el.getBoundingClientRect(); return { w: r.width, h: r.height }; })()`)) as { w: number; h: number } | null;
-
-  const stored = async (key: string) => (await evaluate(`localStorage.getItem(${JSON.stringify(key)})`)) as string | null;
-
-  /** Where the browser puts downloads for one scenario; returns a function that waits for the new file. */
-  const downloads = async (name: string) => {
-    const dir = path.join(outDir, `downloads-${name}`);
-    fs.rmSync(dir, { recursive: true, force: true });
-    fs.mkdirSync(dir, { recursive: true });
-    await send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: dir, eventsEnabled: true });
-    await send('Page.setDownloadBehavior', { behavior: 'allow', downloadPath: dir });
-    return async (ext: string, ms = 60000): Promise<string | null> => {
-      for (let t = 0; t < ms; t += 250) {
-        const hit = fs.readdirSync(dir).find((f) => f.endsWith(`.${ext}`));
-        if (hit) {
-          await sleep(300);
-          return path.join(dir, hit);
-        }
-        await sleep(250);
-      }
-      return null;
-    };
-  };
-
-  await send('Page.enable');
-  await send('Network.enable');
-
+  session = await launchBrowser(base, outDir);
+  const { send, evaluate, waitFor, click, seed, type, shot, escape, closeDialogs, fits, size, stored, downloads } = session;
   const sizes = [
     { name: 'desktop', width: 1440, height: 1000, mobile: false },
     { name: 'phone', width: 390, height: 844, mobile: true },
@@ -246,12 +101,9 @@ async function main() {
 
       // Skip ends it for good.
       await seed({ 'gio.mode': mode }, `?mode=${mode}`);
-      if (!(await waitFor(`!!document.querySelector('[aria-label="Your first drawing"]')`, 5000))) {
-        await shot(n('skip-offer-missing'));
-        console.log(`  debug: storage ${await evaluate('JSON.stringify(Object.entries(localStorage))')}`);
-      }
+      await waitFor(`!!document.querySelector('[aria-label="Your first drawing"]')`, 5000);
       await click('[aria-label="Your first drawing"] button', 'Skip');
-      await sleep(300);
+      expect(await waitFor(`(localStorage.getItem('gio.firstWin') ?? '').includes(${JSON.stringify(mode)})`, 5000), `Skip writes ${mode} to gio.firstWin`);
       await send('Page.navigate', { url: `${base}/?mode=${mode}` });
       await waitFor(`!!document.querySelector('#title')`, 15000);
       await sleep(600);
@@ -268,10 +120,18 @@ async function main() {
         await click('button', 'Run');
         await sleep(2500);
       } else {
-        await seed({ 'gio.mode': 'coder', 'gio.progress': ['c-line', 'c-square'] }, '?mode=coder');
-        await click('button', 'Quests');
+        const island = islandOf('c-bug-square');
+        const quest = QUESTS.find((q) => q.id === 'c-bug-square');
+        if (!island || !quest) throw new Error('c-bug-square is missing from the quests or the islands');
+        // Islands open one after another, so clear every island before this one, and the quests before this one on its own island.
+        const here = islandQuestIds(island);
+        const before = [...ISLANDS.coder.slice(0, ISLANDS.coder.indexOf(island)).flatMap((i) => islandQuestIds(i)), ...here.slice(0, here.indexOf('c-bug-square'))];
+        await seed({ 'gio.mode': 'coder', 'gio.progress': before }, '?mode=coder');
+        await click('button', 'Adventure map');
+        expect(await waitFor(`!!document.querySelector('#map-title')`, 8000), 'the adventure map opens');
+        await click('button.isle-card', island.name);
         await sleep(500);
-        await click('button', 'wonky square');
+        await click('button', quest.title.replace(/^Bug hunt: /, ''));
         await sleep(500);
         await type('REPEAT 4 [FD 100 RT 60]', true);
         await click('button', 'Run');
@@ -384,8 +244,6 @@ async function main() {
       await shot(n('garden-learning-days'));
     }
   }
-  ws.close();
-
   /* (5) Chunk sizes: the replay code must stay out of the main bundle. */
   console.log('\n=== chunks ===');
   const assets = path.join(process.cwd(), 'dist', 'ui', 'assets');
@@ -395,27 +253,24 @@ async function main() {
     return { name: f, size: bytes.length, gzip: gzipSync(bytes).length };
   });
   for (const c of info) console.log(`  ${c.name}: ${(c.size / 1000).toFixed(1)} kB (${(c.gzip / 1000).toFixed(1)} kB gzip)`);
-  const main = info.find((c) => c.name.startsWith('index-'));
-  expect(chunks.length >= 3, `three script chunks: main, replay dialog and gif encoder (${chunks.length})`);
-  expect(!!main && main.size < 720_000, `the main chunk stays under 720 kB (${((main?.size ?? 0) / 1000).toFixed(1)} kB)`);
   const html = fs.readFileSync(path.join(process.cwd(), 'dist', 'ui', 'index.html'), 'utf8');
+  // The entry chunk is the one index.html loads (Vite names it after the input, which changed when the Python runner page was added).
+  const entry = /<script[^>]+src="\/assets\/([^"]+\.js)"/.exec(html)?.[1];
+  const main = info.find((c) => c.name === entry);
+  expect(chunks.length >= 3, `three script chunks: main, replay dialog and gif encoder (${chunks.length})`);
+  // 720 kB before Phase 4; music, blocks and the Python host code (not Pyodide, which is fetched only on request) brought it to about 790 kB.
+  expect(!!main && main.size < 800_000, `the main chunk ${entry} stays under 800 kB (${((main?.size ?? 0) / 1000).toFixed(1)} kB)`);
   expect(!/gifenc|ReplayDialog/.test(html), 'the gif encoder and replay dialog are not loaded up front');
 }
 
 main()
   .catch((err) => {
     console.error(err);
-    failures += 1;
+    addFailure();
   })
   .finally(() => {
+    const failures = failureCount();
     console.log(failures === 0 ? '\nAll checks passed.' : `\n${failures} check(s) failed.`);
     process.exitCode = failures === 0 ? 0 : 1;
-    browser.kill();
-    setTimeout(() => {
-      try {
-        fs.rmSync(profile, { recursive: true, force: true });
-      } catch {
-        /* the browser may still hold its profile for a moment; the OS cleans temp files */
-      }
-    }, 1500);
+    session?.cleanup();
   });

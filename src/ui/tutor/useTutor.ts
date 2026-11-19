@@ -16,6 +16,7 @@ export interface TutorError {
   redirect: boolean;
 }
 
+export const EMPTY_FREE = 'Add something first, then tap "I\'m stuck" and I can help.';
 export const ALREADY_DONE = 'You already did it! Press Run to see it again.';
 
 /** State of the "I'm stuck" card. Hints never touch quest progress, badges, stickers or friends. */
@@ -48,6 +49,10 @@ export function useTutor() {
       return null;
     }
 
+    if (!ctx.quest && diagnosis.kind === 'empty') {
+      setNotice(EMPTY_FREE);
+      return null;
+    }
     const key = diagnosisKey(ctx.quest?.id ?? null, diagnosis);
     const level = nextLevel(ladderRef.current, key);
     if (level === null) {

@@ -13,7 +13,7 @@ Built: a real Logo interpreter, two age modes (Little Turtles under 8, Turtle Co
 | 1. Safety and trust | Kid-safe AI filter, privacy page for parents, durable AI limits, daily backups |
 | 2. Learning (built) | Tutor mode ("I'm stuck" hint ladder), 60-second first win, shareable animated replays, SVG export |
 | 3. Reach | Logo in English, Nigerian Pidgin, French and Spanish; installable offline app (PWA) for low-cost phones |
-| 4. Creativity | Music (`PLAY`) and animation commands; real Python running in the browser |
+| 4. Creativity (built) | Music (`PLAY`, `SETTEMPO`, `WAIT`) and flipbook animation (`FRAME`); real Python running in the browser. Deferred: instruments, chords and music stickers |
 | 5. Classrooms | Class codes without accounts, private class gallery, teacher dashboard |
 
 Not planned for now: robots over Bluetooth, uptime alarm, GitHub Actions deploys.

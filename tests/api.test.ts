@@ -128,6 +128,19 @@ describe('AI endpoint input checks (no model call)', () => {
     expect((await call('POST', '/api/ai/hint', { level: 1, code: 'FD 10', style: 'blocks', questId: 'c-square' })).status).toBe(400);
   });
 
+  it('answers an empty free-mode hint or a solved quest with a 400 and leaves the daily count unchanged', async () => {
+    const { db } = await import('../src/db/client.js');
+    const used = () => (db.prepare('SELECT COALESCE(SUM(count), 0) AS n FROM ai_daily_usage').get() as { n: number }).n;
+    const before = used();
+    const empty = await call('POST', '/api/ai/hint', { level: 1, code: '', style: 'code' });
+    expect(empty.status).toBe(400);
+    expect(empty.json.error).toContain('Add something first');
+    const solved = await call('POST', '/api/ai/hint', { level: 1, code: 'REPEAT 4 [FD 100 RT 90]', style: 'code', questId: 'c-square' });
+    expect(solved.status).toBe(400);
+    expect(solved.json.error).toContain('You already did it');
+    expect(used()).toBe(before);
+  });
+
   it('turns away a blocklisted word inside hint code, without using the daily cap', async () => {
     const hint = await call('POST', '/api/ai/hint', { level: 1, code: 'FD 10 ; shit', style: 'code' });
     expect(hint.status).toBe(422);

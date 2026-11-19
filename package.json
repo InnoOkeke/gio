@@ -21,7 +21,8 @@
     "check:shots": "tsx scripts/gio-shots.ts",
     "check:map-shots": "tsx scripts/map-shots.ts",
     "check:learning": "tsx scripts/learning-shots.ts",
-    "report:stages": "tsx scripts/stages-report.ts"
+    "report:stages": "tsx scripts/stages-report.ts",
+    "check:creativity": "tsx scripts/creativity-shots.ts"
   },
   "engines": {
     "node": ">=20.0.0"

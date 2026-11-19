@@ -123,6 +123,13 @@ Open [http://localhost:3001](http://localhost:3001). The API and the built UI ar
 npm run typecheck && npm run lint && npm test
 ```
 
+With the production server running (`npm run build`, then `node dist/api/server.js`), two browser checks drive headless Edge or Chrome:
+
+```bash
+GIO_URL=http://localhost:3001 npm run check:learning     # first win, hint ladder, Save menu, garden
+GIO_URL=http://localhost:3001 npm run check:creativity   # music, flipbook GIF, blocks, Python in the browser, privacy
+```
+
 ---
 
 ## How it is built
