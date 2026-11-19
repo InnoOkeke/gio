@@ -127,7 +127,7 @@ describe('coder content A: stages and order', () => {
       'coder:recursion',
       'coder:fractals',
     ]);
-    expect(ALL_ISLANDS.filter((i) => i.audience === 'little')).toHaveLength(3);
+    expect(ALL_ISLANDS.filter((i) => i.audience === 'little')).toHaveLength(10);
   });
 
   it('a child who sailed the eight old islands is sent back to stage 3 first, and stages 3, 6, 8, 10, 12 and 14 are open', () => {

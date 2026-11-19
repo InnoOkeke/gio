@@ -2,6 +2,7 @@ import { drawnDots, drawnSegments, sameDrawing } from './compare.js';
 import { NEW_QUESTS } from './quest-bank.js';
 import { CODER_A } from './stages/coder-a.js';
 import { CODER_B } from './stages/coder-b.js';
+import { LITTLE_NEW } from './stages/little.js';
 import { check, DEFAULT_BACKGROUND, press, start, type RunResult, type TurtleState } from './index.js';
 import { lookupPrimitive, type GameKey } from './primitives.js';
 import type { Expr, Program, Stmt } from './parser.js';
@@ -111,7 +112,7 @@ const BASE_QUESTS: Quest[] = [
 ];
 
 /** Every quest: the 20 original ones first, then the adventure map's 46 new ones, then the stages' quests in stage order. */
-export const QUESTS: Quest[] = [...BASE_QUESTS, ...NEW_QUESTS, ...CODER_A, ...CODER_B];
+export const QUESTS: Quest[] = [...BASE_QUESTS, ...NEW_QUESTS, ...LITTLE_NEW, ...CODER_A, ...CODER_B];
 /* ------------------------------------------------------------------ program features */
 
 function walk(stmts: Stmt[], visit: (s: Stmt) => void): void {

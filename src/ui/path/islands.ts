@@ -76,6 +76,90 @@ const LITTLE: readonly Island[] = [
     ['l-colours', 'l-rainbow-triangle', 'l-rainbow-box'],
     ['l-colour-rings', 'l-sunshine', 'l-snowman'],
   ]),
+  island(
+    'little',
+    'moves',
+    'Pen Playground',
+    'Lift the pen, hop, and draw in pieces.',
+    'dot',
+    [
+      ['l-pen-gap', 'l-pen-dashes', 'l-pen-jump'],
+      ['l-pen-dotted-ring', 'l-pen-train', 'l-pen-ladder'],
+    ],
+    { key: 'little:pen', badge: null, stamp: '#0f8fa6' },
+  ),
+  island(
+    'little',
+    'loops',
+    'Flower Fields',
+    'Grow flowers from circles, one petal at a time.',
+    'puff',
+    [
+      ['l-flower-three', 'l-flower-eight', 'l-daisy'],
+      ['l-bubbles', 'l-sunflower', 'l-garden'],
+    ],
+    { key: 'little:flowers', badge: null, stamp: '#ec3f86' },
+  ),
+  island(
+    'little',
+    'loops',
+    'Pattern Park',
+    'Spin shapes round and round to make patterns.',
+    'olly',
+    [
+      ['l-spin-triangles', 'l-spin-boxes', 'l-petal-square'],
+      ['l-fan', 'l-weave', 'l-wheel'],
+    ],
+    { key: 'little:patterns', badge: null, stamp: '#7a4cf0' },
+  ),
+  island(
+    'little',
+    'colours',
+    'Picture Town',
+    'Paint a whole picture from shapes.',
+    'chip',
+    [
+      ['l-house-pic', 'l-tree-pic', 'l-boat-pic'],
+      ['l-rocket-pic', 'l-snow-pic', 'l-town-pic'],
+    ],
+    { key: 'little:pictures', badge: null, stamp: '#f97316' },
+  ),
+  island(
+    'little',
+    'loops',
+    'Star Sky',
+    'Turn a lot to draw stars with many points.',
+    'olly',
+    [
+      ['l-star-eight', 'l-star-twelve', 'l-hexagram'],
+      ['l-star-burst', 'l-star-nest', 'l-star-night'],
+    ],
+    { key: 'little:stars', badge: null, stamp: '#2b9bf4' },
+  ),
+  island(
+    'little',
+    'loops',
+    'Block Saver',
+    'Draw the same picture with fewer blocks.',
+    'dot',
+    [
+      ['l-save-square', 'l-save-star', 'l-save-flower'],
+      ['l-save-ring', 'l-save-fan', 'l-save-spin'],
+    ],
+    { key: 'little:fewest', badge: null, stamp: '#12a36b' },
+  ),
+  island(
+    'little',
+    'colours',
+    'Logo Master Lighthouse',
+    'The big finale: castles, fish, rainbows and a lighthouse.',
+    'puff',
+    [
+      ['l-lh-castle', 'l-lh-lighthouse', 'l-lh-fish'],
+      ['l-lh-rainbow', 'l-lh-windmill', 'l-lh-mosaic'],
+    ],
+    { key: 'little:lighthouse', art: 'master', badge: null, stamp: '#d4a017' },
+  ),
 ];
 
 const CODER: readonly Island[] = [
