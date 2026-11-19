@@ -1,5 +1,6 @@
 import { CONCEPTS, type Quest } from '../../logo/quests.js';
-import { placeOf } from '../path/islands';
+import { hiddenTestLine } from '../path/hidden';
+import { placeOf, stageCount, stageNumber } from '../path/islands';
 import { MAP_LINES, say } from '../path/lines';
 import type { Star } from '../path/state';
 import { useVoice } from '../voice';
@@ -29,6 +30,7 @@ export function QuestCard({ quest, done, feedback, star, hinted, review, nextLab
   const voice = useVoice(onVoice);
   const place = placeOf(quest.id);
   const lines = MAP_LINES[quest.audience];
+  const hidden = hiddenTestLine(quest);
   return (
     <section className="panel px-5 py-5 sm:px-7 flex flex-col sm:flex-row sm:items-center gap-4" aria-labelledby="quest-title" style={{ borderColor: c.color, borderWidth: 2 }}>
       <span className="w-14 h-14 shrink-0 rounded-[18px] flex items-center justify-center text-white" style={{ background: c.color }} aria-hidden="true">
@@ -41,12 +43,13 @@ export function QuestCard({ quest, done, feedback, star, hinted, review, nextLab
           </p>
         )}
         <p className="m-0 eyebrow" style={{ color: '#44554c' }}>
-          {place ? `${place.island.name} · Unit ${place.unitIndex + 1} · Quest ${place.index + 1} of 3` : `${c.name} quest`}
+          {place ? `Stage ${stageNumber(place.island)} of ${stageCount(place.island.audience)} · ${place.island.name} · Unit ${place.unitIndex + 1} · Quest ${place.index + 1} of 3` : `${c.name} quest`}
         </p>
         <h2 id="quest-title" className="m-0 text-[22px] font-black leading-tight">
           {quest.title}
         </h2>
         <p className="m-0 mt-0.5 text-[16px] font-semibold text-ink-2">{quest.goal}</p>
+        {hidden && !done && <p className="m-0 mt-1 text-[14px] font-bold text-[#5a3b00]">{hidden}</p>}
         {quest.target && !done && <p className="m-0 mt-1 text-[14px] font-bold text-[#0b6fc2]">Copy the faint blue drawing on the stage.</p>}
         {!done && hinted && <p className="m-0 mt-2 text-[15px] font-extrabold text-[#5a3b00]">{say(lines.hintUsed, 0)}</p>}
         {feedback && <p className={`m-0 mt-2 text-[15px] font-extrabold ${done ? 'text-[#08603e]' : 'text-[#9b2419]'}`}>{feedback}</p>}

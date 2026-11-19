@@ -1,9 +1,10 @@
 import { useId, type ReactElement } from 'react';
-import { CONCEPTS, type Concept } from '../../logo/quests.js';
-import type { Island } from '../path/islands';
+import type { Concept } from '../../logo/quests.js';
+import { stageNumber, type ArtId, type Island } from '../path/islands';
 import { FRIEND_ART } from './gio/FriendArt';
 import { Tree } from './gio/GardenArt';
 import { STICKER_ART } from './gio/StickerArt';
+import { STAGE_PROPS } from './StageArt';
 
 /* One small scene for each island, drawn in a 240 by 170 box in the garden's sky and hills palette.
  * The scene is the island's own picture; the card around it says the name and the state in words. */
@@ -12,7 +13,7 @@ const INK = '#17261f';
 const LINE = { stroke: INK, strokeOpacity: 0.35, strokeWidth: 1.2, strokeLinejoin: 'round' as const };
 
 /** The props on the island, drawn on the left and middle of the hill so the resident has room on the right. */
-const PROPS: Record<Concept, (color: string) => ReactElement> = {
+const CONCEPT_PROPS: Record<Concept, (color: string) => ReactElement> = {
   moves: (c) => (
     <g>
       <rect x="66" y="100" width="22" height="20" rx="3" fill={c} fillOpacity="0.28" stroke={c} strokeWidth="3" />
@@ -93,6 +94,13 @@ const PROPS: Record<Concept, (color: string) => ReactElement> = {
   ),
 };
 
+const PROPS: Record<ArtId, (color: string) => ReactElement> = { ...CONCEPT_PROPS, ...STAGE_PROPS };
+
+/** The last stage of each mode gets a gold sky and frame. */
+export function isGoldArt(art: ArtId): boolean {
+  return art === 'master' || art === 'lighthouse';
+}
+
 interface IslandArtProps {
   island: Island;
   /** Locked islands sit in the mist. */
@@ -106,16 +114,17 @@ interface IslandArtProps {
 
 export function IslandArt({ island, locked, sailed, met, className }: IslandArtProps) {
   const uid = useId().replace(/:/g, '');
-  const color = CONCEPTS[island.concept].color;
+  const color = island.stamp;
+  const gold = isGoldArt(island.art);
   const Resident = FRIEND_ART[island.resident];
-  const Sticker = STICKER_ART[island.concept];
+  const Sticker = island.badge ? STICKER_ART[island.badge] : null;
 
   return (
     <svg viewBox="0 0 240 170" className={className} aria-hidden="true" focusable="false">
       <defs>
         <linearGradient id={`${uid}-sky`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#9fdcf7" />
-          <stop offset="1" stopColor="#e6f7fd" />
+          <stop offset="0" stopColor={gold ? '#ffe9a3' : '#9fdcf7'} />
+          <stop offset="1" stopColor={gold ? '#fff8de' : '#e6f7fd'} />
         </linearGradient>
         <clipPath id={`${uid}-clip`}>
           <rect width="240" height="170" rx="26" />
@@ -143,7 +152,7 @@ export function IslandArt({ island, locked, sailed, met, className }: IslandArtP
           <path d="M 56 130 Q 76 94 120 94 T 184 130 Z" fill="#62c47f" fillOpacity="0.55" />
 
           {sailed && <Tree x={156} color={color} />}
-          {PROPS[island.concept](color)}
+          {PROPS[island.art](color)}
 
           {/* The resident friend: full colour once met, otherwise a soft sleeping shape */}
           <svg x="150" y="68" width="58" height="58" viewBox="0 0 100 100" overflow="visible" className="friend-art">
@@ -177,12 +186,22 @@ export function IslandArt({ island, locked, sailed, met, className }: IslandArtP
         {sailed && (
           <g transform="translate(34 138)">
             <circle r="21" fill="#ffffff" stroke={INK} strokeOpacity="0.25" strokeWidth="1.5" />
-            <g transform="scale(1)">
-              <Sticker />
-            </g>
+            {Sticker ? (
+              <g transform="scale(1)">
+                <Sticker />
+              </g>
+            ) : (
+              <g>
+                <circle r="16" fill="none" stroke={color} strokeWidth="4" />
+                <text y="7" textAnchor="middle" fontSize="20" fontWeight="900" fill={INK} fontFamily="ui-rounded, system-ui, sans-serif">
+                  {stageNumber(island)}
+                </text>
+              </g>
+            )}
           </g>
         )}
 
+        {gold && !locked && <rect x="2" y="2" width="236" height="166" rx="24" fill="none" stroke="#d4a017" strokeWidth="4" />}
         {locked && (
           <g>
             <ellipse cx="60" cy="96" rx="64" ry="20" fill="#ffffff" fillOpacity="0.82" />

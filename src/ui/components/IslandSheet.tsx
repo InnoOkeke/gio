@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { CONCEPTS } from '../../logo/quests.js';
 import { friendById } from '../gio/catalog';
-import { questById } from '../path/islands';
+import { questById, stageCount, stageNumber } from '../path/islands';
 import { MASTER_RULE, UNIT_TIME, reviewInvite, say, MAP_LINES } from '../path/lines';
 import { GOLD_TO_MASTER, type IslandView, type QuestView, type UnitView } from '../path/state';
 import { FriendPicture } from './gio/FriendArt';
@@ -100,8 +100,10 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, o
         <IslandArt island={island} locked={locked} sailed={view.sailed} met={met} className="block h-auto w-full" />
         <div className="flex flex-col gap-2 px-5 pb-5 pt-3">
           <p className="eyebrow m-0 flex items-center gap-2">
-            <span aria-hidden="true" className="inline-block h-2.5 w-2.5 rounded-full" style={{ background: color }} />
-            {CONCEPTS[island.concept].name}
+            <span aria-hidden="true" className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-[12px] font-black normal-case tracking-normal text-ink" style={{ boxShadow: `inset 0 0 0 3px ${island.stamp}` }}>
+              {stageNumber(island)}
+            </span>
+            Stage {stageNumber(island)} of {stageCount(island.audience)} · {CONCEPTS[island.concept].name}
           </p>
           <p className="m-0 text-[17px] font-bold leading-snug text-ink-2">{island.tagline}</p>
           <div className="mt-1 flex items-center gap-3 rounded-[20px] bg-paper-3 p-3">
@@ -137,6 +139,11 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, o
         </div>
       ) : (
         <>
+          {view.tested && !view.sailed && (
+            <p className="m-0 rounded-[20px] bg-[#e1f7ec] px-4 py-3 text-[15px] font-extrabold text-[#08603e]">
+              You tested out of {island.name}. You can still play any quest here and sail it.
+            </p>
+          )}
           {view.sailed && (
             <p className="m-0 rounded-[20px] bg-[#e1f7ec] px-4 py-3 text-[15px] font-extrabold text-[#08603e]">
               You sailed {island.name}. Replay any quest to win a gold star.

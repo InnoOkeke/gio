@@ -149,7 +149,7 @@ describe('little content: stages', () => {
   it('Logo Master Lighthouse comes last with the gold art and stamp', () => {
     const last = LITTLE[LITTLE.length - 1]!;
     expect(last.key).toBe('little:lighthouse');
-    expect(last.art).toBe('master');
+    expect(last.art).toBe('lighthouse');
     expect(last.stamp).toBe('#d4a017');
   });
   it('every stage has its own stamp colour and a resident who lives in Little Turtles', () => {

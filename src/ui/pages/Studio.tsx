@@ -48,6 +48,7 @@ import { daysAway, localDateKey } from '../gio/rewards';
 import { BlocksEditor } from '../editor/BlocksEditor';
 import { LogoEditor, type LogoEditorHandle } from '../editor/LogoEditor';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
+import { createDelayed } from '../path/delayed';
 import { useQuestHelp } from '../path/help';
 import { islandOf, placeOf } from '../path/islands';
 import type { NextStop, Star } from '../path/state';
@@ -212,8 +213,8 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [review, setReview] = useState<ReviewRun | null>(null);
   const reviewRef = useRef(review);
   const [masteryMoment, setMasteryMoment] = useState<Moment | null>(null);
-  const momentTimer = useRef<number | null>(null);
-  useEffect(() => () => window.clearTimeout(momentTimer.current ?? undefined), []);
+  const momentTimer = useRef(createDelayed());
+  useEffect(() => () => momentTimer.current.cancel(), []);
   const codeRef = useRef(code);
   codeRef.current = code;
   const questRef = useRef(quest);
@@ -420,7 +421,11 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const startQuest = (q: Quest, inReview = false) => {
+<<<<<<< HEAD
     finishFirstWin();
+=======
+    momentTimer.current.cancel();
+>>>>>>> 3ccf801 (feat: stage map, 19 island scenes and review fixes)
     setQuestsOpen(false);
     setMasteryMoment(null);
     if (!inReview) setReviewRun(null);
@@ -441,6 +446,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const leaveQuest = () => {
+    momentTimer.current.cancel();
     setReviewRun(null);
     tutor.reset();
     setQuest(null);
@@ -519,8 +525,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       else if (island && (islandSailed || unitMastered)) {
         // Let the child see the finished drawing before the celebration arrives.
         const moment: Moment = islandSailed ? { kind: 'island', islandKey: island.key, opened, badge: newBadge } : { kind: 'unit', islandKey: island.key, unitIndex: placeOf(q.id)?.unitIndex ?? 0 };
-        window.clearTimeout(momentTimer.current ?? undefined);
-        momentTimer.current = window.setTimeout(() => setMasteryMoment(moment), 800);
+        momentTimer.current.schedule(() => setMasteryMoment(moment), 800);
       }
       const credited = run?.credited === true;
       const all = mergeEarned(

@@ -1,8 +1,30 @@
 import { CONCEPTS, QUESTS, type Concept, type Quest, type QuestAudience } from '../../logo/quests.js';
 import type { FriendId } from '../gio/catalog';
 
-/** Which scene the island card draws. For now each scene is named after a concept; new stages add their own ids. */
-export type ArtId = Concept | 'master';
+/** The scenes of the stages added after the first eleven. The first eleven keep one scene for each concept. */
+export type StageArt =
+  | 'pen'
+  | 'flowers'
+  | 'patterns'
+  | 'pictures'
+  | 'stars'
+  | 'fewest'
+  | 'lighthouse'
+  | 'colour-cove'
+  | 'ingredients'
+  | 'grid'
+  | 'surprise'
+  | 'clockwork'
+  | 'fractals'
+  | 'bug-bay'
+  | 'tiny'
+  | 'mirror'
+  | 'physics'
+  | 'game-studio'
+  | 'master';
+
+/** Which scene the island card draws: a concept scene for the first stages, or the stage's own scene. */
+export type ArtId = Concept | StageArt;
 
 /**
  * One island is one stage of one mode (children see "Stage 7"). The key of the first stages is
@@ -86,7 +108,7 @@ const LITTLE: readonly Island[] = [
       ['l-pen-gap', 'l-pen-dashes', 'l-pen-jump'],
       ['l-pen-dotted-ring', 'l-pen-train', 'l-pen-ladder'],
     ],
-    { key: 'little:pen', badge: null, stamp: '#0f8fa6' },
+    { key: 'little:pen', art: 'pen', badge: null, stamp: '#0f8fa6' },
   ),
   island(
     'little',
@@ -98,7 +120,7 @@ const LITTLE: readonly Island[] = [
       ['l-flower-three', 'l-flower-eight', 'l-daisy'],
       ['l-bubbles', 'l-sunflower', 'l-garden'],
     ],
-    { key: 'little:flowers', badge: null, stamp: '#ec3f86' },
+    { key: 'little:flowers', art: 'flowers', badge: null, stamp: '#ec3f86' },
   ),
   island(
     'little',
@@ -110,7 +132,7 @@ const LITTLE: readonly Island[] = [
       ['l-spin-triangles', 'l-spin-boxes', 'l-petal-square'],
       ['l-fan', 'l-weave', 'l-wheel'],
     ],
-    { key: 'little:patterns', badge: null, stamp: '#7a4cf0' },
+    { key: 'little:patterns', art: 'patterns', badge: null, stamp: '#7a4cf0' },
   ),
   island(
     'little',
@@ -122,7 +144,7 @@ const LITTLE: readonly Island[] = [
       ['l-house-pic', 'l-tree-pic', 'l-boat-pic'],
       ['l-rocket-pic', 'l-snow-pic', 'l-town-pic'],
     ],
-    { key: 'little:pictures', badge: null, stamp: '#f97316' },
+    { key: 'little:pictures', art: 'pictures', badge: null, stamp: '#f97316' },
   ),
   island(
     'little',
@@ -134,7 +156,7 @@ const LITTLE: readonly Island[] = [
       ['l-star-eight', 'l-star-twelve', 'l-hexagram'],
       ['l-star-burst', 'l-star-nest', 'l-star-night'],
     ],
-    { key: 'little:stars', badge: null, stamp: '#2b9bf4' },
+    { key: 'little:stars', art: 'stars', badge: null, stamp: '#2b9bf4' },
   ),
   island(
     'little',
@@ -146,7 +168,7 @@ const LITTLE: readonly Island[] = [
       ['l-save-square', 'l-save-star', 'l-save-flower'],
       ['l-save-ring', 'l-save-fan', 'l-save-spin'],
     ],
-    { key: 'little:fewest', badge: null, stamp: '#12a36b' },
+    { key: 'little:fewest', art: 'fewest', badge: null, stamp: '#12a36b' },
   ),
   island(
     'little',
@@ -158,7 +180,7 @@ const LITTLE: readonly Island[] = [
       ['l-lh-castle', 'l-lh-lighthouse', 'l-lh-fish'],
       ['l-lh-rainbow', 'l-lh-windmill', 'l-lh-mosaic'],
     ],
-    { key: 'little:lighthouse', art: 'master', badge: null, stamp: '#d4a017' },
+    { key: 'little:lighthouse', art: 'lighthouse', badge: null, stamp: '#d4a017' },
   ),
 ];
 
@@ -181,7 +203,7 @@ const CODER: readonly Island[] = [
       ['c-red-blue', 'c-four-colours', 'c-fat-lines'],
       ['c-night-sky', 'c-rainbow-fan', 'c-colour-wheel'],
     ],
-    { key: 'coder:colour-cove', badge: null, stamp: '#ec3f86' },
+    { key: 'coder:colour-cove', art: 'colour-cove', badge: null, stamp: '#ec3f86' },
   ),
   island('coder', 'debugging', 'Bug Burrow', 'Something is broken. Find the bug and fix it.', 'dot', [
     ['c-bug-square', 'c-bug-triangle', 'c-bug-star'],
@@ -201,7 +223,7 @@ const CODER: readonly Island[] = [
       ['c-ing-square', 'c-ing-poly', 'c-ing-petals'],
       ['c-ing-house', 'c-ing-grid', 'c-ing-stars'],
     ],
-    { key: 'coder:ingredients', badge: null, stamp: '#2b9bf4' },
+    { key: 'coder:ingredients', art: 'ingredients', badge: null, stamp: '#2b9bf4' },
   ),
   island('coder', 'variables', 'Variable Valley', 'Store numbers and change them as you go.', 'nutmeg', [
     ['c-make-size', 'c-make-double', 'c-shape'],
@@ -217,7 +239,7 @@ const CODER: readonly Island[] = [
       ['c-grid-corners', 'c-grid-ruler', 'c-grid-diagonal'],
       ['c-grid-lattice', 'c-grid-axes', 'c-grid-parabola'],
     ],
-    { key: 'coder:grid', badge: null, stamp: '#12a36b' },
+    { key: 'coder:grid', art: 'grid', badge: null, stamp: '#12a36b' },
   ),
   island('coder', 'decisions', 'Decision Dunes', 'Let your code choose what to do.', 'hoot', [
     ['c-half-and-half', 'c-gap-square', 'c-bend'],
@@ -233,7 +255,7 @@ const CODER: readonly Island[] = [
       ['c-rand-step', 'c-rand-wobble', 'c-rand-coin'],
       ['c-rand-dice', 'c-rand-confetti', 'c-rand-maze'],
     ],
-    { key: 'coder:surprise', badge: null, stamp: '#0f8fa6' },
+    { key: 'coder:surprise', art: 'surprise', badge: null, stamp: '#0f8fa6' },
   ),
   island('coder', 'events', 'Event Forest', 'Make things happen when a key is pressed.', 'hop', [
     ['c-one-key', 'c-game', 'c-space-square'],
@@ -249,7 +271,7 @@ const CODER: readonly Island[] = [
       ['c-clock-walk', 'c-clock-spiral', 'c-clock-count'],
       ['c-clock-timer', 'c-clock-score', 'c-clock-race'],
     ],
-    { key: 'coder:clockwork', badge: null, stamp: '#14b8a6' },
+    { key: 'coder:clockwork', art: 'clockwork', badge: null, stamp: '#14b8a6' },
   ),
   island('coder', 'recursion', 'Recursion Ridge', 'Commands that call themselves, again and again.', 'spindle', [
     ['c-rec-stairs', 'c-rec-rays', 'c-spiral'],
@@ -265,7 +287,7 @@ const CODER: readonly Island[] = [
       ['c-frac-tree', 'c-frac-koch', 'c-frac-sierpinski'],
       ['c-frac-snowflake', 'c-frac-general', 'c-frac-fern'],
     ],
-    { key: 'coder:fractals', badge: null, stamp: '#b4236b' },
+    { key: 'coder:fractals', art: 'fractals', badge: null, stamp: '#b4236b' },
   ),
   island(
     'coder',
@@ -277,7 +299,7 @@ const CODER: readonly Island[] = [
       ['c-bb-two-bugs', 'c-bb-name', 'c-bb-runaway'],
       ['c-bb-off-by-one', 'c-bb-inputs', 'c-bb-game'],
     ],
-    { key: 'coder:bug-bay', badge: null, stamp: '#ef5a4c' },
+    { key: 'coder:bug-bay', art: 'bug-bay', badge: null, stamp: '#ef5a4c' },
   ),
   island(
     'coder',
@@ -289,7 +311,7 @@ const CODER: readonly Island[] = [
       ['c-tiny-square', 'c-tiny-ring', 'c-tiny-burst'],
       ['c-tiny-spiral', 'c-tiny-flower', 'c-tiny-snowflake'],
     ],
-    { key: 'coder:tiny', badge: null, stamp: '#7a4cf0' },
+    { key: 'coder:tiny', art: 'tiny', badge: null, stamp: '#7a4cf0' },
   ),
   island(
     'coder',
@@ -301,7 +323,7 @@ const CODER: readonly Island[] = [
       ['c-mir-butterfly', 'c-mir-snowflake6', 'c-mir-row'],
       ['c-mir-crosshatch', 'c-mir-honeycomb', 'c-mir-mandala'],
     ],
-    { key: 'coder:mirror', badge: null, stamp: '#2b9bf4' },
+    { key: 'coder:mirror', art: 'mirror', badge: null, stamp: '#2b9bf4' },
   ),
   island(
     'coder',
@@ -313,7 +335,7 @@ const CODER: readonly Island[] = [
       ['c-phys-fall', 'c-phys-floor', 'c-phys-bounce'],
       ['c-phys-damped', 'c-phys-throw', 'c-phys-box'],
     ],
-    { key: 'coder:physics', badge: null, stamp: '#f97316' },
+    { key: 'coder:physics', art: 'physics', badge: null, stamp: '#f97316' },
   ),
   island(
     'coder',
@@ -325,7 +347,7 @@ const CODER: readonly Island[] = [
       ['c-gs-gem', 'c-gs-walls', 'c-gs-lives'],
       ['c-gs-levels', 'c-gs-chase', 'c-gs-three'],
     ],
-    { key: 'coder:game-studio', badge: null, stamp: '#14b8a6' },
+    { key: 'coder:game-studio', art: 'game-studio', badge: null, stamp: '#14b8a6' },
   ),
   island(
     'coder',

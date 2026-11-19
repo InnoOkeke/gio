@@ -598,6 +598,20 @@
   to { transform: translate(-50%, 0); opacity: 1; }
 }
 
+/* On a phone the bottom edge holds the Run bar and the game pad, so the toast sits under the sticky header. */
+@media (max-width: 640px) {
+  .toast {
+    top: calc(env(safe-area-inset-top) + 84px);
+    bottom: auto;
+    max-width: 92vw;
+  }
+
+  @keyframes toast-in {
+    from { transform: translate(-50%, -12px) scale(0.96); opacity: 0; }
+    to { transform: translate(-50%, 0); opacity: 1; }
+  }
+}
+
 /* --------------------------------------------------------------------------
  * Segmented control (speed)
  * -------------------------------------------------------------------------- */
@@ -885,6 +899,11 @@
 .isle-card.is-here {
   border-color: var(--green);
   box-shadow: 0 0 0 6px rgba(18, 163, 107, 0.16), var(--shadow-3);
+}
+
+.isle-card[data-gold='true'] {
+  border-color: #d4a017;
+  box-shadow: 0 0 0 5px rgba(212, 160, 23, 0.2), var(--shadow-2);
 }
 
 .isle-card[data-locked='true'] {

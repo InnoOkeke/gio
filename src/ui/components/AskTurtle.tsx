@@ -88,11 +88,16 @@ export function AskTurtle({ mode, hasCode, busy, onAsk }: AskTurtleProps) {
           />
           <button type="submit" className="btn btn-lg bg-white text-[#0b7a4f] shadow-[0_4px_0_rgba(8,60,40,0.35)]" disabled={busy || !prompt.trim() || voice.listening}>
             {busy ? (
-              <span className="thinking-dots" aria-label="Thinking">
-                <span />
-                <span />
-                <span />
-              </span>
+              <>
+                <span className="thinking-dots" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+                <span className="sr-only" role="status">
+                  Thinking
+                </span>
+              </>
             ) : (
               <>
                 <SparkleIcon size={22} />

@@ -15,6 +15,8 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
+import { ISLANDS } from '../src/ui/path/islands';
+import { CODER_WORLDS } from '../src/ui/path/worlds';
 
 const base = process.env['GIO_URL'] ?? 'http://localhost:3001';
 const outDir = process.env['GIO_SHOTS_DIR'] ?? path.join(os.tmpdir(), 'map-shots');
@@ -48,7 +50,16 @@ function day(n: number): string {
 type Star = 'clean' | 'helped';
 interface Seed {
   progress: string[];
-  path: { v: 1; quests: Record<string, { s: Star; d: string }>; sailed: Record<string, string>; kept: string[]; reviews: Record<string, { box: number; due: string; last: string[] }>; reviewedOn: string | null };
+  path: {
+    v: 1;
+    quests: Record<string, { s: Star; d: string }>;
+    sailed: Record<string, string>;
+    kept: string[];
+    reviews: Record<string, { box: number; due: string; last: string[] }>;
+    reviewedOn: string | null;
+    /** Stages skipped by passing a skill check. */
+    tested?: Record<string, string>;
+  };
 }
 
 /** Quests with a star and the day they were done, in the order given. */
@@ -93,6 +104,23 @@ function midJourney(mode: 'little' | 'coder'): Seed {
     ['c-star', 'helped', 1],
   ]);
   return withSailed(s, 'coder:moves', 8);
+}
+
+/** Shape Shore sailed and the next stage tested out, so the map shows sailed, tested, open and locked stages together. */
+function testedOut(mode: 'little' | 'coder'): Seed {
+  const s = stars([]);
+  s.path.sailed[`${mode}:moves`] = day(-6);
+  s.path.tested = { [`${mode}:loops`]: day(-1) };
+  return s;
+}
+
+/** Every stage sailed, so the last (gold) stage and the full pip rail can be seen. */
+function allSailed(mode: 'little' | 'coder'): Seed {
+  const s = stars([]);
+  ISLANDS[mode].forEach((island, i) => {
+    s.path.sailed[island.key] = day(-(60 - i));
+  });
+  return s;
 }
 
 /** One quest short of mastering the first unit of Shape Shore. */
@@ -237,9 +265,12 @@ async function main() {
       }).slice(0, 4).map((e) => { const r = e.getBoundingClientRect(); const b = e.closest('button'); return e.tagName + ' ' + (b ? (b.getAttribute('aria-label') ?? b.textContent ?? '').trim().slice(0, 30) : '') + ' x' + Math.round(r.left) + '-' + Math.round(r.right); });
       const dlg = document.querySelector('[role=dialog]');
       const small = dlg ? [...dlg.querySelectorAll('button:not([disabled])')].filter((b) => { const r = b.getBoundingClientRect(); return r.width > 0 && (r.height < 40 || r.width < 40); }).map((b) => (b.getAttribute('aria-label') ?? b.textContent ?? '').trim().slice(0, 30) + ' ' + Math.round(b.getBoundingClientRect().width) + 'x' + Math.round(b.getBoundingClientRect().height)) : [];
-      return { scroll: document.documentElement.scrollWidth > w + 1, wide, small };
-    })()`)) as { scroll: boolean; wide: string[]; small: string[] } | undefined;
+      const plain = [...document.querySelectorAll('span[aria-label]:not([role])')].map((e) => e.getAttribute('aria-label') ?? '');
+      return { scroll: document.documentElement.scrollWidth > w + 1, wide, small, plain };
+    })()`)) as { scroll: boolean; wide: string[]; small: string[]; plain: string[] } | undefined;
     if (!report) return;
+    // A name on a plain span is ignored by screen readers; it needs a role, or visible text plus sr-only text instead.
+    if (report.plain.length) failures.push(`${name}: span with aria-label and no role: ${report.plain.join(', ')}`);
     if (report.scroll || report.wide.length) {
       const msg = `${name}: horizontal overflow ${report.scroll ? '(page scrolls sideways) ' : ''}${report.wide.join(', ')}`;
       console.warn(msg);
@@ -255,6 +286,55 @@ async function main() {
     const file = path.join(outDir, `${name}.png`);
     fs.writeFileSync(file, Buffer.from(r.data ?? '', 'base64'));
     console.log(file);
+  };
+
+  /** The map shows every stage of the mode: cards with stage numbers, one pip each, and the worlds on the coder map. */
+  const checkMap = async (name: string, mode: 'little' | 'coder') => {
+    const total = ISLANDS[mode].length;
+    const found = (await evaluate(`(() => {
+      const cards = [...document.querySelectorAll('button.isle-card')];
+      const numbered = cards.filter((c) => /Stage \\d+/.test(c.textContent ?? '')).length;
+      return {
+        cards: cards.length,
+        numbered,
+        pips: document.querySelectorAll('[data-testid=stage-pips] [data-pip]').length,
+        worlds: document.querySelectorAll('[role=dialog] h3').length,
+        gold: document.querySelectorAll('button.isle-card[data-gold=true]').length,
+        chip: [...document.querySelectorAll('[role=dialog] .sr-only')].map((e) => e.textContent ?? '').find((t) => /stages sailed/.test(t)) ?? '',
+      };
+    })()`)) as { cards: number; numbered: number; pips: number; worlds: number; gold: number; chip: string } | undefined;
+    if (!found) return;
+    const worlds = mode === 'coder' ? CODER_WORLDS.length : 0;
+    const problems: string[] = [];
+    if (found.cards !== total) problems.push(`${found.cards} cards, expected ${total}`);
+    if (found.numbered !== total) problems.push(`${found.numbered} cards with a stage number, expected ${total}`);
+    if (found.pips !== total) problems.push(`${found.pips} pips, expected ${total}`);
+    if (found.worlds !== worlds) problems.push(`${found.worlds} world titles, expected ${worlds}`);
+    if (found.gold !== 1) problems.push(`${found.gold} gold cards, expected 1`);
+    if (!new RegExp(`of ${total} stages sailed`).test(found.chip)) problems.push(`header chip text "${found.chip}"`);
+    if (problems.length) failures.push(`${name}: ${problems.join('; ')}`);
+  };
+
+  /** On a phone the toast sits under the sticky header and never covers a control in the lower half of the screen. */
+  const checkToast = async (name: string) => {
+    const r = (await evaluate(`(() => {
+      const t = document.querySelector('.toast');
+      if (!t) return { missing: true, belowHeader: false, covered: [] };
+      const tr = t.getBoundingClientRect();
+      const header = document.querySelector('header');
+      const hb = header ? header.getBoundingClientRect().bottom : 0;
+      const covered = [...document.querySelectorAll('button, [role=radio]')].filter((b) => {
+        if (t.contains(b)) return false;
+        const br = b.getBoundingClientRect();
+        if (br.width === 0 || br.height === 0 || br.top + br.height / 2 < innerHeight / 2) return false;
+        return br.left < tr.right && br.right > tr.left && br.top < tr.bottom && br.bottom > tr.top;
+      }).map((b) => (b.getAttribute('aria-label') ?? b.textContent ?? '').trim().slice(0, 30));
+      return { missing: false, belowHeader: tr.top >= hb - 1, bottom: Math.round(tr.bottom), covered };
+    })()`)) as { missing: boolean; belowHeader: boolean; covered: string[] } | undefined;
+    if (!r) return;
+    if (r.missing) failures.push(`${name}: no toast on screen to check`);
+    else if (!r.belowHeader) failures.push(`${name}: the toast is not under the sticky header`);
+    else if (r.covered.length) failures.push(`${name}: the toast covers ${r.covered.join(', ')}`);
   };
 
   const scrollSheet = (top: number) => evaluate(`(() => { const s = document.querySelector('[role=dialog] .overflow-y-auto'); if (s) s.scrollTop = ${top === -1 ? 's.scrollHeight' : top}; return !!s; })()`);
@@ -341,6 +421,10 @@ async function main() {
       await seed({ 'gio.mode': mode }, query);
       await openMap();
       await shot(n('1-map-new'));
+      await checkMap(n('1-map-new'), mode);
+      await scrollSheet(-1);
+      await sleep(300);
+      await shot(n('1-map-new-end'));
 
       // (b) Half way through: a sailed island, Gio on the next one, a locked island and a waiting review.
       await seed(put(midJourney(mode)), query);
@@ -374,6 +458,8 @@ async function main() {
       await click('button', 'Go!');
       await sleep(900);
       await shot(n('4-quest'));
+      const eyebrow = (await evaluate(`document.querySelector('section[aria-labelledby=quest-title] .eyebrow')?.textContent ?? ''`)) as string;
+      if (!new RegExp(`^Stage \\d+ of ${ISLANDS[mode].length} · `).test(eyebrow)) failures.push(`${n('4-quest')}: quest eyebrow is "${eyebrow}"`);
       await click('button', 'Hint');
       await sleep(600);
       await shot(n('4-quest-hint'));
@@ -387,6 +473,7 @@ async function main() {
       await sleep(700);
       await solve(mode);
       await sleep(400);
+      if (v.width <= 640) await checkToast(n('5-toast'));
       await shot(n('5-quest-done'));
       await waitMoment();
       await shot(n('5-unit-mastered'));
@@ -421,6 +508,29 @@ async function main() {
       await click('button', 'Finish review');
       await waitMoment();
       await shot(n('7-review-done'));
+
+      // (h) A stage tested out: sailed, tested, open and locked stages side by side.
+      await seed(put(testedOut(mode)), query);
+      await openMap();
+      await checkMap(n('8-map-tested'), mode);
+      const tested = await evaluate(`document.querySelectorAll('button.isle-card[aria-label*="tested out"]').length`);
+      if (tested !== 1) failures.push(`${n('8-map-tested')}: ${String(tested)} tested-out cards, expected 1`);
+      await shot(n('8-map-tested'));
+      await click('button.isle-card', ISLANDS[mode][1]!.name);
+      await sleep(700);
+      await shot(n('8-island-tested'));
+
+      // (i) Every stage sailed: the full pip rail and the gold last stage.
+      await seed(put(allSailed(mode)), query);
+      await openMap();
+      await checkMap(n('9-map-all-sailed'), mode);
+      await shot(n('9-map-all-sailed'));
+      await scrollSheet(-1);
+      await sleep(400);
+      await shot(n('9-map-all-sailed-end'));
+      await click('button.isle-card', ISLANDS[mode][ISLANDS[mode].length - 1]!.name);
+      await sleep(700);
+      await shot(n('9-island-last'));
     }
   }
   ws.close();
@@ -432,7 +542,10 @@ main()
     process.exitCode = 1;
   })
   .finally(() => {
-    if (failures.length) process.exitCode = 1;
+    if (failures.length) {
+      for (const f of failures) console.error(`FAIL ${f}`);
+      process.exitCode = 1;
+    }
     browser.kill();
     setTimeout(() => {
       try {

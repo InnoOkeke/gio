@@ -1,12 +1,13 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { CONCEPTS, type QuestAudience } from '../../logo/quests.js';
+import type { QuestAudience } from '../../logo/quests.js';
 import type { FriendId, StickerId } from '../gio/catalog';
 import type { GioMood } from '../gio/mood';
-import { islandByKey, questById } from '../path/islands';
+import { islandByKey, questById, stageCount, stageNumber } from '../path/islands';
 import { MAP_LINES, reviewInvite, say } from '../path/lines';
 import type { IslandView, NextStop } from '../path/state';
+import { worldStartingAt } from '../path/worlds';
 import { useDialog } from '../useDialog';
-import { IslandArt } from './IslandArt';
+import { IslandArt, isGoldArt } from './IslandArt';
 import { IslandSheet } from './IslandSheet';
 import { ArrowLeftIcon, CloseIcon, LeafIcon, LockIcon, MapIcon } from './icons';
 import { TurtleSprite } from './TurtleSprite';
@@ -39,8 +40,9 @@ function currentKey(islands: readonly IslandView[], next: NextStop): string {
 }
 
 function statusWords(view: IslandView, here: boolean, review: boolean, previousName: string | null): string {
-  const parts: string[] = [];
+  const parts: string[] = [`Stage ${stageNumber(view.island)}`];
   if (view.sailed) parts.push('sailed');
+  else if (view.tested) parts.push('tested out, you can still sail it');
   else if (view.status === 'locked') parts.push(previousName ? `locked, sail ${previousName} first` : 'locked');
   else parts.push(`open, ${view.units.filter((u) => u.mastered).length} of ${view.units.length} units mastered`);
   if (here && !view.sailed && view.status === 'open') parts.push('Gio is here');
@@ -88,6 +90,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
 
   const here = currentKey(islands, next);
   const sailedCount = islands.filter((i) => i.sailed).length;
+  const total = islands.length || stageCount(mode);
 
   // Show Gio's island when the map opens, and return to the island that was open when coming back.
   useEffect(() => {
@@ -122,7 +125,8 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
     <div className="fixed inset-0 z-50 flex items-stretch justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="map-title">
       <div className="absolute inset-0 bg-[rgba(23,38,31,0.45)] backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
       <div ref={panelRef} className="map-in relative flex h-full w-full flex-col overflow-hidden bg-[var(--bg)] shadow-[var(--shadow-3)] sm:h-[min(860px,calc(100vh-48px))] sm:max-w-[720px] sm:rounded-[32px]">
-        <div className="flex items-center gap-2 border-b border-line bg-[rgba(245,242,234,0.92)] px-4 py-3 backdrop-blur-xl sm:px-6 sm:py-4">
+        <div className="border-b border-line bg-[rgba(245,242,234,0.92)] backdrop-blur-xl">
+        <div className="flex items-center gap-2 px-4 py-3 sm:px-6 sm:py-4">
           {selectedView && (
             <button ref={backRef} type="button" className="btn btn-quiet btn-icon shrink-0" onClick={() => setSelected(null)} aria-label="Back to the map">
               <ArrowLeftIcon />
@@ -137,9 +141,14 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
               </>
             )}
           </h2>
-          <span className="shrink-0 rounded-full bg-paper-3 px-3 py-1.5 text-[14px] font-black tabular-nums text-ink" aria-label={`${sailedCount} of ${islands.length} islands sailed`}>
-            {sailedCount}/{islands.length}
-            <span className="hidden sm:inline"> sailed</span>
+          <span className="shrink-0 rounded-full bg-paper-3 px-3 py-1.5 text-[14px] font-black tabular-nums text-ink">
+            <span aria-hidden="true">
+              {sailedCount}/{total}
+              <span className="hidden sm:inline"> sailed</span>
+            </span>
+            <span className="sr-only">
+              {sailedCount} of {total} stages sailed
+            </span>
           </span>
           <button type="button" className="btn btn-quiet max-sm:px-3" onClick={onGarden} aria-label="Gio's garden">
             <LeafIcon className="text-[#12a36b]" /> <span className="hidden sm:inline">Garden</span>
@@ -147,6 +156,23 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
           <button ref={closeRef} type="button" className="btn btn-quiet btn-icon shrink-0" onClick={onClose} aria-label="Close the map">
             <CloseIcon />
           </button>
+        </div>
+        <div className="flex gap-[3px] px-4 pb-3 sm:px-6" aria-hidden="true" data-testid="stage-pips">
+          {islands.map((v) => (
+            <span
+              key={v.island.key}
+              data-pip={v.sailed ? 'sailed' : v.tested ? 'tested' : 'open'}
+              className="h-[7px] min-w-0 flex-1 rounded-full"
+              style={
+                v.sailed
+                  ? { background: '#12a36b' }
+                  : v.tested
+                    ? { background: '#fff', boxShadow: 'inset 0 0 0 2px #12a36b' }
+                    : { background: '#d9d2bf' }
+              }
+            />
+          ))}
+        </div>
         </div>
 
         <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-6 pt-4 sm:px-6" style={{ background: 'linear-gradient(#d9f0fb 0, #eef9fd 220px, #f5f2ea 520px)' }}>
@@ -182,10 +208,22 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
                 const locked = view.status === 'locked';
                 const review = reviewKey === key;
                 const previousName = i > 0 ? islands[i - 1]!.island.name : null;
-                const color = CONCEPTS[view.island.concept].color;
+                const color = view.island.stamp;
+                const stage = stageNumber(view.island);
+                const world = worldStartingAt(mode, stage);
+                const gold = isGoldArt(view.island.art);
                 const mastered = view.units.filter((u) => u.mastered).length;
                 return (
                   <Fragment key={key}>
+                    {world && (
+                      <div className="mb-3 mt-1 flex items-center gap-3">
+                        <span className="h-px flex-1 bg-[#b9ae96]" aria-hidden="true" />
+                        <h3 className="m-0 text-[13px] font-black uppercase tracking-[0.08em] text-ink-2">
+                          {world.title} <span className="font-extrabold normal-case tracking-normal">· Stages {world.from} to {world.to}</span>
+                        </h3>
+                        <span className="h-px flex-1 bg-[#b9ae96]" aria-hidden="true" />
+                      </div>
+                    )}
                     <div className={`flex ${side === 'left' ? 'justify-start' : 'justify-end'}`}>
                       <button
                         ref={(el) => {
@@ -197,6 +235,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
                         aria-label={`${view.island.name}. ${statusWords(view, isHere, review, previousName)}`}
                         className={`isle-card ${isHere ? 'is-here' : ''}`}
                         data-locked={locked}
+                        data-gold={gold}
                       >
                         <span className="relative block">
                           <IslandArt island={view.island} locked={locked} sailed={view.sailed} met={friends.includes(view.island.resident)} className="block h-auto w-full" />
@@ -205,9 +244,15 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
                               <TurtleSprite mood={mood} stickers={shell} />
                             </span>
                           )}
+                          {view.tested && !view.sailed && (
+                            <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[12px] font-black text-[#08603e] shadow-[0_0_0_2px_#12a36b]" aria-hidden="true">
+                              Tested out
+                            </span>
+                          )}
                           {review && <span className="absolute right-3 top-3 h-4 w-4 rounded-full bg-[#ffc93c] shadow-[0_0_0_5px_rgba(255,201,60,0.4)]" aria-hidden="true" />}
                         </span>
                         <span className="flex flex-col gap-1 px-3 pb-3 pt-2 text-left">
+                          <span className="text-[12px] font-black uppercase tracking-[0.08em] text-ink-2">Stage {stage}</span>
                           <span className="text-[18px] font-black leading-tight text-ink">{view.island.name}</span>
                           <span
                             className="inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-black"
@@ -220,7 +265,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, onPla
                             }
                           >
                             {locked && <LockIcon size={14} />}
-                            {view.sailed ? 'Sailed' : locked ? 'Locked' : isHere ? 'You are here' : `${mastered} of ${view.units.length} units`}
+                            {view.sailed ? 'Sailed' : locked ? 'Locked' : isHere ? 'You are here' : view.tested ? 'Tested out' : `${mastered} of ${view.units.length} units`}
                           </span>
                         </span>
                       </button>
