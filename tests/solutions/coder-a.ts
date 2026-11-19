@@ -15,8 +15,7 @@ export const CODER_A_SOLUTIONS: Record<string, string> = {
   'c-ing-poly': 'TO POLY :sides :len\n  REPEAT :sides [FD :len RT 360 / :sides]\nEND\nPOLY 6 50',
   'c-ing-petals': 'TO PETALS :n :r\n  REPEAT :n [\n    FD :r\n    CIRCLE :r\n    BK :r\n    RT 360 / :n\n  ]\nEND\nPETALS 8 40',
   'c-ing-house': 'TO ROOF :s\n  REPEAT 3 [FD :s RT 120]\nEND\nTO HOUSE :s\n  REPEAT 4 [FD :s RT 90]\n  FD :s\n  RT 30\n  ROOF :s\nEND\nHOUSE 80',
-  'c-ing-grid':
-    'TO ROW :n :s\n  REPEAT :n [\n    REPEAT 4 [FD :s RT 90]\n    PU\n    RT 90\n    FD :s\n    LT 90\n    PD\n  ]\nEND\nTO GRID :rows :n :s\n  REPEAT :rows [\n    ROW :n :s\n    PU\n    LT 90\n    FD :n * :s\n    RT 90\n    FD :s\n    PD\n  ]\nEND\nGRID 3 2 40',
+  'c-ing-dashes': 'TO DASHES :len\n  REPEAT 5 [\n    FD :len\n    PU\n    FD :len\n    PD\n  ]\nEND\nDASHES 10',
   'c-ing-stars': 'TO STARN :points :len\n  REPEAT :points [FD :len RT 180 - 180 / :points]\nEND\nSTARN 5 120',
 
   // Grid Garden
@@ -29,12 +28,12 @@ export const CODER_A_SOLUTIONS: Record<string, string> = {
   'c-grid-parabola': 'MAKE "x -100\nPU\nSETXY :x :x * :x / 50\nPD\nREPEAT 20 [\n  MAKE "x :x + 10\n  SETXY :x :x * :x / 50\n]',
 
   // Surprise Springs
-  'c-rand-step': 'FD 20 + RANDOM 80',
-  'c-rand-wobble': 'REPEAT 10 [\n  FD 30\n  RT RANDOM 360\n]',
+  'c-rand-step': 'REPEAT 3 [\n  FD 20 + RANDOM 80\n  RT 90\n]',
+  'c-rand-wobble': 'REPEAT 10 [\n  SETPC RANDOM 16\n  FD 30\n  RT RANDOM 360\n]',
   'c-rand-coin': 'REPEAT 20 [\n  FD 20\n  IFELSE RANDOM 2 = 0 [LT 90] [RT 90]\n]',
   'c-rand-dice': 'MAKE "n 3 + RANDOM 5\nREPEAT :n [\n  FD 40\n  RT 360 / :n\n]',
   'c-rand-confetti': 'REPEAT 30 [DOT (RANDOM 201) - 100 (RANDOM 201) - 100]',
-  'c-rand-maze': 'REPEAT 40 [\n  SETH 90 * RANDOM 4\n  FD 15\n]',
+  'c-rand-maze': 'REPEAT 40 [\n  SETH 90 * RANDOM 4\n  FD 15\n]\nPU\nHOME',
 
   // Clockwork Canyon
   'c-clock-walk': 'WHEN "tick [\n  FD 5\n]',
@@ -74,9 +73,7 @@ export const CODER_A_COUNTEREXAMPLES: Record<string, string[]> = {
     'TO ROOF :s\n  REPEAT 3 [FD :s RT 120]\nEND\nTO HOUSE :s\n  REPEAT 4 [FD 80 RT 90]\n  FD 80\n  RT 30\n  ROOF 80\nEND\nHOUSE 80',
     'TO HOUSE :s\n  REPEAT 4 [FD :s RT 90]\n  FD :s\n  RT 30\n  REPEAT 3 [FD :s RT 120]\nEND\nHOUSE 80',
   ],
-  'c-ing-grid': [
-    'TO ROW :n :s\n  REPEAT 2 [REPEAT 4 [FD 40 RT 90] PU RT 90 FD 40 LT 90 PD]\nEND\nTO GRID :rows :n :s\n  REPEAT 3 [ROW 2 40 PU LT 90 FD 80 RT 90 FD 40 PD]\nEND\nGRID 3 2 40',
-  ],
+  'c-ing-dashes': ['TO DASHES :len\n  REPEAT 5 [FD 10 PU FD 10 PD]\nEND\nDASHES 10', 'TO DASHES :len\n  REPEAT 5 [FD :len PU FD :len PD]\nEND\nDASHES 10\nDASHES 10', 'REPEAT 5 [FD 10 PU FD 10 PD]'],
   'c-ing-stars': ['TO STARN :points :len\n  REPEAT 5 [FD :len RT 144]\nEND\nSTARN 5 120', 'TO STARN :points :len\n  REPEAT :points [FD 120 RT 144]\nEND\nSTARN 5 120'],
 
   'c-grid-corners': ['DOT 80 80\nDOT 80 -80\nDOT -80 -80', 'FD 80\nRT 90\nFD 160'],
@@ -86,12 +83,12 @@ export const CODER_A_COUNTEREXAMPLES: Record<string, string[]> = {
   'c-grid-axes': ['PU\nSETXY -100 0\nPD\nSETX 100\nPU\nSETXY 0 -100\nPD\nSETY 100'],
   'c-grid-parabola': ['PU\nSETXY -100 200\nPD\nSETXY 100 200', 'MAKE "x -100\nPU\nSETXY :x :x * :x / 50\nPD\nREPEAT 20 [\n  MAKE "x :x + 10\n  SETXY :x :x / 5\n]'],
 
-  'c-rand-step': ['FD 50', 'FD RANDOM 10'],
-  'c-rand-wobble': ['REPEAT 10 [FD 30 RT 45]', 'REPEAT 10 [FD 30 RT RANDOM 360 / 360]'],
+  'c-rand-step': ['REPEAT 3 [FD 50 RT 90]', 'REPEAT 3 [FD RANDOM 10 RT 90]'],
+  'c-rand-wobble': ['REPEAT 10 [FD 30 RT 45]', 'REPEAT 10 [SETPC RANDOM 16 FD 30 RT RANDOM 360 / 360]', 'REPEAT 10 [FD 30 RT RANDOM 360]'],
   'c-rand-coin': ['REPEAT 20 [FD 20 RT 90]', 'REPEAT 20 [FD 20 IFELSE RANDOM 2 = 0 [LT 45] [RT 45]]'],
   'c-rand-dice': ['REPEAT 5 [FD 40 RT 72]', 'MAKE "n 3 + RANDOM 5\nREPEAT :n [FD 40 RT 72]'],
   'c-rand-confetti': ['REPEAT 30 [DOT 0 0]', 'REPEAT 30 [DOT RANDOM 201 RANDOM 201]'],
-  'c-rand-maze': ['REPEAT 40 [FD 15 RT 90]', 'REPEAT 40 [SETH RANDOM 360 FD 15]'],
+  'c-rand-maze': ['REPEAT 40 [FD 15 RT 90]', 'REPEAT 40 [SETH RANDOM 360 FD 15]\nPU\nHOME', 'REPEAT 40 [SETH 90 * RANDOM 4 FD 15]'],
 
   'c-clock-walk': ['FD 50', 'WHEN "tick [FD 4]'],
   'c-clock-spiral': ['MAKE "n 2\nWHEN "tick [FD :n RT 90 MAKE "n :n + 1]', 'MAKE "n 2\nWHEN "tick [FD 2 RT 90]'],

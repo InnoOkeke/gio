@@ -153,8 +153,8 @@ const LITTLE: readonly Island[] = [
     'Turn a lot to draw stars with many points.',
     'olly',
     [
-      ['l-star-eight', 'l-star-twelve', 'l-hexagram'],
-      ['l-star-burst', 'l-star-nest', 'l-star-night'],
+      ['l-star-pair', 'l-star-mix', 'l-star-night'],
+      ['l-star-ring', 'l-star-four', 'l-star-five'],
     ],
     { key: 'little:stars', art: 'stars', badge: null, stamp: '#2b9bf4' },
   ),
@@ -221,7 +221,7 @@ const CODER: readonly Island[] = [
     'bree',
     [
       ['c-ing-square', 'c-ing-poly', 'c-ing-petals'],
-      ['c-ing-house', 'c-ing-grid', 'c-ing-stars'],
+      ['c-ing-house', 'c-ing-dashes', 'c-ing-stars'],
     ],
     { key: 'coder:ingredients', art: 'ingredients', badge: null, stamp: '#2b9bf4' },
   ),

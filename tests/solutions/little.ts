@@ -39,12 +39,12 @@ export const LITTLE_SOLUTIONS: Record<string, string> = {
   'l-snow-pic': `${P}\nRT 90\nREPEAT 3 [\n  FD 150\n  LT 120\n]\nPU\nFD 180\nLT 90\nFD 120\nPD\n${O}\nCIRCLE 30\n${Y}\nREPEAT 8 [\n  PU\n  FD 60\n  PD\n  FD 30\n  PU\n  BK 90\n  PD\n  RT 45\n]`,
   'l-town-pic': `${R}\nREPEAT 3 [\n  REPEAT 4 [\n    FD 60\n    RT 90\n  ]\n  ${B}\n  FD 60\n  RT 30\n  REPEAT 3 [\n    FD 60\n    RT 120\n  ]\n  ${G}\n  LT 30\n  BK 60\n  PU\n  RT 90\n  FD 90\n  LT 90\n  PD\n]`,
   // Star Sky
-  'l-star-eight': 'REPEAT 8 [\n  FD 60\n  RT 135\n]',
-  'l-star-twelve': `${R}\nREPEAT 12 [\n  FD 40\n  RT 150\n  ${B}\n]`,
-  'l-hexagram': `${R}\nREPEAT 6 [\n  FD 30\n  LT 60\n  ${B}\n  FD 30\n  RT 120\n  ${R}\n]`,
-  'l-star-burst': `${R}\nREPEAT 2 [\n  REPEAT 8 [\n    FD 50\n    RT 135\n  ]\n  ${B}\n  RT 15\n]`,
-  'l-star-nest': `${R}\nREPEAT 3 [\n  REPEAT 8 [\n    FD 40\n    RT 135\n  ]\n  RT 120\n  ${B}\n]`,
+  'l-star-pair': `REPEAT 8 [\n  FD 50\n  RT 135\n]\nPU\nRT 90\nFD 100\nLT 90\nPD\nREPEAT 8 [\n  FD 50\n  RT 135\n]`,
+  'l-star-mix': `${R}\nREPEAT 12 [\n  FD 40\n  RT 150\n]\nPU\nRT 90\nFD 100\nLT 90\nPD\n${B}\nREPEAT 8 [\n  FD 40\n  RT 135\n]`,
   'l-star-night': `${Y}\nREPEAT 8 [\n  FD 40\n  RT 135\n]\nPU\nRT 90\nFD 100\nLT 90\nPD\n${B}\nREPEAT 12 [\n  FD 30\n  RT 150\n]\nPU\nRT 90\nFD 100\nLT 90\nPD\n${Y}\nREPEAT 8 [\n  FD 40\n  RT 135\n]`,
+  'l-star-ring': `${R}\nREPEAT 6 [\n  PU\n  FD 60\n  PD\n  REPEAT 8 [\n    FD 30\n    RT 135\n    ${B}\n  ]\n  PU\n  BK 60\n  PD\n  RT 60\n]`,
+  'l-star-four': `${R}\nREPEAT 8 [\n  FD 30\n  RT 135\n]\nPU\nRT 90\nFD 70\nLT 90\nPD\n${B}\nREPEAT 8 [\n  FD 30\n  RT 135\n]\nPU\nRT 90\nFD 70\nLT 90\nPD\n${R}\nREPEAT 8 [\n  FD 30\n  RT 135\n]\nPU\nRT 90\nFD 70\nLT 90\nPD\n${B}\nREPEAT 8 [\n  FD 30\n  RT 135\n]`,
+  'l-star-five': `${R}\nREPEAT 8 [\n  FD 20\n  RT 135\n]\nPU\nRT 90\nFD 50\nLT 90\nPD\n${B}\nREPEAT 12 [\n  FD 20\n  RT 150\n]\nPU\nRT 90\nFD 50\nLT 90\nPD\n${G}\nREPEAT 8 [\n  FD 20\n  RT 135\n]\nPU\nRT 90\nFD 50\nLT 90\nPD\n${R}\nREPEAT 12 [\n  FD 20\n  RT 150\n]\nPU\nRT 90\nFD 50\nLT 90\nPD\n${B}\nREPEAT 8 [\n  FD 20\n  RT 135\n]`,
   // Block Saver
   'l-save-square': 'REPEAT 4 [\n  FD 100\n  RT 90\n]',
   'l-save-star': 'REPEAT 12 [\n  FD 40\n  RT 150\n]',

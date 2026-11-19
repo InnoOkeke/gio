@@ -8,7 +8,7 @@ import { CODER_A_COUNTEREXAMPLES, CODER_A_SOLUTIONS } from './solutions/coder-a'
 
 const STAGES: Record<number, { key: string; name: string; ids: string[] }> = {
   3: { key: 'coder:colour-cove', name: 'Colour Cove', ids: ['c-red-blue', 'c-four-colours', 'c-fat-lines', 'c-night-sky', 'c-rainbow-fan', 'c-colour-wheel'] },
-  6: { key: 'coder:ingredients', name: 'Ingredient Island', ids: ['c-ing-square', 'c-ing-poly', 'c-ing-petals', 'c-ing-house', 'c-ing-grid', 'c-ing-stars'] },
+  6: { key: 'coder:ingredients', name: 'Ingredient Island', ids: ['c-ing-square', 'c-ing-poly', 'c-ing-petals', 'c-ing-house', 'c-ing-dashes', 'c-ing-stars'] },
   8: { key: 'coder:grid', name: 'Grid Garden', ids: ['c-grid-corners', 'c-grid-ruler', 'c-grid-diagonal', 'c-grid-lattice', 'c-grid-axes', 'c-grid-parabola'] },
   10: { key: 'coder:surprise', name: 'Surprise Springs', ids: ['c-rand-step', 'c-rand-wobble', 'c-rand-coin', 'c-rand-dice', 'c-rand-confetti', 'c-rand-maze'] },
   12: { key: 'coder:clockwork', name: 'Clockwork Canyon', ids: ['c-clock-walk', 'c-clock-spiral', 'c-clock-count', 'c-clock-timer', 'c-clock-score', 'c-clock-race'] },

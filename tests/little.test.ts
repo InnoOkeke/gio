@@ -8,51 +8,22 @@ import { islandsFor, questById, stageNumber, type Island } from '../src/ui/path/
 import { emptyPath, islandState, nextStop, recordQuest } from '../src/ui/path/state';
 import { LITTLE_NAIVE, LITTLE_SOLUTIONS } from './solutions/little';
 import { SOLUTIONS } from './solutions';
+import { ADJACENT_EXEMPT, ADJACENT_TOLERANCE, mean, spearman } from './solutions/curve';
 
 const STAGES: Record<number, { key: string; name: string; ids: string[] }> = {
   4: { key: 'little:pen', name: 'Pen Playground', ids: ['l-pen-gap', 'l-pen-dashes', 'l-pen-jump', 'l-pen-dotted-ring', 'l-pen-train', 'l-pen-ladder'] },
   5: { key: 'little:flowers', name: 'Flower Fields', ids: ['l-flower-three', 'l-flower-eight', 'l-daisy', 'l-bubbles', 'l-sunflower', 'l-garden'] },
   6: { key: 'little:patterns', name: 'Pattern Park', ids: ['l-spin-triangles', 'l-spin-boxes', 'l-petal-square', 'l-fan', 'l-weave', 'l-wheel'] },
   7: { key: 'little:pictures', name: 'Picture Town', ids: ['l-house-pic', 'l-tree-pic', 'l-boat-pic', 'l-rocket-pic', 'l-snow-pic', 'l-town-pic'] },
-  8: { key: 'little:stars', name: 'Star Sky', ids: ['l-star-eight', 'l-star-twelve', 'l-hexagram', 'l-star-burst', 'l-star-nest', 'l-star-night'] },
+  8: { key: 'little:stars', name: 'Star Sky', ids: ['l-star-pair', 'l-star-mix', 'l-star-night', 'l-star-ring', 'l-star-four', 'l-star-five'] },
   9: { key: 'little:fewest', name: 'Block Saver', ids: ['l-save-square', 'l-save-star', 'l-save-flower', 'l-save-ring', 'l-save-fan', 'l-save-spin'] },
   10: { key: 'little:lighthouse', name: 'Logo Master Lighthouse', ids: ['l-lh-castle', 'l-lh-lighthouse', 'l-lh-fish', 'l-lh-rainbow', 'l-lh-windmill', 'l-lh-mosaic'] },
 };
 const LITTLE = islandsFor('little');
-/** Block Saver is exempt from the difficulty curve for the same reason as Tiny Code Temple: small code, hard idea. */
+/** Block Saver is exempt from the rank correlation for the same reason as Tiny Code Temple: small code, hard idea. */
 const EXEMPT: ReadonlySet<string> = new Set(['little:fewest']);
 const questsOf = (island: Island): Quest[] => island.units.flat().map((id) => questById(id)!);
-const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 const score = (q: Quest): number => complexity(SOLUTIONS[q.id]!);
-
-/** Spearman rank correlation, with tied values sharing the average of their ranks. */
-function spearman(xs: number[], ys: number[]): number {
-  const ranks = (values: number[]): number[] => {
-    const order = values.map((v, i) => [v, i] as const).sort((a, b) => a[0] - b[0]);
-    const out = new Array<number>(values.length).fill(0);
-    let i = 0;
-    while (i < order.length) {
-      let j = i;
-      while (j + 1 < order.length && order[j + 1]![0] === order[i]![0]) j++;
-      for (let k = i; k <= j; k++) out[order[k]![1]] = (i + j) / 2 + 1;
-      i = j + 1;
-    }
-    return out;
-  };
-  const rx = ranks(xs);
-  const ry = ranks(ys);
-  const mx = mean(rx);
-  const my = mean(ry);
-  let num = 0;
-  let dx = 0;
-  let dy = 0;
-  for (let i = 0; i < rx.length; i++) {
-    num += (rx[i]! - mx) * (ry[i]! - my);
-    dx += (rx[i]! - mx) ** 2;
-    dy += (ry[i]! - my) ** 2;
-  }
-  return num / Math.sqrt(dx * dy);
-}
 
 /** The numbers the block steppers can reach (src/ui/editor/BlocksEditor.tsx). */
 const onGrid = (blocks: Block[]): boolean =>
@@ -216,5 +187,53 @@ describe('little content: the curve rises', () => {
       expect(wasteful.message, q.id).toMatch(/\d+ commands or fewer/);
       expect(checkQuest(q, LITTLE_SOLUTIONS[q.id]!).pass, q.id).toBe(true);
     }
+  });
+});
+
+/** What each new stage teaches, as a test on one reference solution. At least 4 of its 6 solutions must use it. */
+const OWN_SKILL: Record<number, { skill: string; uses: (q: Quest, words: Set<string>, feats: Set<string>) => boolean }> = {
+  4: { skill: 'lifting the pen', uses: (_q, w) => w.has('PENUP') },
+  5: { skill: 'circles in loops', uses: (_q, w, f) => w.has('CIRCLE') && f.has('REPEAT') },
+  6: { skill: 'a Repeat inside a Repeat', uses: (_q, _w, f) => f.has('NEST') },
+  7: { skill: 'pictures from several shapes in 2 or more colours', uses: (q) => (q.needs?.minColours ?? 0) >= 2 },
+  8: { skill: 'Repeat for stars', uses: (_q, _w, f) => f.has('REPEAT') },
+  9: { skill: 'a block limit', uses: (q) => q.needs?.maxCommands !== undefined },
+  10: { skill: 'Repeat, circles and colours together', uses: (q, _w, f) => f.has('REPEAT') && (f.has('CIRCLE') || f.has('NEST')) && (q.needs?.minColours ?? 0) >= 2 },
+};
+
+describe('little content: every new stage uses its own skill', () => {
+  it.each(Object.entries(OWN_SKILL).map(([n, s]) => [`${n} ${LITTLE[Number(n) - 1]!.name}`, Number(n), s] as const))('stage %s uses its own skill in at least 4 of 6 solutions', (_name, n, own) => {
+    let uses = 0;
+    for (const q of questsOf(LITTLE[n - 1]!)) {
+      const parsed = check(SOLUTIONS[q.id]!);
+      if (!parsed.ok) throw new Error(q.id);
+      if (own.uses(q, new Set(wordsUsed(parsed.program)), new Set<string>(features(parsed.program)))) uses++;
+    }
+    expect(uses, `${own.skill}: ${uses} of 6`).toBeGreaterThanOrEqual(4);
+  });
+});
+
+describe('little content: no stage is much easier than the one before it', () => {
+  const stageRows = LITTLE.map((island) => ({ island, stage: stageNumber(island), mean: mean(island.units.flat().map((id) => score(questById(id)!))) }));
+
+  it('only Block Saver is exempt, and the exemption has a reason', () => {
+    const littleExempt = Object.keys(ADJACENT_EXEMPT).filter((k) => k.startsWith('little:'));
+    expect(littleExempt).toEqual(['little:fewest']);
+    expect(ADJACENT_EXEMPT['little:fewest']!.length).toBeGreaterThan(60);
+  });
+
+  it(`every other stage has at least ${ADJACENT_TOLERANCE * 100} per cent of the mean difficulty of the stage before it`, () => {
+    const counted = stageRows.filter((r) => !(r.island.key in ADJACENT_EXEMPT));
+    for (let i = 1; i < counted.length; i++) {
+      const before = counted[i - 1]!;
+      const here = counted[i]!;
+      expect(here.mean, `stage ${here.stage} ${here.island.name} (${here.mean.toFixed(1)}) after stage ${before.stage} ${before.island.name} (${before.mean.toFixed(1)})`).toBeGreaterThanOrEqual(before.mean * ADJACENT_TOLERANCE);
+    }
+  });
+
+  it('Star Sky is harder than Flower Fields, Pattern Park and Picture Town', () => {
+    const star = stageRows[7]!;
+    expect(star.island.key).toBe('little:stars');
+    for (const r of stageRows.slice(4, 7)) expect(star.mean, r.island.name).toBeGreaterThan(r.mean);
   });
 });

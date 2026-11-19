@@ -12,6 +12,14 @@ const ticks = (n: number): GameKey[] => Array.from({ length: n }, () => 'TICK');
 const lines = (...rows: string[]): string => rows.join('\n');
 
 const polyspi = (len: number, angle: number, n: number): string => `MAKE "len ${len}\nREPEAT ${n} [FD :len RT ${angle} MAKE "len :len + 5]`;
+/** What POLYSPI draws: a spiral that grows by 5 each side, with the pen colour counting down from :n to 1. */
+const spiral = (len: number, angle: number, n: number): string => `MAKE "len ${len}\nMAKE "c ${n}\nREPEAT ${n} [SETPC :c FD :len RT ${angle} MAKE "len :len + 5 MAKE "c :c - 1]`;
+/** What BLOOM draws: :k spirals of 12 sides, each turned 360 / :k further round. */
+const bloom = (k: number, angle: number): string => `REPEAT ${k} [\n  MAKE "len 5\n  MAKE "c 12\n  REPEAT 12 [SETPC :c FD :len RT ${angle} MAKE "len :len + 5 MAKE "c :c - 1]\n  RT ${360 / k}\n]`;
+/** The engine's commands once every bug is fixed: the fix is also what Fix the engine checks against. */
+const ENGINE_DEFS = lines('TO PISTON :h', '  REPEAT 2 [FD :h RT 90 FD 20 RT 90]', 'END', 'TO ENGINE :n', '  REPEAT :n [', '    PISTON 60', '    PU', '    RT 90', '    FD 30', '    LT 90', '    PD', '  ]', 'END', 'TO WHEEL :r', '  REPEAT 36 [FD :r RT 10]', 'END', 'TO GEARS :k', '  REPEAT :k [', '    WHEEL 6', '    PU', '    FD 30', '    PD', '  ]', 'END');
+const ENGINE_MAIN = lines('ENGINE 4', 'PU', 'BK 40', 'PD', 'GEARS 3');
+const ENGINE_STARTER = lines('TO PISTON :h', '  REPEAT 2 [FD :h RT 90 FD 20 RT 60]', 'END', 'TO ENGINE :n', '  REPEAT :n - 1 [', '    PISTON 60', '    PU', '    RT 90', '    FD 30', '    LT 90', '  ]', 'END', 'TO WHEEL :r', '  REPEAT 36 [FD :r RT 10]', 'END', 'TO GEARS :k', '  REPEAT :k [', '    WHEEL 6', '    PU', '    FD 30', '    PD', '  ]', 'END', ENGINE_MAIN);
 
 // ---- Bug Bay starters (each is also what the child sees in the editor) ----
 const BB_TWO_BUGS = lines(
@@ -147,23 +155,36 @@ const PONG = lines(
 );
 const BOUNCE_COUNT = lines(
   'PU',
-  'SETXY 0 100',
+  'SETXY -100 100',
   'PD',
+  'MAKE "x -100',
   'MAKE "y 100',
+  'MAKE "vx 12',
   'MAKE "v 0',
   'MAKE "bounces 0',
   'WHEN "tick [',
   '  MAKE "v :v - 1',
+  '  MAKE "x :x + :vx',
   '  MAKE "y :y + :v',
   '  IF :y < -100 [',
   '    MAKE "y -100',
   '    MAKE "v (0 - :v) / 2',
   '    MAKE "bounces :bounces + 1',
   '  ]',
-  '  SETY :y',
+  '  IF :x > 100 [',
+  '    MAKE "x 100',
+  '    MAKE "vx 0 - :vx',
+  '    MAKE "bounces :bounces + 1',
+  '  ]',
+  '  IF :x < -100 [',
+  '    MAKE "x -100',
+  '    MAKE "vx 0 - :vx',
+  '    MAKE "bounces :bounces + 1',
+  '  ]',
+  '  SETXY :x :y',
   '  SHOW :bounces',
-  '  IF :bounces = 5 [GAMEOVER]',
-  ']',
+  '  IF :bounces = 6 [GAMEOVER]',
+']',
 );
 
 const GEM_PRESSES: GameKey[] = ['UP', 'UP', 'UP', 'RIGHT', 'RIGHT', 'RIGHT', 'LEFT', 'RIGHT', 'DOWN'];
@@ -349,10 +370,10 @@ export const CODER_B: Quest[] = [
   { id: 'c-gs-three', audience: 'coder', concept: 'events', title: 'Three-level game', goal: 'MAKE "level 1 and MAKE "score 0. The right arrow (SETH 90) and up arrow (SETH 0) move the turtle 20. When XCOR reaches 20 + 20 * :level or more: add 10 to :score, add 1 to :level, and PU, HOME, PD. Then if :level is 4, SHOW [YOU WIN] and GAMEOVER, otherwise SHOW :score. I will press right 5 times, up, then right 5 times.', hint: 'Make a command MOVE :h that the two arrows share. IFELSE :level = 4 [ ... ] [ SHOW :score ]', target: THREE, presses: THREE_PRESSES, needs: { uses: ['WHEN', 'IF', 'TO'], words: ['SHOW', 'GAMEOVER', 'HOME'], trace: true, expect: { show: 'YOU WIN', gameOver: true } } },
 
   // ---- Stage 20: Logo Master (each quest mixes at least three skills) ----
-  { id: 'c-lm-polyspi', audience: 'coder', concept: 'recursion', title: 'Poly-spiral', goal: 'Teach the turtle POLYSPI :len :angle :n. If :n is 0, STOP. Otherwise FD :len, RT :angle, and call POLYSPI again with :len + 5 and :n - 1. Then draw POLYSPI 5 90 20.', hint: 'POLYSPI :len + 5 :angle :n - 1 is the call inside. I will also try other sizes, angles and counts!', target: polyspi(5, 90, 20), needs: { uses: ['RECURSION', 'INPUT'], defines: [{ name: 'POLYSPI', inputs: 3 }], calls: [{ run: 'POLYSPI 10 120 15', target: polyspi(10, 120, 15) }, { run: 'POLYSPI 8 72 25', target: polyspi(8, 72, 25) }] } },
-  { id: 'c-lm-garden', audience: 'coder', concept: 'recursion', title: 'Random garden', goal: 'Teach the turtle FLOWER :r: REPEAT 4 [FD :r, CIRCLE :r, BK :r, RT 90]. Then plant 5 flowers FLOWER 10 at random spots, each one with its centre inside the box from -100 to 100 across and up: PU, SETXY at a random spot, PD, then FLOWER 10.', hint: 'REPEAT 5 [ PU SETXY (RANDOM 201) - 100 (RANDOM 201) - 100 PD FLOWER 10 ]. The brackets matter!', needs: { uses: ['TO', 'INPUT', 'REPEAT'], words: ['RANDOM', 'SETXY'], defines: [{ name: 'FLOWER', inputs: 1 }], props: { segments: { count: [1480, 1480], length: [0.8, 10] }, bounds: { x: 120, y: 120 } } } },
-  { id: 'c-lm-engine', audience: 'coder', concept: 'recursion', title: 'Fix the engine', goal: 'ENGINE 4 should draw 4 pistons in a row: PISTON :h draws a box 20 wide and :h tall, and ENGINE :n draws :n pistons of height 60 in a row: after each piston the turtle lifts the pen, goes 30 to the right and puts the pen down again. The code has three bugs, in both commands and in the loop. Fix them without rewriting it.', hint: 'Check the turn in PISTON, how many times ENGINE repeats, and whether the pen goes back down.', starter: lines('TO PISTON :h', '  REPEAT 2 [FD :h RT 90 FD 20 RT 60]', 'END', 'TO ENGINE :n', '  REPEAT :n - 1 [', '    PISTON 60', '    PU', '    RT 90', '    FD 30', '    LT 90', '  ]', 'END', 'ENGINE 4'), target: lines('TO PISTON :h', '  REPEAT 2 [FD :h RT 90 FD 20 RT 90]', 'END', 'TO ENGINE :n', '  REPEAT :n [', '    PISTON 60', '    PU', '    RT 90', '    FD 30', '    LT 90', '    PD', '  ]', 'END', 'ENGINE 4'), needs: { keeps: ['TO PISTON :h', 'TO ENGINE :n'], uses: ['TO', 'INPUT', 'REPEAT'] } },
+  { id: 'c-lm-polyspi', audience: 'coder', concept: 'recursion', title: 'Colour bloom', goal: 'Teach the turtle POLYSPI :len :angle :n. If :n is 0, STOP. Otherwise SETPC :n, FD :len, RT :angle, and call POLYSPI again with :len + 5 and :n - 1. Then teach BLOOM :k :angle: REPEAT :k times, draw POLYSPI 5 :angle 12 and turn RT 360 / :k. Draw BLOOM 4 90. I will also try other numbers!', hint: 'POLYSPI :len + 5 :angle :n - 1 is the call inside. BLOOM is a REPEAT :k with POLYSPI 5 :angle 12 and RT 360 / :k inside it.', target: bloom(4, 90), needs: { uses: ['RECURSION', 'INPUT', 'REPEAT'], words: ['SETPC'], defines: [{ name: 'POLYSPI', inputs: 3 }, { name: 'BLOOM', inputs: 2 }], calls: [{ run: 'BLOOM 3 120', target: bloom(3, 120) }, { run: 'BLOOM 6 60', target: bloom(6, 60) }, { run: 'POLYSPI 8 72 10', target: spiral(8, 72, 10) }] } },
+  { id: 'c-lm-garden', audience: 'coder', concept: 'recursion', title: 'Random garden', goal: 'Start with SETBACKGROUND "navy, SETPC "yellow and MAKE "n 5. Teach the turtle FLOWER :r: REPEAT 4 [FD :r, CIRCLE :r, BK :r, RT 90]. Teach PLANT :x :y: PU, SETXY :x :y, PD, then FLOWER 10. Then REPEAT :n times: PLANT at a random spot, each one with its centre inside the box from -100 to 100 across and up.', hint: 'REPEAT :n [ PLANT (RANDOM 201) - 100 (RANDOM 201) - 100 ]. The brackets matter!', needs: { uses: ['TO', 'INPUT', 'REPEAT', 'MAKE'], words: ['RANDOM', 'SETXY', 'SETBACKGROUND', 'SETPC'], background: true, defines: [{ name: 'FLOWER', inputs: 1 }, { name: 'PLANT', inputs: 2 }], props: { segments: { count: [1480, 1480], length: [0.8, 10] }, bounds: { x: 120, y: 120 } } } },
+  { id: 'c-lm-engine', audience: 'coder', concept: 'recursion', title: 'Fix the engine', goal: 'ENGINE 4 should draw 4 pistons in a row: PISTON :h draws a box 20 wide and :h tall, and ENGINE :n draws :n pistons of height 60 in a row: after each piston the turtle lifts the pen, goes 30 to the right and puts the pen down again. WHEEL :r and GEARS :k are fine. The code has three bugs, in both commands and in the loop. Fix them without rewriting it. I will also run ENGINE and GEARS with other numbers.', hint: 'Check the turn in PISTON, how many times ENGINE repeats, and whether the pen goes back down.', starter: ENGINE_STARTER, target: lines(ENGINE_DEFS, ENGINE_MAIN), needs: { keeps: ['TO PISTON :h', 'TO ENGINE :n', 'TO WHEEL :r', 'TO GEARS :k'], uses: ['TO', 'INPUT', 'REPEAT'], calls: [{ run: 'ENGINE 2', target: lines(ENGINE_DEFS, 'ENGINE 2') }, { run: 'GEARS 2', target: lines(ENGINE_DEFS, 'GEARS 2') }] } },
   { id: 'c-lm-tiny-flake', audience: 'coder', concept: 'recursion', title: 'Tiny snowflake', goal: 'Teach the turtle FLAKE :len :depth: three Koch curves of length :len, each followed by RT 120 (a Koch curve is the KOCH recipe from Fractal Falls). Draw FLAKE 81 2. I will also try other sizes and depths. Use 13 commands or fewer in the whole program.', hint: 'Every command counts, even STOP. IFELSE :depth = 0 [FD :len] [ the four calls with turns ] has no STOP, so it saves one command.', target: `${SNOWFLAKE_DEF}SNOWFLAKE 81 2`, needs: { uses: ['RECURSION', 'INPUT'], maxCommands: 13, defines: [{ name: 'FLAKE', inputs: 2 }], calls: [{ run: 'FLAKE 54 1', target: `${SNOWFLAKE_DEF}SNOWFLAKE 54 1` }, { run: 'FLAKE 27 3', target: `${SNOWFLAKE_DEF}SNOWFLAKE 27 3` }] } },
-  { id: 'c-lm-bounce-count', audience: 'coder', concept: 'recursion', title: 'Bounce counter', goal: 'A tired ball falls from (0, 100), pen down: MAKE "y 100, "v 0 and "bounces 0. On every tick: take 1 off :v, add :v to :y. If :y is below -100: set :y to -100, MAKE "v (0 - :v) / 2, add 1 to :bounces. Then SETY :y and SHOW :bounces. When :bounces reaches 5, GAMEOVER. I will tick 80 times. The scoreboard must end on 5.', hint: 'It is the tired ball with a counter. The count is the last thing SHOW says.', target: BOUNCE_COUNT, presses: ticks(80), needs: { uses: ['WHEN', 'IF', 'MAKE'], words: ['SHOW', 'SETY', 'GAMEOVER'], trace: true, expect: { show: '5', gameOver: true } } },
+  { id: 'c-lm-bounce-count', audience: 'coder', concept: 'recursion', title: 'Ball in a box', goal: 'A tired ball is thrown across a box. Start with PU, SETXY -100 100 and PD, then MAKE "x -100, "y 100, "vx 6, "v 0 and "bounces 0. On every tick: take 1 off :v, add :vx to :x and add :v to :y. If :y is below -100: set :y to -100, MAKE "v (0 - :v) / 2 and add 1 to :bounces. If :x is above 100: set :x to 100, turn the sideways speed round with MAKE "vx 0 - :vx and add 1 to :bounces. If :x is below -100: do the same with -100. Then SETXY :x :y and SHOW :bounces. When :bounces reaches 6, GAMEOVER. I will tick 80 times. The scoreboard must end on 6.', hint: 'It is the tired ball with a counter and two side walls. Three IFs, one for the floor and one for each wall, and every one of them adds 1 to :bounces.', target: BOUNCE_COUNT, presses: ticks(80), needs: { uses: ['WHEN', 'IF', 'MAKE'], words: ['SHOW', 'SETXY', 'GAMEOVER'], trace: true, expect: { show: '6', gameOver: true } } },
   { id: 'c-lm-final-game', audience: 'coder', concept: 'recursion', title: 'The final game', goal: 'Make a game with 2 levels, a score and 3 lives. MAKE "level 1, "score 0, "lives 3. Right (SETH 90) and up (SETH 0) arrows move 20. SPACE takes a life and SHOWs :lives. Reaching XCOR 40 + 20 * :level or more wins the level: add 10 to :score. On level 1 that means level 2, SHOW :score, and PU, HOME, PD. On level 2 it means SHOW :score + 5 * :lives and GAMEOVER. I will press right 3 times, space, up, then right 4 times.', hint: 'A command GEM for winning a level and a command MOVE :h for the arrows keep it tidy. The final scoreboard is 20 points plus 5 for each of your 2 lives left.', target: FINAL_GAME, presses: FINAL_PRESSES, needs: { uses: ['WHEN', 'IF', 'TO', 'MAKE'], words: ['SHOW', 'GAMEOVER', 'HOME'], trace: true, expect: { show: '30', gameOver: true } } },
 ];

@@ -149,7 +149,7 @@ describe('coder content B: no quest passes by cheating', () => {
   it('a hidden call fails when the command ignores its input, and the message names the call', () => {
     const result = checkQuest(quest('c-lm-polyspi'), CODER_B_COUNTEREXAMPLES['c-lm-polyspi']![0]!);
     expect(result.pass).toBe(false);
-    expect(result.message).toContain('POLYSPI 10 120 15');
+    expect(result.message).toContain('BLOOM 3 120');
   });
 
   it('the random garden tells the child when the flowers never move', () => {
@@ -158,25 +158,43 @@ describe('coder content B: no quest passes by cheating', () => {
 });
 
 describe('coder content B: physics and games match an independent calculation', () => {
-  it('the bounce counter shows 5 and ends the game, as plain arithmetic says it must', () => {
+  it('the ball in a box shows 6, uses the floor and both walls, and ends the game, as plain arithmetic says it must', () => {
+    let x = -100;
     let y = 100;
+    let vx = 12;
     let v = 0;
     let bounces = 0;
     let over = 0;
+    const hit = new Set<string>();
     for (let tick = 1; tick <= 80 && over === 0; tick++) {
       v -= 1;
+      x += vx;
       y += v;
       if (y < -100) {
         y = -100;
         v = -v / 2;
         bounces++;
+        hit.add('floor');
       }
-      if (bounces === 5) over = tick;
+      if (x > 100) {
+        x = 100;
+        vx = -vx;
+        bounces++;
+        hit.add('right');
+      }
+      if (x < -100) {
+        x = -100;
+        vx = -vx;
+        bounces++;
+        hit.add('left');
+      }
+      if (bounces === 6) over = tick;
     }
-    expect(bounces).toBe(5);
+    expect(bounces).toBe(6);
+    expect([...hit].sort()).toEqual(['floor', 'left', 'right']);
     expect(over).toBeGreaterThan(20);
     expect(over).toBeLessThan(80);
-    expect(quest('c-lm-bounce-count').needs!.expect).toEqual({ show: '5', gameOver: true });
+    expect(quest('c-lm-bounce-count').needs!.expect).toEqual({ show: '6', gameOver: true });
   });
 
   it('the floor stops the falling turtle where plain arithmetic says', () => {

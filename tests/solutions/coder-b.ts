@@ -11,6 +11,7 @@ const edit = (code: string, from: string, to: string): string => {
 
 const FLOOR_BODY = 'PU\nSETXY 0 100\nPD\nMAKE "v 0\nMAKE "y 100\nWHEN "tick [\n  MAKE "v :v - 1\n  MAKE "y :y + :v\n  IF :y < -100 [\n    MAKE "y -100\n    MAKE "v 0\n  ]\n  SETY :y\n]';
 
+const BOUNCE_BODY = 'PU\nSETXY -100 100\nPD\nMAKE "x -100\nMAKE "y 100\nMAKE "vx 12\nMAKE "v 0\nMAKE "bounces 0\nWHEN "tick [\n  MAKE "v :v - 1\n  MAKE "x :x + :vx\n  MAKE "y :y + :v\n  IF :y < -100 [\n    MAKE "y -100\n    MAKE "v (0 - :v) / 2\n    MAKE "bounces :bounces + 1\n  ]\n  IF :x > 100 [\n    MAKE "x 100\n    MAKE "vx 0 - :vx\n    MAKE "bounces :bounces + 1\n  ]\n  IF :x < -100 [\n    MAKE "x -100\n    MAKE "vx 0 - :vx\n    MAKE "bounces :bounces + 1\n  ]\n  SETXY :x :y\n  SHOW :bounces\n  IF :bounces = 6 [GAMEOVER]\n]';
 /** Reference solutions for stages 15 to 20 of Turtle Coders, written the way a child might. */
 export const CODER_B_SOLUTIONS: Record<string, string> = {
   // Bug Bay: the starter with a few small edits
@@ -64,16 +65,15 @@ export const CODER_B_SOLUTIONS: Record<string, string> = {
     'MAKE "level 1\nMAKE "score 0\nTO MOVE :h\n  SETH :h\n  FD 20\n  IF XCOR >= 20 + 20 * :level [\n    MAKE "score :score + 10\n    MAKE "level :level + 1\n    PU\n    HOME\n    PD\n    IFELSE :level = 4 [\n      SHOW [YOU WIN]\n      GAMEOVER\n    ] [\n      SHOW :score\n    ]\n  ]\nEND\nWHEN "right [MOVE 90]\nWHEN "up [MOVE 0]',
 
   // Logo Master
-  'c-lm-polyspi': 'TO POLYSPI :len :angle :n\n  IF :n = 0 [STOP]\n  FD :len\n  RT :angle\n  POLYSPI :len + 5 :angle :n - 1\nEND\nPOLYSPI 5 90 20',
-  'c-lm-garden': 'TO FLOWER :r\n  REPEAT 4 [\n    FD :r\n    CIRCLE :r\n    BK :r\n    RT 90\n  ]\nEND\nREPEAT 5 [\n  PU\n  SETXY (RANDOM 201) - 100 (RANDOM 201) - 100\n  PD\n  FLOWER 10\n]',
+  'c-lm-polyspi': 'TO POLYSPI :len :angle :n\n  IF :n = 0 [STOP]\n  SETPC :n\n  FD :len\n  RT :angle\n  POLYSPI :len + 5 :angle :n - 1\nEND\nTO BLOOM :k :angle\n  REPEAT :k [\n    POLYSPI 5 :angle 12\n    RT 360 / :k\n  ]\nEND\nBLOOM 4 90',
+  'c-lm-garden': 'TO FLOWER :r\n  REPEAT 4 [\n    FD :r\n    CIRCLE :r\n    BK :r\n    RT 90\n  ]\nEND\nTO PLANT :x :y\n  PU\n  SETXY :x :y\n  PD\n  FLOWER 10\nEND\nSETBACKGROUND "navy\nSETPC "yellow\nMAKE "n 5\nREPEAT :n [\n  PLANT (RANDOM 201) - 100 (RANDOM 201) - 100\n]',
   'c-lm-engine': edit(
     edit(edit(starterOf('c-lm-engine'), 'RT 60]', 'RT 90]'), 'REPEAT :n - 1 [', 'REPEAT :n ['),
     '    LT 90\n  ]',
     '    LT 90\n    PD\n  ]',
   ),
   'c-lm-tiny-flake': 'TO KOCH :len :depth\n  IFELSE :depth = 0 [FD :len] [\n    KOCH :len / 3 :depth - 1\n    LT 60\n    KOCH :len / 3 :depth - 1\n    RT 120\n    KOCH :len / 3 :depth - 1\n    LT 60\n    KOCH :len / 3 :depth - 1\n  ]\nEND\nTO FLAKE :len :depth\n  REPEAT 3 [KOCH :len :depth RT 120]\nEND\nFLAKE 81 2',
-  'c-lm-bounce-count':
-    'PU\nSETXY 0 100\nPD\nMAKE "y 100\nMAKE "v 0\nMAKE "bounces 0\nWHEN "tick [\n  MAKE "v :v - 1\n  MAKE "y :y + :v\n  IF :y < -100 [\n    MAKE "y -100\n    MAKE "v :v * -0.5\n    MAKE "bounces :bounces + 1\n  ]\n  SETY :y\n  SHOW :bounces\n  IF :bounces > 4 [GAMEOVER]\n]',
+  'c-lm-bounce-count': BOUNCE_BODY,
   'c-lm-final-game':
     'MAKE "level 1\nMAKE "score 0\nMAKE "lives 3\nTO GEM\n  MAKE "score :score + 10\n  IFELSE :level = 2 [\n    SHOW :score + 5 * :lives\n    GAMEOVER\n  ] [\n    MAKE "level 2\n    SHOW :score\n    PU\n    HOME\n    PD\n  ]\nEND\nTO MOVE :h\n  SETH :h\n  FD 20\n  IF XCOR >= 40 + 20 * :level [GEM]\nEND\nWHEN "right [MOVE 90]\nWHEN "up [MOVE 0]\nWHEN "space [\n  MAKE "lives :lives - 1\n  SHOW :lives\n]',
 };
@@ -180,18 +180,23 @@ export const CODER_B_COUNTEREXAMPLES: Record<string, string[]> = {
   ],
 
   'c-lm-polyspi': [
-    'TO POLYSPI :len :angle :n\n  IF :n = 0 [STOP]\n  FD :len\n  RT 90\n  POLYSPI :len + 5 :angle :n - 1\nEND\nPOLYSPI 5 90 20',
-    'TO POLYSPI :len :angle :n\n  IF :n = 0 [STOP]\n  FD :len\n  RT :angle\n  POLYSPI :len + 5 :angle :n - 1\nEND\nPOLYSPI 5 90 20\nPOLYSPI 5 90 20',
-    'MAKE "len 5\nREPEAT 20 [FD :len RT 90 MAKE "len :len + 5]',
+    'TO POLYSPI :len :angle :n\n  IF :n = 0 [STOP]\n  SETPC :n\n  FD :len\n  RT 90\n  POLYSPI :len + 5 :angle :n - 1\nEND\nTO BLOOM :k :angle\n  REPEAT :k [\n    POLYSPI 5 :angle 12\n    RT 360 / :k\n  ]\nEND\nBLOOM 4 90',
+    'TO POLYSPI :len :angle :n\n  IF :n = 0 [STOP]\n  SETPC :n\n  FD :len\n  RT :angle\n  POLYSPI :len + 5 :angle :n - 1\nEND\nTO BLOOM :k :angle\n  REPEAT :k [\n    POLYSPI 5 :angle 12\n    RT 90\n  ]\nEND\nBLOOM 4 90',
+    'TO POLYSPI :len :angle :n\n  IF :n = 0 [STOP]\n  SETPC :n\n  FD :len\n  RT :angle\n  POLYSPI :len + 5 :angle :n - 1\nEND\nTO BLOOM :k :angle\n  REPEAT :k [\n    POLYSPI 5 :angle 12\n    RT 360 / :k\n  ]\nEND\nBLOOM 4 90\nBLOOM 3 120',
+    'TO POLYSPI :len :angle :n\n  IF :n = 0 [STOP]\n  FD :len\n  RT :angle\n  POLYSPI :len + 5 :angle :n - 1\nEND\nTO BLOOM :k :angle\n  REPEAT :k [\n    POLYSPI 5 :angle 12\n    RT 360 / :k\n  ]\nEND\nBLOOM 4 90',
+    'MAKE "len 5\nREPEAT 4 [\n  REPEAT 12 [FD :len RT 90 MAKE "len :len + 5]\n  RT 90\n]',
   ],
   'c-lm-garden': [
-    'TO FLOWER :r\n  REPEAT 4 [FD :r CIRCLE :r BK :r RT 90]\nEND\nREPEAT 5 [FLOWER 10]',
-    'TO FLOWER :r\n  REPEAT 4 [FD :r CIRCLE :r BK :r RT 90]\nEND\nREPEAT 5 [PU SETXY RANDOM 300 RANDOM 300 PD FLOWER 10]',
-    'TO FLOWER :r\n  REPEAT 4 [FD :r CIRCLE :r BK :r RT 90]\nEND\nREPEAT 4 [PU SETXY (RANDOM 201) - 100 (RANDOM 201) - 100 PD FLOWER 10]',
+    'TO FLOWER :r\n  REPEAT 4 [\n    FD :r\n    CIRCLE :r\n    BK :r\n    RT 90\n  ]\nEND\nTO PLANT :x :y\n  PU\n  SETXY :x :y\n  PD\n  FLOWER 10\nEND\nSETBACKGROUND "navy\nSETPC "yellow\nMAKE "n 5\nREPEAT :n [PLANT 0 0]',
+    'TO FLOWER :r\n  REPEAT 4 [\n    FD :r\n    CIRCLE :r\n    BK :r\n    RT 90\n  ]\nEND\nTO PLANT :x :y\n  PU\n  SETXY :x :y\n  PD\n  FLOWER 10\nEND\nSETBACKGROUND "navy\nSETPC "yellow\nMAKE "n 5\nREPEAT :n [PLANT RANDOM 300 RANDOM 300]',
+    'TO FLOWER :r\n  REPEAT 4 [\n    FD :r\n    CIRCLE :r\n    BK :r\n    RT 90\n  ]\nEND\nTO PLANT :x :y\n  PU\n  SETXY :x :y\n  PD\n  FLOWER 10\nEND\nSETBACKGROUND "navy\nSETPC "yellow\nMAKE "n 4\nREPEAT :n [PLANT (RANDOM 201) - 100 (RANDOM 201) - 100]',
+    'TO FLOWER :r\n  REPEAT 4 [\n    FD :r\n    CIRCLE :r\n    BK :r\n    RT 90\n  ]\nEND\nTO PLANT :x :y\n  PU\n  SETXY :x :y\n  PD\n  FLOWER 10\nEND\nSETPC "yellow\nMAKE "n 5\nREPEAT :n [PLANT (RANDOM 201) - 100 (RANDOM 201) - 100]',
+    'TO FLOWER :r\n  REPEAT 4 [\n    FD :r\n    CIRCLE :r\n    BK :r\n    RT 90\n  ]\nEND\nSETBACKGROUND "navy\nSETPC "yellow\nMAKE "n 5\nREPEAT :n [PU SETXY (RANDOM 201) - 100 (RANDOM 201) - 100 PD FLOWER 10]',
   ],
   'c-lm-engine': [
     'REPEAT 4 [REPEAT 2 [FD 60 RT 90 FD 20 RT 90] PU RT 90 FD 30 LT 90 PD]',
     edit(starterOf('c-lm-engine'), 'RT 60]', 'RT 90]'),
+    edit(edit(edit(edit(starterOf('c-lm-engine'), 'RT 60]', 'RT 90]'), 'REPEAT :n - 1 [', 'REPEAT 4 ['), '    LT 90\n  ]', '    LT 90\n    PD\n  ]'), 'REPEAT :k [\n    WHEEL 6', 'REPEAT 3 [\n    WHEEL 6'),
   ],
   'c-lm-tiny-flake': [
     `${KOCH_DEF}TO FLAKE :len :depth\n  REPEAT 3 [KOCH :len :depth RT 120]\nEND\nFLAKE 81 2`,
@@ -199,9 +204,11 @@ export const CODER_B_COUNTEREXAMPLES: Record<string, string[]> = {
     `${SNOWFLAKE_DEF}SNOWFLAKE 81 2`,
   ],
   'c-lm-bounce-count': [
-    'PU\nSETXY 0 100\nPD\nMAKE "y 100\nMAKE "v 0\nMAKE "bounces 0\nWHEN "tick [\n  MAKE "v :v - 1\n  MAKE "y :y + :v\n  MAKE "bounces :bounces + 1\n  IF :y < -100 [\n    MAKE "y -100\n    MAKE "v :v * -0.5\n  ]\n  SETY :y\n  SHOW :bounces\n  IF :bounces > 4 [GAMEOVER]\n]',
-    'PU\nSETXY 0 100\nPD\nMAKE "y 100\nMAKE "v 0\nMAKE "bounces 0\nWHEN "tick [\n  MAKE "v :v - 1\n  MAKE "y :y + :v\n  IF :y < -100 [\n    MAKE "y -100\n    MAKE "v 0 - :v\n    MAKE "bounces :bounces + 1\n  ]\n  SETY :y\n  SHOW :bounces\n  IF :bounces > 4 [GAMEOVER]\n]',
-    'PU\nSETXY 0 100\nPD\nMAKE "y 100\nMAKE "v 0\nMAKE "bounces 0\nWHEN "tick [\n  MAKE "v :v - 1\n  MAKE "y :y + :v\n  IF :y < -100 [\n    MAKE "y -100\n    MAKE "v :v * -0.5\n    MAKE "bounces :bounces + 1\n  ]\n  SETY :y\n  SHOW :bounces\n]',
+    edit(BOUNCE_BODY, 'MAKE "v (0 - :v) / 2\n    MAKE "bounces :bounces + 1\n  ]', 'MAKE "v (0 - :v) / 2\n  ]\n  MAKE "bounces :bounces + 1'),
+    edit(BOUNCE_BODY, 'MAKE "v (0 - :v) / 2', 'MAKE "v 0 - :v'),
+    edit(BOUNCE_BODY, '  IF :bounces = 6 [GAMEOVER]\n', ''),
+    edit(BOUNCE_BODY, '  IF :x < -100 [\n    MAKE "x -100\n    MAKE "vx 0 - :vx\n    MAKE "bounces :bounces + 1\n  ]\n', ''),
+    edit(BOUNCE_BODY, 'MAKE "vx 12', 'MAKE "vx 5'),
   ],
   'c-lm-final-game': [
     'MAKE "level 1\nMAKE "score 0\nMAKE "lives 3\nTO GEM\n  MAKE "score :score + 10\n  IFELSE :level = 2 [\n    SHOW :score\n    GAMEOVER\n  ] [\n    MAKE "level 2\n    SHOW :score\n    PU\n    HOME\n    PD\n  ]\nEND\nTO MOVE :h\n  SETH :h\n  FD 20\n  IF XCOR >= 40 + 20 * :level [GEM]\nEND\nWHEN "right [MOVE 90]\nWHEN "up [MOVE 0]\nWHEN "space [\n  MAKE "lives :lives - 1\n  SHOW :lives\n]',
