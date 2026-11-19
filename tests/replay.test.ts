@@ -56,6 +56,30 @@ describe('planReplay', () => {
     expect(frames.length).toBeGreaterThanOrEqual(24);
     expect(frames[frames.length - 1]!.sprite.heading).toBe(270);
   });
+  it('gives a FRAME program one picture per FRAME, without padding', () => {
+    const list = events('REPEAT 5 [CLEAN FD 10 * REPCOUNT FRAME RT 20]');
+    const frames = planReplay(list, REPLAY_LIMITS);
+    expect(frames).toHaveLength(5);
+    for (const f of frames) {
+      expect(list[f.upto - 1]!.type).toBe('frame');
+      expect(f.fraction).toBe(0);
+    }
+    const last = frames[4]!;
+    expect(last.t).toBe(1);
+    // The last picture holds every line drawn before the final FRAME.
+    const lastFrame = list.map((e) => e.type).lastIndexOf('frame');
+    expect(last.upto).toBe(lastFrame + 1);
+    expect(last.sprite).toMatchObject({ x: list[lastFrame]!.state.x, y: list[lastFrame]!.state.y });
+  });
+  it('samples a long movie down to 100 pictures and keeps the last one', () => {
+    const list = events('REPEAT 150 [FD 1 FRAME]');
+    const frames = planReplay(list, REPLAY_LIMITS);
+    expect(frames).toHaveLength(100);
+    const uptos = frames.map((f) => f.upto);
+    expect([...uptos].sort((a, b) => a - b)).toEqual(uptos);
+    expect(new Set(uptos).size).toBe(100);
+    expect(uptos[99]).toBe(list.map((e) => e.type).lastIndexOf('frame') + 1);
+  });
 });
 
 describe('encodeGifBytes', () => {

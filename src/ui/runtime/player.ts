@@ -1,4 +1,5 @@
 import { DEFAULT_BACKGROUND, INITIAL_STATE, type RunResult, type TurtleEvent, type TurtleState } from '../../logo/index.js';
+import { holdSeconds, isAnimated, type Tone } from './timeline';
 
 /** The visible world runs from -WORLD_HALF to +WORLD_HALF on both axes. */
 export const WORLD_HALF = 300;
@@ -29,6 +30,10 @@ export interface PlayerCallbacks {
   /** SHOW: the scoreboard text, or null to clear it. */
   onShow(text: string | null): void;
   onGameOver(): void;
+  /** PLAY: the notes that start now. The Player then holds for as long as they last. */
+  onPlay(tones: Tone[]): void;
+  /** FRAME: the picture number now showing, or null when a new run starts. */
+  onFrame(n: number | null): void;
 }
 
 type DrawnLine = Extract<TurtleEvent, { type: 'line' }>;
@@ -52,6 +57,13 @@ export class Player {
   private raf = 0;
   private lastTime = 0;
   private stepping = false;
+  /** The program uses FRAME: whole pictures appear at once. */
+  private animated = false;
+  /** The hold (PLAY or WAIT) at the current event has started. */
+  private holdStarted = false;
+  /** Finishing in one go: holds are skipped and notes are not started. */
+  private skipping = false;
+  private frames = 0;
   private readonly ctx: CanvasRenderingContext2D;
 
   constructor(
@@ -89,6 +101,8 @@ export class Player {
   load(result: RunResult): void {
     this.cancel();
     this.events = [...result.events];
+    this.animated = isAnimated(this.events);
+    this.resetHold();
     this.index = 0;
     this.progress = 0;
     this.before = { ...INITIAL_STATE };
@@ -104,6 +118,7 @@ export class Player {
   append(events: TurtleEvent[]): void {
     if (!events.length) return;
     this.events.push(...events);
+    this.animated = this.animated || isAnimated(events);
     if (this.status === 'done' || this.status === 'idle') {
       this.stepping = false;
       this.setStatus('playing');
@@ -120,6 +135,8 @@ export class Player {
   reset(): void {
     this.cancel();
     this.events = [];
+    this.animated = false;
+    this.resetHold();
     this.index = 0;
     this.progress = 0;
     this.before = { ...INITIAL_STATE };
@@ -159,7 +176,9 @@ export class Player {
   /** Jump to the end, drawing everything immediately. */
   finish(): void {
     this.cancel();
-    this.advance(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, false);
+    this.skipping = true;
+    this.advance(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, false);
+    this.skipping = false;
     this.complete();
   }
 
@@ -186,10 +205,12 @@ export class Player {
   }
 
   private frame = (now: number): void => {
-    const dt = Math.min(0.05, (now - this.lastTime) / 1000);
+    const elapsed = Math.max(0, (now - this.lastTime) / 1000);
+    const dt = Math.min(0.05, elapsed);
     this.lastTime = now;
     const { px, deg } = SPEEDS[this.speed];
-    const finishedOne = this.advance(px * dt, deg * dt, this.stepping);
+    // Holds follow the real clock (up to a quarter second per frame) so notes and turtle stay in step.
+    const finishedOne = this.advance(px * dt, deg * dt, Math.min(0.25, elapsed), this.stepping);
 
     if (this.index >= this.events.length) {
       this.complete();
@@ -208,8 +229,12 @@ export class Player {
    * Spend a movement budget on the event queue. Returns true when at least one event completed.
    * When `stopAfterOne` is set, stops right after finishing an event.
    */
-  private advance(pxBudget: number, degBudget: number, stopAfterOne: boolean): boolean {
+  private advance(pxBudget: number, degBudget: number, secBudget: number, stopAfterOne: boolean): boolean {
     let finished = false;
+    if (this.animated) {
+      pxBudget = Number.POSITIVE_INFINITY;
+      degBudget = Number.POSITIVE_INFINITY;
+    }
     while (this.index < this.events.length) {
       const e = this.events[this.index]!;
       if (this.progress === 0) this.cb.onLine(e.line);
@@ -240,7 +265,22 @@ export class Player {
         const heading = this.before.heading + Math.sign(delta) * nextProgress;
         this.cb.onSprite({ x: e.state.x, y: e.state.y, heading, visible: e.state.visible }, true);
         if (this.progress < total) return finished;
+      } else if (e.type === 'play' || e.type === 'wait') {
+        if (!this.holdStarted) {
+          this.holdStarted = true;
+          if (e.type === 'play' && !this.skipping) this.cb.onPlay(e.tones);
+        }
+        const total = holdSeconds(e);
+        const skip = this.skipping || (e.type === 'wait' && stopAfterOne);
+        this.cb.onSprite({ x: e.state.x, y: e.state.y, heading: e.state.heading, visible: e.state.visible }, false);
+        if (!skip) {
+          const next = Math.min(total, this.progress + secBudget);
+          secBudget -= next - this.progress;
+          this.progress = next;
+          if (this.progress < total) return finished;
+        }
       } else {
+        if (e.type === 'frame') this.cb.onFrame(++this.frames);
         if (e.type === 'clear') this.clearCanvas();
         if (e.type === 'dot') this.fillDot(e);
         if (e.type === 'show') this.cb.onShow(e.text);
@@ -253,10 +293,18 @@ export class Player {
       this.before = e.state;
       this.index++;
       this.progress = 0;
+      this.holdStarted = false;
       finished = true;
       if (stopAfterOne) return true;
     }
     return finished;
+  }
+
+  private resetHold(): void {
+    this.holdStarted = false;
+    this.skipping = false;
+    this.frames = 0;
+    this.cb.onFrame(null);
   }
 
   private complete(): void {

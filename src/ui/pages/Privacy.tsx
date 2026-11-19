@@ -49,6 +49,10 @@ export default function Privacy() {
           <p className="m-0">Pictures, movies and drawing files (SVG) are made on the child&rsquo;s own device and saved to its downloads folder, or shared through the phone&rsquo;s own share menu. Nothing is uploaded to GIO. A movie carries only the drawing and a small &ldquo;Made with GIO&rdquo; mark.</p>
         </Section>
 
+        <Section title="Music and sound">
+          <p className="m-0">Notes from <code>PLAY</code> are made on the child&rsquo;s own device by the browser&rsquo;s built-in audio. GIO plays no recordings, never uses the microphone for music, and uploads nothing. The sound on/off setting is kept in the browser (the key is called gio.sound) and is never sent to GIO.</p>
+        </Section>
+
         <Section title="The turtle helper (AI)">
           <p className="m-0">When a child asks the turtle to draw or explain something, the words they typed or said, and the code in the editor, are sent to Amazon Bedrock, an AWS service, which runs the Qwen3 Coder model.</p>
           <p className="m-0">When a child taps &ldquo;I&rsquo;m stuck&rdquo;, the code in the editor, which quest they are on and which hint step they asked for (Think, Look or Fix) are sent to Amazon Bedrock the same way. Hints go through the same two checks and count toward the same daily limits. Hints are not stored, and they never change progress, badges or stickers.</p>

@@ -1,8 +1,11 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { DEFAULT_BACKGROUND, type RunResult, type TurtleEvent } from '../../logo/index.js';
 import { Player, WORLD_HALF, type PlayerStatus, type Speed, type SpriteState } from '../runtime/player';
 import type { StickerId } from '../gio/catalog';
 import type { GioMood } from '../gio/mood';
+import { NOTE_KEYS, keyIndexForHz } from '../runtime/keys';
+import { sound } from '../runtime/sound';
+import type { Tone } from '../runtime/timeline';
 import { TurtleSprite } from './TurtleSprite';
 
 export interface StageHandle {
@@ -36,6 +39,7 @@ interface StageProps {
   stickers?: readonly (StickerId | null)[];
 }
 
+const NOTE_GLYPHS = ['\u266a', '\u266b', '\u2669'];
 const BURST_COLORS = ['#ffc93c', '#12a36b', '#2b9bf4', '#ec3f86', '#7a4cf0', '#ef5a4c'];
 
 export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine, onPrint, onStatus, onGameOver, mood, stickers }, ref) {
@@ -53,6 +57,69 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
   const scoreRef = useRef<HTMLDivElement>(null);
   const callbacks = useRef({ onLine, onPrint, onStatus, onGameOver });
   callbacks.current = { onLine, onPrint, onStatus, onGameOver };
+  const notesRef = useRef<HTMLDivElement>(null);
+  const [litKey, setLitKey] = useState<number | null>(null);
+  const [keysOn, setKeysOn] = useState(false);
+  const [picture, setPicture] = useState<number | null>(null);
+  /** The tune on screen: lit keys follow the Player's clock, so Pause holds them too. */
+  const tuneRef = useRef<{ tones: Tone[]; i: number; left: number } | null>(null);
+  const tuneRaf = useRef(0);
+
+  const floatNote = (hz: number | null) => {
+    const layer = notesRef.current;
+    const stage = stageRef.current;
+    const index = keyIndexForHz(hz);
+    if (!layer || !stage || index === null) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const { x, y } = spriteRef.current;
+    const size = stage.clientWidth;
+    const glyph = document.createElement('span');
+    glyph.textContent = NOTE_GLYPHS[Math.floor(Math.random() * NOTE_GLYPHS.length)]!;
+    glyph.style.left = `${((x + WORLD_HALF) / (WORLD_HALF * 2)) * size}px`;
+    glyph.style.top = `${((WORLD_HALF - y) / (WORLD_HALF * 2)) * size - 18}px`;
+    glyph.style.color = NOTE_KEYS[index]!.color;
+    glyph.style.setProperty('--drift', `${Math.round((Math.random() - 0.5) * 36)}px`);
+    glyph.addEventListener('animationend', () => glyph.remove());
+    layer.appendChild(glyph);
+  };
+
+  const stopTune = () => {
+    cancelAnimationFrame(tuneRaf.current);
+    tuneRaf.current = 0;
+    tuneRef.current = null;
+    setLitKey(null);
+    setKeysOn(false);
+  };
+
+  const startTune = (tones: Tone[]) => {
+    stopTune();
+    if (!tones.length) return;
+    tuneRef.current = { tones, i: 0, left: tones[0]!.seconds };
+    setKeysOn(true);
+    setLitKey(keyIndexForHz(tones[0]!.hz));
+    floatNote(tones[0]!.hz);
+    let last = performance.now();
+    const tick = (now: number) => {
+      const tune = tuneRef.current;
+      if (!tune) return;
+      const playing = lastStatusRef.current === 'playing';
+      if (playing) tune.left -= Math.min(0.25, (now - last) / 1000);
+      last = now;
+      while (tune.left <= 0 && tune.i < tune.tones.length - 1) {
+        tune.i++;
+        const next = tune.tones[tune.i]!;
+        tune.left += next.seconds;
+        setLitKey(keyIndexForHz(next.hz));
+        floatNote(next.hz);
+      }
+      if (tune.left <= 0) {
+        stopTune();
+        return;
+      }
+      tuneRaf.current = requestAnimationFrame(tick);
+    };
+    tuneRaf.current = requestAnimationFrame(tick);
+  };
 
   const showScore = (text: string | null) => {
     const el = scoreRef.current;
@@ -152,7 +219,18 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
       onBackground: applyBackground,
       onShow: showScore,
       onGameOver: () => callbacks.current.onGameOver(),
+      onPlay: (tones) => {
+        sound.play(tones);
+        startTune(tones);
+      },
+      onFrame: setPicture,
       onStatus: (status) => {
+        if (status === 'paused') sound.pause();
+        else if (status === 'playing') sound.resume();
+        else {
+          sound.stop();
+          stopTune();
+        }
         if (status === 'done' && lastStatusRef.current === 'playing' && !gameRef.current) celebrate();
         lastStatusRef.current = status;
         callbacks.current.onStatus(status);
@@ -167,6 +245,8 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
     });
     observer.observe(stageRef.current!);
     return () => {
+      sound.stop();
+      stopTune();
       observer.disconnect();
       player.destroy();
       playerRef.current = null;
@@ -216,6 +296,17 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
       <canvas ref={guideRef} aria-hidden="true" />
       <canvas ref={canvasRef} />
       <div ref={burstRef} className="burst" aria-hidden="true" />
+      <div ref={notesRef} className="stage-notes" aria-hidden="true" />
+      {picture !== null && <div className="picture-chip">Picture {picture}</div>}
+      {keysOn ? (
+        <div className="note-keys" aria-hidden="true">
+          {NOTE_KEYS.map((key, k) => (
+            <span key={k} className={k === litKey ? 'note-key is-lit' : 'note-key'} style={{ ['--key' as string]: key.color }}>
+              {key.label}
+            </span>
+          ))}
+        </div>
+      ) : null}
       <div ref={scoreRef} className="scoreboard" role="status" aria-live="polite" hidden />
       <div ref={turtleRef} className="turtle is-idle">
         <TurtleSprite mood={mood} stickers={stickers} />

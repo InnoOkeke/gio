@@ -56,6 +56,9 @@ function spriteOf(state: TurtleState): ReplaySprite {
  * quick turns each get a fair share of the movie. The last picture is the complete drawing.
  */
 export function planReplay(events: readonly TurtleEvent[], opts: ReplayOptions): ReplayFrame[] {
+  const markers: number[] = [];
+  events.forEach((e, k) => e.type === 'frame' && markers.push(k));
+  if (markers.length) return planMovie(events, markers, opts.maxFrames);
   const befores: TurtleState[] = [];
   const prefix: number[] = [0];
   let state: TurtleState = INITIAL_STATE;
@@ -98,6 +101,21 @@ export function planReplay(events: readonly TurtleEvent[], opts: ReplayOptions):
       };
     }
     frames.push({ upto: idx, fraction: e.type === 'dot' ? 0 : fraction, t: k / count, sprite });
+  }
+  return frames;
+}
+
+/**
+ * A FRAME program is already a movie: one picture per FRAME, evenly sampled down to `maxFrames`.
+ * There is no padding up to minFrames, so a program with 5 FRAMEs gives a 5-picture movie.
+ */
+function planMovie(events: readonly TurtleEvent[], markers: readonly number[], maxFrames: number): ReplayFrame[] {
+  const count = Math.min(markers.length, Math.max(1, maxFrames));
+  const frames: ReplayFrame[] = [];
+  for (let k = 1; k <= count; k++) {
+    // Always keep the last FRAME so the movie ends on the finished picture.
+    const marker = markers[Math.round((k * markers.length) / count) - 1]!;
+    frames.push({ upto: marker + 1, fraction: 0, t: k / count, sprite: spriteOf(events[marker]!.state) });
   }
   return frames;
 }

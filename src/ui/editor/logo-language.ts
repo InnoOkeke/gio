@@ -8,10 +8,28 @@ import { NAMED_COLORS, PRIMITIVES } from '../../logo/index.js';
 const COMMAND_WORDS = new Set(PRIMITIVES.flatMap((p) => [p.name, ...p.aliases]));
 const CONTROL_WORDS = new Set(['REPEAT', 'IF', 'IFELSE', 'TO', 'END', 'MAKE', 'STOP', 'WHEN']);
 
-const logoParser: StreamParser<null> = {
+/** Where the parser is relative to PLAY: right after the word, or inside its [ ] list of notes. */
+interface LogoState {
+  tune: 'none' | 'after-play' | 'inside';
+}
+
+const logoParser: StreamParser<LogoState> = {
   name: 'logo',
-  token(stream) {
+  startState: () => ({ tune: 'none' }),
+  copyState: (s) => ({ ...s }),
+  token(stream, state) {
     if (stream.eatSpace()) return null;
+    if (state.tune === 'inside') {
+      if (stream.match(']')) {
+        state.tune = 'none';
+        return 'bracket';
+      }
+      // Notes such as C, F#, Bb3 and R read as words of the tune.
+      if (stream.match(/^[A-Ga-gRr](#|b)?\d?(?![A-Za-z0-9_.?])/)) return 'string';
+    } else if (state.tune === 'after-play') {
+      state.tune = stream.match('[') ? 'inside' : 'none';
+      if (state.tune === 'inside') return 'bracket';
+    }
     if (stream.match(';')) {
       stream.skipToEnd();
       return 'comment';
@@ -24,6 +42,7 @@ const logoParser: StreamParser<null> = {
     const word = stream.match(/^[A-Za-z_][A-Za-z0-9_.?]*/) as RegExpMatchArray | null;
     if (word) {
       const upper = word[0].toUpperCase();
+      if (upper === 'PLAY') state.tune = 'after-play';
       if (CONTROL_WORDS.has(upper)) return 'keyword';
       if (COMMAND_WORDS.has(upper)) return 'atom';
       return 'def';

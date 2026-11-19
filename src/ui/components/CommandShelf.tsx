@@ -36,6 +36,22 @@ const GROUPS: { title: string; snippets: Snippet[] }[] = [
     ],
   },
   {
+    title: 'Music',
+    snippets: [
+      { code: 'PLAY [C D E]', hint: 'Play three notes, one after another' },
+      { code: 'PLAY [C E G 2]', hint: 'Play notes; the 2 makes the last one twice as long' },
+      { code: 'SETTEMPO 90', hint: 'Play the notes slower (bigger numbers are faster)' },
+    ],
+  },
+  {
+    title: 'Movie',
+    snippets: [
+      { code: 'FRAME', hint: 'Show this picture, then hold it a moment' },
+      { code: 'WAIT 30', hint: 'Wait half a second (60 is one second)' },
+      { code: 'CLEAN', hint: 'Wipe the picture to start the next one' },
+    ],
+  },
+  {
     title: 'Game',
     snippets: [{ code: 'WHEN "up [ ]', hint: 'Do the commands inside [ ] when the up arrow is pressed' }],
   },

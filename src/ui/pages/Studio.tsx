@@ -27,6 +27,8 @@ import {
   TurtleSpeedIcon,
 } from '../components/icons';
 import { ExportMenu } from '../components/ExportMenu';
+import { SoundToggle } from '../components/SoundToggle';
+import { sound } from '../runtime/sound';
 import { hasDrawing, toSVG } from '../export/svg';
 import { FirstWinOffer, FirstWinYours, FIRST_WIN_TEXT, useFirstWin } from '../components/FirstWin';
 import { FriendDialog } from '../components/FriendDialog';
@@ -580,6 +582,9 @@ function StudioView({ initial }: { initial: Loaded }) {
       setStatus(s);
       // A finished key press in a game is not the end of the program.
       if (s === 'done' && pressingRef.current) return;
+      if (s === 'done' && lastRunRef.current && stageRef.current?.events().some((e) => e.type === 'frame')) {
+        toast.show({ text: 'Your movie is ready! Use Save, then Movie, to keep it.' }, 6000);
+      }
       if (s === 'done') {
         const { earned, run } = creditRun();
         if (questRef.current) checkActiveQuest(earned, run);
@@ -632,6 +637,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const onReset = () => {
     finishFirstWin();
     endGame();
+    sound.stop();
     stageRef.current?.reset();
     editorRef.current?.setProblemLine(null);
     setPrints([]);
@@ -1051,6 +1057,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                 <button type="button" className="btn btn-ghost btn-icon" onClick={onReset} aria-label="Clear the drawing" title="Clear the drawing">
                   <ResetIcon />
                 </button>
+                <SoundToggle />
                 <ExportMenu empty={!hasDrawing(stageRef.current?.events() ?? [])} little={little} onPicture={exportPicture} onMovie={openMovie} onDrawingFile={exportSvg} />
               </div>
             </div>

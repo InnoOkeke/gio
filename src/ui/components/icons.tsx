@@ -199,6 +199,23 @@ export const SpeakerIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const MusicIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 18V6l10-2v12" />
+    <circle cx="6.5" cy="18" r="2.5" fill="currentColor" fillOpacity={0.2} />
+    <circle cx="16.5" cy="16" r="2.5" fill="currentColor" fillOpacity={0.2} />
+  </Icon>
+);
+
+export const MusicOffIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M9 18V6l10-2v12" />
+    <circle cx="6.5" cy="18" r="2.5" />
+    <circle cx="16.5" cy="16" r="2.5" />
+    <path d="M3 3l18 18" />
+  </Icon>
+);
+
 export const SpeakerOffIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4Z" fill="currentColor" fillOpacity={0.2} />

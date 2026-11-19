@@ -65,6 +65,12 @@ describe('toSVG', () => {
     expect(svg).toContain('d="M 0 0 L 20 0"');
   });
 
+  it('ignores music, waits and movie pictures', () => {
+    const plain = toSVG(events('FD 50 RT 90 FD 30'), { title: 'x' });
+    const busy = toSVG(events('PLAY [C D] FD 50 FRAME WAIT 30 RT 90 SETTEMPO 90 FD 30 FRAME'), { title: 'x' });
+    expect(busy).toBe(plain);
+  });
+
   it('gives each colour its own path', () => {
     const svg = toSVG(events('SETPC "red FD 50 SETPC "blue FD 50'), { title: 'x' })!;
     const paths = svg.match(/<path [^>]*>/g)!;
