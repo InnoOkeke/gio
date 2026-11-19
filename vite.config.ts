@@ -71,6 +71,8 @@ export default defineConfig({
       output: {
         // The Python frame has an opaque origin, so everything it loads must come from /py/ (which is sent with CORS headers).
         entryFileNames: (chunk) => (chunk.name === 'runner' ? 'py/[name]-[hash].js' : 'assets/[name]-[hash].js'),
+        // The editor libraries get their own file so the main chunk stays small. Only the main page imports them.
+        manualChunks: (id) => (/node_modules[\\/](@codemirror|@lezer|style-mod|w3c-keyname|crelt)[\\/]/.test(id) ? 'editor' : undefined),
       },
     },
   },
