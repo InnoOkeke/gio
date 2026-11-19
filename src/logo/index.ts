@@ -10,10 +10,12 @@ export { run, formatValue, INITIAL_STATE, DEFAULT_BACKGROUND, DEFAULT_LIMITS } f
 export type { TurtleEvent, TurtleState, RunResult, RunOptions, RunLimits, Value, GameSession } from './interpreter.js';
 export { PRIMITIVES, lookupPrimitive, GAME_KEYS } from './primitives.js';
 export type { PrimitiveSpec, GameKey } from './primitives.js';
+export { parseTune, noteHz, noteName } from './music.js';
+export type { Tune, TuneItem } from './music.js';
 export { NAMED_COLORS, PALETTE_16 } from './colors.js';
 export { translate, toText } from './translate.js';
-export { toBlocks, blocksToLogo, BLOCK_COLORS, BLOCK_COMMANDS_HELP } from './blocks.js';
-export type { Block, BlockKind, ToBlocksResult } from './blocks.js';
+export { toBlocks, blocksToLogo, BLOCK_COLORS, BLOCK_COMMANDS_HELP, NOTE_PITCHES } from './blocks.js';
+export type { Block, BlockKind, NotePitch, ToBlocksResult } from './blocks.js';
 export type { TargetLanguage, Translation, TranslatedLine } from './translate.js';
 
 export interface LogoProblem {

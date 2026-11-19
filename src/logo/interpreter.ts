@@ -1,6 +1,7 @@
 import { NAMED_COLORS, PALETTE_16, rgbToHex } from './colors.js';
 import { LogoError, suggest, type SourcePos } from './errors.js';
 import type { Expr, Procedure, Program, Stmt } from './parser.js';
+import { parseTune } from './music.js';
 import type { GameKey } from './primitives.js';
 
 export type Value = number | string | boolean | Value[];
@@ -35,7 +36,11 @@ export type TurtleEvent =
   | (EventBase & { type: 'print'; text: string })
   | (EventBase & { type: 'dot'; x: number; y: number; r: number; color: string })
   | (EventBase & { type: 'show'; text: string })
-  | (EventBase & { type: 'gameover' });
+  | (EventBase & { type: 'gameover' })
+  /** Notes to play one after another. hz: null is a rest. Tempo is already worked into seconds. */
+  | (EventBase & { type: 'play'; tones: { hz: number | null; seconds: number }[] })
+  | (EventBase & { type: 'wait'; seconds: number })
+  | (EventBase & { type: 'frame' });
 
 export interface RunLimits {
   /** Statements and loop rounds executed before GIO stops a runaway program. */
@@ -44,9 +49,11 @@ export interface RunLimits {
   maxEvents: number;
   /** How deep procedures may call each other (recursion). */
   maxDepth: number;
+  /** Seconds of music and waiting one run may add up to. */
+  maxSeconds: number;
 }
 
-export const DEFAULT_LIMITS: RunLimits = { maxOps: 200_000, maxEvents: 20_000, maxDepth: 200 };
+export const DEFAULT_LIMITS: RunLimits = { maxOps: 200_000, maxEvents: 20_000, maxDepth: 200, maxSeconds: 180 };
 
 export interface RunOptions {
   limits?: Partial<RunLimits>;
@@ -111,6 +118,8 @@ class Interpreter {
   private readonly frames: Map<string, Value>[] = [];
   private readonly repcounts: number[] = [];
   private ops = 0;
+  private seconds = 0;
+  private tempo = 120;
   private readonly limits: RunLimits;
   private readonly random: () => number;
 
@@ -155,6 +164,7 @@ class Interpreter {
     if (!body || this.gameOver) return [];
     this.events = [];
     this.ops = 0;
+    this.seconds = 0;
     try {
       this.execBlock(body);
     } catch (err) {
@@ -170,6 +180,16 @@ class Interpreter {
         `Your program ran ${this.limits.maxOps.toLocaleString('en-US')} steps, so I stopped it. Is a REPEAT or command repeating forever?`,
         pos,
       );
+    }
+  }
+
+  /** Add music and waiting time to the running total, and stop a show that goes on too long. */
+  private addSeconds(seconds: number, pos: SourcePos): void {
+    this.seconds += seconds;
+    if (this.seconds > this.limits.maxSeconds + 1e-9) {
+      const max = this.limits.maxSeconds;
+      const length = max % 60 === 0 ? `${max / 60} minute${max === 60 ? '' : 's'}` : `${max} seconds`;
+      throw new LogoError(`Your show is longer than ${length}, so I stopped it. Try shorter notes or fewer WAITs.`, pos);
     }
   }
 
@@ -411,6 +431,35 @@ class Interpreter {
       }
       case 'SHOW':
         this.emit({ type: 'show', text: formatValue(this.eval(argExprs[0]!)), line, state: this.snapshot() });
+        return;
+      case 'PLAY': {
+        const tune = parseTune(this.eval(argExprs[0]!), argExprs[0]!.pos);
+        const tones = tune.items.map((item) => ({ hz: item.hz, seconds: (item.beats * 60) / this.tempo }));
+        this.addSeconds(tones.reduce((sum, t) => sum + t.seconds, 0), pos);
+        this.emit({ type: 'play', tones, line, state: this.snapshot() });
+        return;
+      }
+      case 'SETTEMPO': {
+        const bpm = num(0);
+        if (bpm < 20 || bpm > 300) {
+          throw new LogoError(`SETTEMPO needs a number from 20 to 300 beats a minute, like SETTEMPO 120. You gave ${formatValue(bpm)}.`, argExprs[0]!.pos);
+        }
+        this.tempo = bpm;
+        return;
+      }
+      case 'WAIT': {
+        const n = num(0);
+        if (n < 0 || n > 600) {
+          throw new LogoError(`WAIT needs a number from 0 to 600 (60 is one second). You gave ${formatValue(n)}.`, argExprs[0]!.pos);
+        }
+        this.addSeconds(n / 60, pos);
+        this.emit({ type: 'wait', seconds: n / 60, line, state: this.snapshot() });
+        return;
+      }
+      case 'FRAME':
+        this.addSeconds(0.25, pos);
+        this.emit({ type: 'frame', line, state: this.snapshot() });
+        this.emit({ type: 'wait', seconds: 0.25, line, state: this.snapshot() });
         return;
       case 'GAMEOVER':
         this.gameOver = true;

@@ -22,6 +22,9 @@ const SPECS: Record<BlockKind, Spec> = {
   color: { label: 'Colour', glyph: '🎨', color: '#ec3f86', make: () => ({ kind: 'color', color: 'red' }) },
   size: { label: 'Thick pen', glyph: '●', color: '#f97316', make: () => ({ kind: 'size', n: 5 }), number: { step: 1, min: 1, max: 20 } },
   circle: { label: 'Circle', glyph: '◯', color: '#0f8fa6', make: () => ({ kind: 'circle', n: 50 }), number: { step: 10, min: 10, max: 150 } },
+  note: { label: 'Note', glyph: '♪', color: '#d9467a', make: () => ({ kind: 'note', pitch: 'C', beats: 1 }) },
+  frame: { label: 'Show picture', glyph: '🎞', color: '#8b5cf6', make: () => ({ kind: 'frame' }) },
+  wait: { label: 'Wait', glyph: '⏳', color: '#64748b', make: () => ({ kind: 'wait', n: 30 }), number: { step: 10, min: 0, max: 600 } },
   repeat: { label: 'Repeat', glyph: '🔁', color: '#7a4cf0', make: () => ({ kind: 'repeat', n: 4, body: [] }), number: { step: 1, min: 1, max: 36, unit: '×' } },
 };
 

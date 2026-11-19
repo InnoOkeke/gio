@@ -183,3 +183,66 @@ describe('properties', () => {
     );
   });
 });
+
+describe('music, waits and frames', () => {
+  it('adds no helpers to programs that do not use these commands', () => {
+    const out = py('REPEAT 4 [FD 100 RT 90]');
+    for (const word of ['sleep', 'winsound', 'play', 'tracer', 'note_hz']) expect(out).not.toContain(word);
+  });
+  it('adds the music helpers only when PLAY is used', () => {
+    const out = py('PLAY [C D]');
+    expect(out).toContain('from time import sleep');
+    expect(out).toContain('from winsound import Beep');
+    expect(out).toContain('Beep = None');
+    expect(out).toContain("# CPython's turtle has no sound");
+    expect(out).toContain('def note_hz(word):');
+    expect(out).toContain('def play(tune):');
+    expect(out).not.toContain('def wait(n)');
+    expect(out).not.toContain('def frame()');
+    expect(out).not.toContain('tracer(0)');
+  });
+  it('passes a literal list, a quoted word and a variable to play()', () => {
+    expect(py('PLAY [C D E 2 R F# 0.5]')).toContain('play(["C", "D", "E", 2, "R", "F#", 0.5])');
+    expect(py('PLAY "C')).toContain('play("C")');
+    expect(py('MAKE "tune [C E G]\nPLAY :tune')).toContain('play(tune)');
+  });
+  it('writes tempo, wait and frame lines', () => {
+    const out = py('SETTEMPO 90\nWAIT 30\nFRAME');
+    expect(out).toContain('settempo(90)');
+    expect(out).toContain('wait(30)');
+    expect(out).toContain('frame()');
+    expect(out).toContain('def wait(n):\n    sleep(n / 60)');
+    expect(out).toContain('def frame():\n    update()\n    sleep(0.25)');
+  });
+  it('writes tracer(0) after mode only when frames are used', () => {
+    expect(py('FRAME')).toContain('mode("logo")  # start facing up and turn clockwise, like Logo\ntracer(0)');
+    expect(py('WAIT 5')).not.toContain('tracer(0)');
+    expect(py('PLAY [C]')).not.toContain('tracer(0)');
+  });
+  it('renames kid variables that would shadow the helpers', () => {
+    const out = py('MAKE "wait 5\nFD :wait');
+    expect(out).toContain('wait_ = 5');
+    expect(out).toContain('forward(wait_)');
+    expect(py('MAKE "frame 1\nMAKE "play 2\nMAKE "update 3')).toContain('update_ = 3');
+    expect(js('MAKE "wait 5\nFD :wait')).toContain('let wait_ = 5;');
+  });
+  it('writes JavaScript calls', () => {
+    const out = js('SETTEMPO 90\nPLAY [C D E 2]\nWAIT 30\nFRAME');
+    expect(out).toContain('setTempo(90);');
+    expect(out).toContain('play(["C", "D", "E", 2]);');
+    expect(out).toContain('wait(30);');
+    expect(out).toContain('frame();');
+    expect(out).not.toContain('sleep');
+  });
+  it('maps the new lines back to their Logo lines', () => {
+    const t = tr('FD 10\nSETTEMPO 90\nPLAY [C]\nWAIT 5\nFRAME', 'python');
+    const lineOf = (text: string) => t.lines.find((l) => l.text.trim() === text)?.src;
+    expect(lineOf('settempo(90)')).toBe(2);
+    expect(lineOf('play(["C"])')).toBe(3);
+    expect(lineOf('wait(5)')).toBe(4);
+    expect(lineOf('frame()')).toBe(5);
+    const j = tr('PLAY [C]\nFRAME', 'javascript');
+    expect(j.lines.find((l) => l.text === 'play(["C"]);')?.src).toBe(1);
+    expect(j.lines.find((l) => l.text === 'frame();')?.src).toBe(2);
+  });
+});

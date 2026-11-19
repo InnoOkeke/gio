@@ -4,37 +4,17 @@
  *
  * For each program it compares the turtle's final position, heading and pen state,
  * and where every arc ends, between GIO's interpreter and Python.
+ * It also compares the timeline of music and pauses: every tone, every wait, every frame.
+ * Python never really beeps or sleeps here: a recorder stands in for winsound and time.sleep.
  */
 import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { check, press, start, toText, translate, type GameKey, type TurtleEvent } from '../src/logo/index.js';
+import { PRESSES, PROGRAMS } from './check-programs.js';
 
-const PROGRAMS: Record<string, string> = {
-  square: 'REPEAT 4 [FD 100 RT 90]',
-  star: 'REPEAT 5 [FD 150 RT 144]',
-  spiral: 'TO SPIRAL :n\n IF :n > 120 [STOP]\n FD :n RT 91\n SPIRAL :n + 7\nEND\nSPIRAL 5',
-  flower: '; Rainbow Flower\nSETPENSIZE 4\nREPEAT 12 [\n  SETPENCOLOR REPCOUNT\n  REPEAT 2 [ARC 60 120 RT 120]\n  RT 30\n]\nSETPENCOLOR "yellow\nCIRCLE 18',
-  arc: 'RT 30 ARC 90 100',
-  setxy: 'PU SETXY -100 -50 PD SETXY 40 80 SETHEADING 135 FD 30',
-  globals: 'MAKE "size 20\nTO GROW\n MAKE "size :size * 2\nEND\nREPEAT 4 [GROW FD :size LT 45]',
-  ifelse: 'MAKE "x 3\nREPEAT 6 [IFELSE REPCOUNT > :x [RT 60] [LT 30] FD 40]',
-  maths: 'FD 100 - (20 - 5) RT (2 + 3) * 4 FD 10 * SIN 30 BK SQRT 16',
-  clearscreen: 'FD 50 RT 90 FD 50 CS FD 25',
-  home: 'RT 45 FD 70 HOME FD 10',
-  penup: 'PU FD 50 RT 90 FD 20 PD CIRCLE 10 HT',
-  game: 'MAKE "step 10\nWHEN "up [FD :step MAKE "step :step + 5]\nWHEN "right [RT 90]\nWHEN "left [LT 45]\nWHEN "space [CIRCLE 15]',
-  catch: 'MAKE "score 0\nMAKE "ay 50\nSETPENCOLOR "red\nDOT 0 :ay\nSHOW :score\nWHEN "up [FD 10]\nWHEN "tick [\n  IF DISTANCE 0 :ay < 15 [\n    MAKE "score :score + 1\n    SHOW :score\n    IF :score = 2 [SHOW [You win!] GAMEOVER]\n    MAKE "ay :ay + 50\n    DOT 0 :ay\n  ]\n]',
-  sketch: 'WHEN "up [SETH 0 FD 10]\nWHEN "down [SETH 180 FD 10]\nWHEN "left [SETH 270 FD 10]\nWHEN "right [SETH 90 FD 10]',
-};
-
-/** Keys pressed (in order) for programs that are games. Python calls the same handler functions. */
-const PRESSES: Record<string, GameKey[]> = {
-  game: ['UP', 'RIGHT', 'UP', 'SPACE', 'LEFT', 'UP', 'UP'],
-  sketch: ['UP', 'UP', 'RIGHT', 'RIGHT', 'DOWN', 'LEFT'],
-  catch: ['UP', 'UP', 'UP', 'UP', 'UP', 'TICK', 'UP', 'UP', 'UP', 'UP', 'UP', 'TICK', 'UP'],
-};
+type Recorded = ['tone', number, number] | ['sleep', number];
 
 interface PythonState {
   x: number;
@@ -42,6 +22,8 @@ interface PythonState {
   h: number;
   down: boolean;
   arcs: [number, number][];
+  rec: Recorded[];
+  frames: number;
 }
 
 /** GIO draws an arc as lines while the turtle stands still; the last line of each run is where the arc ends. */
@@ -61,17 +43,70 @@ function gioArcEnds(events: TurtleEvent[]): [number, number][] {
   return ends;
 }
 
-function instrument(code: string, presses: GameKey[]): string {
+/** One entry of the timeline: a tone (hz is a whole number) or a hold (hz is null) with its seconds. */
+type Slot = [hz: number | null, seconds: number];
+
+/** Adjacent holds are merged and every length is rounded to 3 decimals, so both sides compare cleanly. */
+function flatten(slots: Slot[]): Slot[] {
+  const merged: Slot[] = [];
+  for (const [hz, seconds] of slots) {
+    const last = merged[merged.length - 1];
+    if (hz === null && last && last[0] === null) last[1] += seconds;
+    else merged.push([hz, seconds]);
+  }
+  return merged.filter(([hz, seconds]) => hz !== null || seconds > 0).map(([hz, seconds]) => [hz, Math.round(seconds * 1000) / 1000]);
+}
+
+/** The timeline GIO's interpreter promises. With `beep`, notes are tones; without it (no winsound) they are holds. */
+function gioTimeline(events: TurtleEvent[], beep: boolean): Slot[] {
+  const slots: Slot[] = [];
+  for (const e of events) {
+    if (e.type === 'wait') slots.push([null, e.seconds]);
+    if (e.type !== 'play') continue;
+    for (const tone of e.tones) {
+      if (beep && tone.hz !== null) slots.push([Math.round(tone.hz), Math.round(tone.seconds * 1000) / 1000]);
+      else slots.push([null, tone.seconds]);
+    }
+  }
+  return flatten(slots);
+}
+
+function pythonTimeline(rec: Recorded[]): Slot[] {
+  return flatten(rec.map((r): Slot => (r[0] === 'tone' ? [r[1], r[2]] : [null, r[1]])));
+}
+
+/**
+ * Real Python runs the translated program with a recorder installed before the program's own header:
+ * a stand-in winsound (or none, to test the branch for other systems), a time.sleep that only writes down
+ * how long it was asked to sleep, and an update() that counts frames.
+ */
+function instrument(code: string, presses: GameKey[], beep: boolean): string {
   // After game_over() Python unbinds the keys and stops the clock, so presses only count while the game is on.
   const calls = presses.map((k) => `if globals().get("_playing", True): on_${k.toLowerCase()}()`).join('\n');
+  const prelude = [
+    'import sys, time, types',
+    '_rec = []',
+    '_frames = [0]',
+    'time.sleep = lambda seconds: _rec.append(["sleep", seconds])',
+    beep
+      ? '_ws = types.ModuleType("winsound")\n_ws.Beep = lambda hz, ms: _rec.append(["tone", hz, ms / 1000])\nsys.modules["winsound"] = _ws'
+      : 'sys.modules["winsound"] = None',
+    '_real_update = update',
+    'def update():',
+    '    _frames[0] += 1',
+    '    _real_update()',
+  ].join('\n');
   return code
+    .replace('from turtle import *', `from turtle import *\n${prelude}`)
     .replace('mode("logo")', 'mode("logo")\ntracer(0)\n_arc_ends = []')
     // The test presses keys and ticks itself, so don't start Python's own game clock.
     .replace('\n_tick()  # start the game clock', '')
+    // The final update() only shows the last picture; it is not a frame the program asked for.
+    .replace('\nupdate()  # show the last picture', '')
     .replace('    circle(-radius, angle)\n', '    circle(-radius, angle)\n    _arc_ends.append((round(xcor(), 3), round(ycor(), 3)))\n')
     .replace(
       /\ndone\(\)$/,
-      `\n${calls}\nimport json\nprint(json.dumps({"x": round(xcor(), 3), "y": round(ycor(), 3), "h": round(heading(), 3) % 360, "down": isdown(), "arcs": _arc_ends}))\nbye()`,
+      `\n${calls}\nimport json\nprint(json.dumps({"x": round(xcor(), 3), "y": round(ycor(), 3), "h": round(heading(), 3) % 360, "down": isdown(), "arcs": _arc_ends, "rec": _rec, "frames": _frames[0]}))\nbye()`,
     );
 }
 
@@ -80,31 +115,47 @@ const nearAngle = (a: number, b: number) => Math.min(Math.abs(a - b), 360 - Math
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-py-'));
 let failures = 0;
-try {
-  for (const [name, source] of Object.entries(PROGRAMS)) {
-    const presses = PRESSES[name] ?? [];
-    const started = start(source);
-    const parsed = check(source);
-    if (!started.ok || !parsed.ok) throw new Error(`${name} is not a valid program`);
-    const events = [...started.result.events];
-    for (const key of presses) {
-      const r = press(started.session, key);
-      if (!r.ok) throw new Error(`${name}: ${r.problem.message}`);
-      events.push(...r.events);
-    }
-    const final = events.length ? events[events.length - 1]!.state : started.result.final;
 
-    const file = path.join(tmp, `${name}.py`);
-    fs.writeFileSync(file, instrument(toText(translate(parsed.program, source, 'python')), presses));
-    const py = JSON.parse(execFileSync('python', [file], { encoding: 'utf8' }).trim().split('\n').pop()!) as PythonState;
-
-    const f = final;
-    const arcs = gioArcEnds(events);
-    const stateOk = near(f.x, py.x) && near(f.y, py.y) && nearAngle(f.heading, py.h) && f.penDown === py.down;
-    const arcsOk = arcs.length === py.arcs.length && arcs.every(([x, y], k) => near(x, py.arcs[k]![0]) && near(y, py.arcs[k]![1]));
-    if (!stateOk || !arcsOk) failures++;
-    console.log(`${stateOk && arcsOk ? 'PASS' : 'FAIL'}  ${name.padEnd(12)}${presses.length ? ` (${presses.length} key presses)` : ''} final (${py.x}, ${py.y}) heading ${py.h}  arcs ${arcs.length}/${py.arcs.length}`);
+function verify(name: string, beep: boolean): void {
+  const source = PROGRAMS[name]!;
+  const presses = PRESSES[name] ?? [];
+  const started = start(source);
+  const parsed = check(source);
+  if (!started.ok || !parsed.ok) throw new Error(`${name} is not a valid program`);
+  const events = [...started.result.events];
+  for (const key of presses) {
+    const r = press(started.session, key);
+    if (!r.ok) throw new Error(`${name}: ${r.problem.message}`);
+    events.push(...r.events);
   }
+  const final = events.length ? events[events.length - 1]!.state : started.result.final;
+
+  const file = path.join(tmp, `${name}${beep ? '' : '-no-winsound'}.py`);
+  fs.writeFileSync(file, instrument(toText(translate(parsed.program, source, 'python')), presses, beep));
+  const py = JSON.parse(execFileSync('python', [file], { encoding: 'utf8' }).trim().split('\n').pop()!) as PythonState;
+
+  const arcs = gioArcEnds(events);
+  const stateOk = near(final.x, py.x) && near(final.y, py.y) && nearAngle(final.heading, py.h) && final.penDown === py.down;
+  const arcsOk = arcs.length === py.arcs.length && arcs.every(([x, y], k) => near(x, py.arcs[k]![0]) && near(y, py.arcs[k]![1]));
+  const gioSlots = gioTimeline(events, beep);
+  const pySlots = pythonTimeline(py.rec);
+  const gioFrames = events.filter((e) => e.type === 'frame').length;
+  const timelineOk = JSON.stringify(gioSlots) === JSON.stringify(pySlots) && gioFrames === py.frames;
+  const ok = stateOk && arcsOk && timelineOk;
+  if (!ok) failures++;
+
+  const label = beep ? name : `${name} (no winsound)`;
+  const extras = [presses.length ? `${presses.length} key presses` : '', gioSlots.length || gioFrames ? `timeline ${gioSlots.length}/${pySlots.length} slots, frames ${gioFrames}/${py.frames}` : '']
+    .filter(Boolean)
+    .join(', ');
+  console.log(`${ok ? 'PASS' : 'FAIL'}  ${label.padEnd(20)} final (${py.x}, ${py.y}) heading ${py.h}  arcs ${arcs.length}/${py.arcs.length}${extras ? `  (${extras})` : ''}`);
+  if (!timelineOk) console.log(`      GIO    ${JSON.stringify(gioSlots)} frames ${gioFrames}\n      Python ${JSON.stringify(pySlots)} frames ${py.frames}`);
+}
+
+try {
+  for (const name of Object.keys(PROGRAMS)) verify(name, true);
+  // The same tune where winsound does not exist (macOS, Linux): every note becomes a plain wait.
+  verify('tune', false);
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });
 }

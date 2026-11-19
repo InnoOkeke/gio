@@ -31,6 +31,7 @@ const PYTHON_RESERVED = new Set([
   'sqrt', 'sin', 'cos', 'radians', 'speed', 'logo_arc', 'logo_clearscreen', 'palette', 'onkey', 'listen',
   'on_up', 'on_down', 'on_left', 'on_right', 'on_space', 'on_tick', 'show', 'dot', 'logo_dot', 'game_over', 'distance',
   'ontimer', 'position', 'turtle',
+  'play', 'settempo', 'wait', 'frame', 'update', 'tracer', 'sleep', 'note_hz', 'winsound', '_tempo', '_tone',
 ]);
 
 const JS_KEYWORDS = new Set([
@@ -42,7 +43,7 @@ const JS_KEYWORDS = new Set([
 const JS_RESERVED = new Set([
   'forward', 'back', 'right', 'left', 'penup', 'pendown', 'home', 'clearscreen', 'clean', 'goto', 'setx', 'sety', 'setheading',
   'pencolor', 'pensize', 'background', 'hideturtle', 'showturtle', 'heading', 'xcor', 'ycor', 'arc', 'circle', 'onkey',
-  'ontick', 'show', 'dot', 'gameover', 'distance',
+  'ontick', 'show', 'dot', 'gameover', 'distance', 'play', 'settempo', 'setTempo', 'wait', 'frame',
 ]);
 
 function identifier(name: string, language: TargetLanguage): string {
@@ -135,7 +136,7 @@ class Translator {
   private readonly trailingComments: { line: number; text: string }[] = [];
   private readonly emittedCommentLines = new Set<number>();
   private pendingNote: string | null = null;
-  private readonly needs = { arc: false, clearscreen: false, palette: false, random: false, math: false, keys: false, tick: false, dot: false, show: false, gameover: false };
+  private readonly needs = { arc: false, clearscreen: false, palette: false, random: false, math: false, keys: false, tick: false, dot: false, show: false, gameover: false, music: false, wait: false, frames: false };
 
   constructor(
     private readonly program: Program,
@@ -212,6 +213,7 @@ class Translator {
           { text: '' },
           ...(this.needs.tick ? [{ text: '_tick()  # start the game clock' }] : []),
           ...(this.needs.keys ? [{ text: 'listen()  # start listening for the keys' }] : []),
+          ...(this.needs.frames ? [{ text: 'update()  # show the last picture' }] : []),
           { text: 'done()' },
         ]
       : [];
@@ -225,9 +227,15 @@ class Translator {
       return [{ text: '// JavaScript, the language of the web' }, { text: "// (uses GIO's turtle commands)" }, { text: '' }];
     }
     const out: TranslatedLine[] = [{ text: 'from turtle import *' }];
+    if (this.needs.music || this.needs.wait || this.needs.frames) out.push({ text: 'from time import sleep' });
+    if (this.needs.music) {
+      out.push({ text: "# CPython's turtle has no sound, so notes beep on Windows and otherwise just wait" }, { text: 'try:' }, { text: '    from winsound import Beep' }, { text: 'except ImportError:' }, { text: '    Beep = None' });
+    }
     if (this.needs.random) out.push({ text: 'from random import randrange' });
     if (this.needs.math) out.push({ text: 'from math import sqrt, sin, cos, radians' });
-    out.push({ text: '' }, { text: 'mode("logo")  # start facing up and turn clockwise, like Logo' }, { text: '' });
+    out.push({ text: '' }, { text: 'mode("logo")  # start facing up and turn clockwise, like Logo' });
+    if (this.needs.frames) out.push({ text: 'tracer(0)  # draw a new picture only when frame() is called' });
+    out.push({ text: '' });
 
     if (this.needs.palette) {
       out.push(
@@ -270,6 +278,53 @@ class Translator {
         { text: '        pendown()' },
         { text: '' },
       );
+    }
+    if (this.needs.music) {
+      out.push(
+        { text: '_tempo = 120  # beats a minute' },
+        { text: '' },
+        { text: '# A note word like C, F#4 or Bb3 becomes a pitch in hertz (R is a rest)' },
+        { text: 'def note_hz(word):' },
+        { text: '    letter, rest = word[:1].upper(), word[1:]' },
+        { text: '    if letter == "R" and rest == "":' },
+        { text: '        return None' },
+        { text: '    midi = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}[letter]' },
+        { text: '    if rest[:1] in ("#", "b"):' },
+        { text: '        midi += 1 if rest[0] == "#" else -1' },
+        { text: '        rest = rest[1:]' },
+        { text: '    octave = int(rest) if rest else 4' },
+        { text: '    return 440 * 2 ** ((12 * (octave + 1) + midi - 69) / 12)' },
+        { text: '' },
+        { text: 'def _tone(hz, seconds):' },
+        { text: '    if Beep is not None and hz is not None:' },
+        { text: '        Beep(round(hz), round(seconds * 1000))' },
+        { text: '    else:' },
+        { text: '        sleep(seconds)' },
+        { text: '' },
+        { text: '# A tune is a list like ["C", "D", "E", 2]: a number is how many beats the note before it lasts' },
+        { text: 'def play(tune):' },
+        { text: '    if isinstance(tune, str):' },
+        { text: '        tune = [tune]' },
+        { text: '    notes = []' },
+        { text: '    for item in tune:' },
+        { text: '        if isinstance(item, str):' },
+        { text: '            notes.append([note_hz(item), 1])' },
+        { text: '        else:' },
+        { text: '            notes[-1][1] = item' },
+        { text: '    for hz, beats in notes:' },
+        { text: '        _tone(hz, beats * 60 / _tempo)' },
+        { text: '' },
+        { text: 'def settempo(bpm):' },
+        { text: '    global _tempo' },
+        { text: '    _tempo = bpm' },
+        { text: '' },
+      );
+    }
+    if (this.needs.wait) {
+      out.push({ text: '# WAIT counts sixtieths of a second, like Logo' }, { text: 'def wait(n):' }, { text: '    sleep(n / 60)' }, { text: '' });
+    }
+    if (this.needs.frames) {
+      out.push({ text: '# Show the picture so far, then hold it for a moment' }, { text: 'def frame():' }, { text: '    update()' }, { text: '    sleep(0.25)' }, { text: '' });
     }
     if (this.needs.tick || this.needs.gameover) {
       out.push({ text: '_playing = True  # becomes False after game_over()' }, { text: '' });
@@ -512,6 +567,18 @@ class Translator {
       case 'SHOW':
         if (py) this.needs.show = true;
         return `show(${this.printValue(args[0]!)})`;
+      case 'PLAY':
+        if (py) this.needs.music = true;
+        return `play(${a[0]})`;
+      case 'SETTEMPO':
+        if (py) this.needs.music = true;
+        return py ? `settempo(${a[0]})` : `setTempo(${a[0]})`;
+      case 'WAIT':
+        if (py) this.needs.wait = true;
+        return `wait(${a[0]})`;
+      case 'FRAME':
+        if (py) this.needs.frames = true;
+        return 'frame()';
       case 'GAMEOVER':
         if (!py) return 'gameOver()';
         this.needs.gameover = true;
