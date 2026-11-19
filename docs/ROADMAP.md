@@ -88,6 +88,18 @@ Little Turtles stages stay gentle and block-based: shapes, colours, patterns, si
 8. **Colouring pages and `FILL`.** Print any drawing as a colouring sheet; a `FILL` command colours in shapes.
 9. **Gio's Adventure, a game you play with code.** A world of levels (forests, rivers, caves, a castle) where kids write commands to get Gio through: walk around rocks, `REPEAT` across a long bridge, `IF` there's a river then swim, collect gems, free trapped friends, beat boss levels. Each world introduces one coding idea; Maze mode is its first world. Blocks for Little Turtles, typed code for Turtle Coders.
 
+## Tablet-first and phone-first layouts (priority)
+
+Kids use tablets and phones more than computers, so these come before new waves and every later feature must keep them working.
+
+- **Layouts per orientation and window size.** Tablet landscape: code left, large stage right. Tablet portrait and phones: stage on top, blocks or code below, AI box folds away. Responds to available width (Split View, Stage Manager, foldables), keeps the child's place on rotation.
+- **Touch first.** 48–56 px targets with generous spacing, nothing that needs hover, smooth finger drag-and-drop for blocks with large drop zones, pinch-zoom and pan on the stage, full-screen watch and game modes with thumb-reach GamePad buttons, short vibration on snap or win where supported.
+- **Typing on a touch screen.** The editor stays visible above the on-screen keyboard; a command key row (`FD`, `RT`, `REPEAT`, `[ ]`, numbers) above it; hardware keyboards and arrow keys on iPads.
+- **Richer big screens.** A wider adventure map and garden side by side in landscape, quest target and child's drawing side by side, crisp art on high-density screens, safe areas respected.
+- **Phones.** One-handed reach for main actions, bottom sheets instead of modals, no horizontal scrolling at 360 px, readable text without zoom.
+- **Fast on low-cost devices.** Smooth animation on cheap Android tablets and phones; heavy parts load only when needed.
+- **Always checked.** Automatic touch-simulated screenshots at 360/390 px phones, iPad mini, iPad, iPad Pro and an Android tablet, portrait and landscape, as a standing check.
+
 ## Build order
 
 At most two workflows run at once, paired so they don't edit the same files.
@@ -95,6 +107,7 @@ At most two workflows run at once, paired so they don't edit the same files.
 | Wave | Pair |
 |---|---|
 | Now | Phase 2 (learning) · B adventure map |
+| Next (priority) | Tablet-first and phone-first layouts · alongside whichever of Stages / Phase 4 is still running |
 | 1 | Stages 20/10 + certificate · Phase 4 (music, animation, Python in the browser) |
 | 2 | 9 Gio's Adventure · Phase 3 offline app (PWA) |
 | 3 | Phase 3 languages (translates everything built so far) · 1 Daily puzzle + 2 WhatsApp stickers + 8 colouring and `FILL` |
