@@ -1332,6 +1332,10 @@
   body {
     background-image: none !important;
 
+  }
+}
+
+/* --------------------------------------------------------------------------
  * Music and movies (PLAY, FRAME): stage keys, floating notes, picture chip, note picker
  * -------------------------------------------------------------------------- */
 .note-keys {
