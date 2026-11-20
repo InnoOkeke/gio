@@ -109,7 +109,10 @@ http {
     gzip on;
     # application/manifest+json is the installable app's manifest.webmanifest.
     gzip_types application/wasm application/javascript text/javascript application/zip application/json application/manifest+json text/css image/svg+xml;
+    gzip_comp_level 6;
     gzip_min_length 1024;
+    gzip_vary on;
+    gzip_proxied any;
     # API Gateway reports the visitor in the last "Forwarded: ...;for=<ip>" entry and sends no
     # X-Forwarded-For. Pass that IP on so per-visitor rate limits work (TRUST_PROXY=1).
     # Entries a visitor adds themselves come earlier in the list, so they can't spoof it.

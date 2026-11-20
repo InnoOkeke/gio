@@ -55,7 +55,9 @@ function plainProblem(message: string, line: number): string {
 export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStart }: Options) {
   const [mine, setMine] = useState<PythonDoc | null>(() => readPythonDoc(docKey));
   const [phase, setPhase] = useState<PythonPhase>('idle');
-  const [consented, setConsented] = useState(rememberedReady);
+  // Every session asks again before downloading: the engine is not kept for the locked frame, so a returning child on capped data must tap first.
+  const [consented, setConsented] = useState(false);
+  const [returning] = useState(rememberedReady);
   const [failure, setFailure] = useState<string | null>(null);
   const [tooBig, setTooBig] = useState(false);
   const [active, setActive] = useState(false);
@@ -316,6 +318,7 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
     phase,
     failure,
     consented,
+    returning,
     tooBig,
     logoChanged,
     locked,

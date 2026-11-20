@@ -125,7 +125,7 @@ function readKeys(): Record<string, string> {
 
 /** Unsaved edits of saved drawings, newest last, so an app update or a reload never loses them. */
 export const UNSAVED = 'gio.unsaved';
-export const MAX_UNSAVED = 5;
+export const MAX_UNSAVED = 50;
 export interface UnsavedEdit {
   slug: string;
   title: string;
@@ -181,8 +181,12 @@ export const local = {
     return hit ? { title: hit.title, code: hit.code } : null;
   },
   saveUnsaved(slug: string, title: string, code: string): boolean {
-    const list = [...readUnsaved().filter((e) => e.slug !== slug), { slug, title, code }].slice(-MAX_UNSAVED);
-    return write(() => localStorage.setItem(UNSAVED, JSON.stringify(list)));
+    const list = [...readUnsaved().filter((e) => e.slug !== slug), { slug, title, code }];
+    // Never drop a child's edit to make room: past the limit the phone is reported as full, and the old edits stay.
+    return write(() => {
+      if (list.length > MAX_UNSAVED) throw new Error('too many unsaved drawings');
+      localStorage.setItem(UNSAVED, JSON.stringify(list));
+    });
   },
   clearUnsaved(slug: string): boolean {
     const list = readUnsaved();

@@ -30,6 +30,7 @@ export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanel
     <div className="px-4 py-3 border-b border-line bg-paper-2 flex flex-col gap-2">
       <p className={`${NOTE} text-ink`}>
         <strong className="font-extrabold">Real Python lives in your browser.</strong> It downloads about 8 to 13 MB (a grown-up may want Wi-Fi) and needs the internet each time it starts.
+        {py.returning && <> You used Python before, so it will download again now.</>}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className="btn btn-primary min-h-[48px] px-5 text-[16px]" disabled={loading} onClick={() => void py.getReady()}>

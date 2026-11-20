@@ -140,20 +140,18 @@ describe('unsaved edits of saved drawings', () => {
     expect(JSON.parse(storage.data.get(UNSAVED)!)).toHaveLength(1);
   });
 
-  it('keeps at most 5, dropping the oldest', async () => {
-    const { local, MAX_UNSAVED, UNSAVED } = await load();
-    expect(MAX_UNSAVED).toBe(5);
-    for (const slug of ['a', 'b', 'c', 'd', 'e', 'f']) local.saveUnsaved(slug, slug, `FD ${slug.charCodeAt(0)}`);
-    expect(local.loadUnsaved('a')).toBeNull();
-    expect(local.loadUnsaved('f')).toEqual({ title: 'f', code: 'FD 102' });
-    // Editing an older drawing again makes it the newest, so it outlives the others.
-    local.saveUnsaved('b', 'b', 'FD 1');
-    local.saveUnsaved('g', 'g', 'FD 2');
-    expect(local.loadUnsaved('b')).toEqual({ title: 'b', code: 'FD 1' });
-    expect(local.loadUnsaved('c')).toBeNull();
-    expect((JSON.parse(storage.data.get(UNSAVED)!) as { slug: string }[]).map((e) => e.slug)).toEqual(['d', 'e', 'f', 'b', 'g']);
+  it('never drops an older edit to make room: past the limit the phone is reported full', async () => {
+    const { local, MAX_UNSAVED, UNSAVED, storageFull } = await load();
+    expect(MAX_UNSAVED).toBe(50);
+    for (let i = 0; i < MAX_UNSAVED; i++) expect(local.saveUnsaved('s' + i, 't', 'FD ' + i)).toBe(true);
+    expect(local.saveUnsaved('extra', 't', 'FD 1')).toBe(false);
+    expect(storageFull()).toBe(true);
+    expect(local.loadUnsaved('s0')).toEqual({ title: 't', code: 'FD 0' });
+    expect(local.loadUnsaved('extra')).toBeNull();
+    // Editing a drawing that is already kept still works at the limit.
+    expect(local.saveUnsaved('s0', 't', 'FD 99')).toBe(true);
+    expect(JSON.parse(storage.data.get(UNSAVED)!)).toHaveLength(MAX_UNSAVED);
   });
-
   it('clears one drawing after a save and removes the key when none are left', async () => {
     const { local, UNSAVED } = await load();
     local.saveUnsaved('abc', 'Star', 'FD 10');
