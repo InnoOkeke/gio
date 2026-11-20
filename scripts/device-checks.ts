@@ -30,7 +30,7 @@ export interface Facts {
   /** Interactive elements on the top layer (behind an open modal they are skipped). */
   targets: Target[];
   texts: TextFact[];
-  stage: (Box & { paneInner: number; controlsHeight: number; headerBottom: number }) | null;
+  stage: (Box & { paneInner: number; paneInnerHeight: number; controlsHeight: number; headerBottom: number }) | null;
   runButton: Box | null;
   dialog: { panel: Box; close: Box | null; closeName: string } | null;
   cls: number;
@@ -96,11 +96,12 @@ export const COLLECT_FACTS = `(() => {
   let stage = null;
   const st = document.querySelector('.stage');
   if (st && visible(st)) {
-    const pane = st.closest('section, .panel') || st.parentElement;
+    const pane = st.closest('.studio-stage-pane') || st.closest('section, .panel') || st.parentElement;
     const cs = getComputedStyle(pane);
     const run = [...document.querySelectorAll('button')].find((b) => /^(Run|Pause|Keep going)$/.test((b.textContent || '').trim()));
     const hdr = document.querySelector('header');
     stage = { ...rectOf(st), paneInner: pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
+      paneInnerHeight: pane.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom),
       controlsHeight: run && run.parentElement ? run.parentElement.getBoundingClientRect().height + 16 : 0,
       headerBottom: hdr ? hdr.getBoundingClientRect().bottom : 0 };
   }
@@ -194,7 +195,7 @@ export const stageFillsPane: Assertion = (f) => {
   const out: string[] = [];
   const side = Math.min(width(f.stage), height(f.stage));
   if (f.layout === 'split') {
-    const room = f.h - f.stage.headerBottom - f.stage.controlsHeight;
+    const room = f.stage.paneInnerHeight - f.stage.controlsHeight;
     const want = Math.min(f.stage.paneInner, room) - 4;
     if (side < want) out.push(`stage is ${r(side)}px, wanted at least ${r(want)}px in split layout`);
     const run = f.runButton;

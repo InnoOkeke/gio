@@ -58,7 +58,8 @@ export async function launchBrowser(base: string): Promise<Cdp> {
   if (!exe) throw new Error('No Edge or Chrome found');
   const port = 9300 + Math.floor(Math.random() * 500);
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-cdp-'));
-  const proc: ChildProcess = spawn(exe, ['--headless=new', '--disable-gpu', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
+  // The window must be bigger than every emulated screen: touches outside the real window are dropped.
+  const proc: ChildProcess = spawn(exe, ['--headless=new', '--disable-gpu', '--window-size=1600,1600', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
 
   let wsUrl = '';
   for (let k = 0; k < 50 && !wsUrl; k++) {
@@ -135,7 +136,9 @@ export async function launchBrowser(base: string): Promise<Cdp> {
     waitFor,
     async click(selector, text = '') {
       const ok = await evaluate<boolean>(`(() => {
-        const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find((e) => (e.getAttribute('aria-label') ?? '').includes(${JSON.stringify(text)}) || (e.textContent ?? '').includes(${JSON.stringify(text)}));
+        const shown = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
+        const all = [...document.querySelectorAll(${JSON.stringify(selector)})].filter((e) => (e.getAttribute('aria-label') ?? '').includes(${JSON.stringify(text)}) || (e.textContent ?? '').includes(${JSON.stringify(text)}));
+        const el = all.find(shown) ?? all[0];
         if (!el) return false;
         el.click();
         return true;

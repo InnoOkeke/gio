@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { GameKey } from '../../logo/index.js';
+import { haptic } from '../haptics';
 import { ArrowDownIcon, ArrowUpIcon } from './icons';
 
 const REPEAT_MS = 140;
@@ -12,22 +13,33 @@ function PadButton({ k, onPress, className = '' }: { k: GameKey; onPress(key: Ga
   useEffect(() => stop, []);
 
   const icon =
-    k === 'UP' ? <ArrowUpIcon size={28} /> : k === 'DOWN' ? <ArrowDownIcon size={28} /> : k === 'LEFT' ? <ArrowUpIcon size={28} className="-rotate-90" /> : k === 'RIGHT' ? <ArrowUpIcon size={28} className="rotate-90" /> : <span className="text-[16px] font-black">Space</span>;
+    k === 'UP' ? <ArrowUpIcon size={32} /> : k === 'DOWN' ? <ArrowDownIcon size={32} /> : k === 'LEFT' ? <ArrowUpIcon size={32} className="-rotate-90" /> : k === 'RIGHT' ? <ArrowUpIcon size={32} className="rotate-90" /> : <span className="text-[18px] font-black">Space</span>;
 
   return (
     <button
       type="button"
       aria-label={`${LABEL[k]} key`}
-      className={`btn btn-quiet ${k === 'SPACE' ? 'px-6' : 'btn-icon'} min-h-[56px] ${k === 'SPACE' ? '' : 'w-[56px]'} ${className}`}
+      className={`btn btn-quiet pad-btn ${k === 'SPACE' ? 'pad-space px-6' : 'btn-icon pad-arrow'} ${className}`}
       onPointerDown={(e) => {
         e.preventDefault();
+        // A thumb on a pad button never starts a stage pan, and sliding it away ends the press cleanly.
+        e.stopPropagation();
+        try {
+          e.currentTarget.setPointerCapture(e.pointerId);
+        } catch {
+          /* the pointer is already gone */
+        }
+        haptic('tap');
         onPress(k);
         stop();
         timer.current = window.setInterval(() => onPress(k), REPEAT_MS);
       }}
-      onPointerUp={stop}
-      onPointerLeave={stop}
+      onPointerUp={(e) => {
+        e.stopPropagation();
+        stop();
+      }}
       onPointerCancel={stop}
+      onLostPointerCapture={stop}
       onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onPress(k))}
     >
       {icon}
@@ -35,22 +47,32 @@ function PadButton({ k, onPress, className = '' }: { k: GameKey; onPress(key: Ga
   );
 }
 
-/** On-screen keys for games, so tablets and phones can play too. Only the keys the game uses are active. */
+/**
+ * On-screen keys for games, so tablets and phones can play too. Only the keys the game uses are active.
+ * On touch screens it docks at the bottom with the arrows under the left thumb and Space under the right.
+ */
 export function GamePad({ keys, onPress }: { keys: GameKey[]; onPress(key: GameKey): void }) {
   const has = (k: GameKey) => keys.includes(k);
   const arrows = (['UP', 'DOWN', 'LEFT', 'RIGHT'] as GameKey[]).some(has);
   return (
-    <div className="rounded-[22px] bg-[#e6f8f5] px-4 py-3 flex flex-wrap items-center justify-center gap-4" aria-label="Game controls">
-      <p className="m-0 text-[15px] font-black text-[#0f6d63]">Game on! Use the arrow keys or these buttons.</p>
+    <div className="gamepad rounded-[22px] bg-[#e6f8f5] px-4 py-3" aria-label="Game controls">
+      <p className="gamepad-hint m-0 text-[15px] font-black text-[#0f6d63]">
+        Game on! <span className="hint-fine">Use the arrow keys or these buttons.</span>
+        <span className="hint-coarse">Tap the arrows.</span>
+      </p>
       {arrows && (
-        <div className="grid grid-cols-3 gap-1.5" style={{ gridTemplateAreas: '". up ." "left down right"' }}>
+        <div className="gamepad-dpad grid grid-cols-3" style={{ gridTemplateAreas: '". up ." "left down right"' }}>
           {has('UP') && <PadButton k="UP" onPress={onPress} className="[grid-area:up]" />}
           {has('LEFT') && <PadButton k="LEFT" onPress={onPress} className="[grid-area:left]" />}
           {has('DOWN') && <PadButton k="DOWN" onPress={onPress} className="[grid-area:down]" />}
           {has('RIGHT') && <PadButton k="RIGHT" onPress={onPress} className="[grid-area:right]" />}
         </div>
       )}
-      {has('SPACE') && <PadButton k="SPACE" onPress={onPress} />}
+      {has('SPACE') && (
+        <div className="gamepad-action">
+          <PadButton k="SPACE" onPress={onPress} />
+        </div>
+      )}
     </div>
   );
 }

@@ -6,6 +6,9 @@ import type { GioMood } from '../gio/mood';
 import { NOTE_KEYS, keyIndexForHz } from '../runtime/keys';
 import { sound } from '../runtime/sound';
 import type { Tone } from '../runtime/timeline';
+import { haptic } from '../haptics';
+import { renderRatio } from '../responsive/zoom';
+import { StageView, type StageViewHandle } from './StageView';
 import { TurtleSprite } from './TurtleSprite';
 
 export interface StageHandle {
@@ -28,6 +31,8 @@ export interface StageHandle {
   pending(): number;
   /** A faint target drawing under the child's own, for quests. */
   setGuide(result: RunResult | null): void;
+  /** Back to the whole picture after a pinch or zoom. */
+  resetView(): void;
 }
 
 interface StageProps {
@@ -50,6 +55,8 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
   const turtleRef = useRef<HTMLDivElement>(null);
   const burstRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
+  const viewRef = useRef<StageViewHandle>(null);
+  const renderScaleRef = useRef(1);
   const spriteRef = useRef<SpriteState>({ x: 0, y: 0, heading: 0, visible: true });
   const backgroundRef = useRef(DEFAULT_BACKGROUND);
   const lastStatusRef = useRef<PlayerStatus>('idle');
@@ -152,6 +159,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
     const burst = burstRef.current;
     const stage = stageRef.current;
     if (!turtle || !burst || !stage) return;
+    haptic('win');
     turtle.classList.add('is-happy');
     window.setTimeout(() => turtle.classList.remove('is-happy'), 1500);
 
@@ -176,8 +184,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
     const canvas = guideRef.current;
     const stage = stageRef.current;
     if (!canvas || !stage) return;
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const px = Math.max(1, Math.round(stage.clientWidth * dpr));
+    const px = Math.max(1, Math.round(stage.clientWidth * renderRatio(window.devicePixelRatio || 1, renderScaleRef.current, stage.clientWidth)));
     canvas.width = px;
     canvas.height = px;
     const ctx = canvas.getContext('2d');
@@ -256,6 +263,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
   useImperativeHandle(ref, () => ({
     load: (result) => {
       gameRef.current = false;
+      viewRef.current?.reset();
       playerRef.current?.load(result);
     },
     appendEvents: (events) => {
@@ -268,35 +276,52 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
     finish: () => playerRef.current?.finish(),
     reset: () => {
       gameRef.current = false;
+      viewRef.current?.reset();
       playerRef.current?.reset();
     },
     setSpeed: (speed) => playerRef.current?.setSpeed(speed),
     pending: () => playerRef.current?.pending() ?? 0,
     events: () => playerRef.current?.getEvents() ?? [],
     background: () => backgroundRef.current,
+    resetView: () => viewRef.current?.reset(),
     setGuide(result) {
       guideResultRef.current = result;
       drawGuide();
     },
     toPNG() {
       const source = canvasRef.current!;
+      // Always the unzoomed size, so a saved picture does not depend on how far the child zoomed in.
       const out = document.createElement('canvas');
-      out.width = source.width;
-      out.height = source.height;
+      const ratio = Math.min(window.devicePixelRatio || 1, 3);
+      out.width = Math.max(1, Math.round(source.clientWidth * ratio));
+      out.height = out.width;
       const ctx = out.getContext('2d')!;
       ctx.fillStyle = backgroundRef.current;
       ctx.fillRect(0, 0, out.width, out.height);
-      ctx.drawImage(source, 0, 0);
+      ctx.drawImage(source, 0, 0, out.width, out.height);
       return out.toDataURL('image/png');
     },
   }));
 
   return (
     <div ref={stageRef} className="stage" role="img" aria-label="Turtle drawing area">
-      <canvas ref={guideRef} aria-hidden="true" />
-      <canvas ref={canvasRef} />
-      <div ref={burstRef} className="burst" aria-hidden="true" />
-      <div ref={notesRef} className="stage-notes" aria-hidden="true" />
+      <StageView
+        ref={viewRef}
+        isGame={() => gameRef.current}
+        onSettle={(scale) => {
+          renderScaleRef.current = scale;
+          playerRef.current?.setRenderScale(scale);
+          drawGuide();
+        }}
+      >
+        <canvas ref={guideRef} aria-hidden="true" />
+        <canvas ref={canvasRef} />
+        <div ref={burstRef} className="burst" aria-hidden="true" />
+        <div ref={notesRef} className="stage-notes" aria-hidden="true" />
+        <div ref={turtleRef} className="turtle is-idle">
+          <TurtleSprite mood={mood} stickers={stickers} />
+        </div>
+      </StageView>
       {picture !== null && <div className="picture-chip">Picture {picture}</div>}
       {keysOn ? (
         <div className="note-keys" aria-hidden="true">
@@ -308,9 +333,6 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
         </div>
       ) : null}
       <div ref={scoreRef} className="scoreboard" role="status" aria-live="polite" hidden />
-      <div ref={turtleRef} className="turtle is-idle">
-        <TurtleSprite mood={mood} stickers={stickers} />
-      </div>
     </div>
   );
 });

@@ -1,9 +1,9 @@
 import { DEFAULT_BACKGROUND, INITIAL_STATE, type RunResult, type TurtleEvent, type TurtleState } from '../../logo/index.js';
 import { holdSeconds, isAnimated, type Tone } from './timeline';
+import { clampZoom, renderRatio } from '../responsive/zoom';
 
 /** The visible world runs from -WORLD_HALF to +WORLD_HALF on both axes. */
 export const WORLD_HALF = 300;
-
 export type Speed = 'turtle' | 'rabbit' | 'rocket';
 
 const SPEEDS: Record<Speed, { px: number; deg: number }> = {
@@ -64,6 +64,7 @@ export class Player {
   /** Finishing in one go: holds are skipped and notes are not started. */
   private skipping = false;
   private frames = 0;
+  private renderScale = 1;
   private readonly ctx: CanvasRenderingContext2D;
 
   constructor(
@@ -79,14 +80,22 @@ export class Player {
 
   /** Match the canvas backing store to its on-screen size and device pixel ratio. */
   resize(): void {
-    const rect = this.canvas.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 3);
-    const px = Math.max(1, Math.round(rect.width * dpr));
+    // clientWidth ignores the CSS zoom transform the stage may be under; getBoundingClientRect does not.
+    const cssWidth = this.canvas.clientWidth;
+    const px = Math.max(1, Math.round(cssWidth * renderRatio(window.devicePixelRatio || 1, this.renderScale, cssWidth)));
     if (this.canvas.width !== px || this.canvas.height !== px) {
       this.canvas.width = px;
       this.canvas.height = px;
       this.redraw();
     }
+  }
+
+  /** The stage zoom: the drawing is re-rasterised at that scale so it stays crisp when zoomed in. */
+  setRenderScale(scale: number): void {
+    const next = clampZoom(scale);
+    if (next === this.renderScale) return;
+    this.renderScale = next;
+    this.resize();
   }
 
   setSpeed(speed: Speed): void {

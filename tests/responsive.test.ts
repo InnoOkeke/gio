@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { classifyWidth, isLitePerf, layoutFor, isShortLandscape } from '../src/ui/responsive/window-class';
 import { isKeyboardOpen, keyboardInset } from '../src/ui/responsive/keyboard-inset';
-import { clampPan, clampZoom, pinchCenter, pinchDistance, zoomAbout } from '../src/ui/responsive/zoom';
+import { clampPan, clampZoom, pinchCenter, pinchDistance, renderRatio, zoomAbout } from '../src/ui/responsive/zoom';
+import { enterFullscreen, exitFullscreen, fullscreenSupported, isNativeFullscreen } from '../src/ui/responsive/fullscreen';
 import { haptic, HAPTIC_PATTERNS } from '../src/ui/haptics';
 
 describe('classifyWidth', () => {
@@ -149,5 +150,57 @@ describe('haptic', () => {
   });
   it('does not throw if vibrate throws', () => {
     expect(haptic('tap', { vibrate: () => { throw new Error('blocked'); }, reducedMotion: false })).toBe(false);
+  });
+});
+describe('renderRatio', () => {
+  it('is the device ratio, at most 3, when not zoomed', () => {
+    expect(renderRatio(2, 1, 400)).toBe(2);
+    expect(renderRatio(4, 1, 400)).toBe(3);
+  });
+  it('grows with the zoom but never passes 4', () => {
+    expect(renderRatio(2, 1.5, 400)).toBe(3);
+    expect(renderRatio(3, 4, 400)).toBe(4);
+  });
+  it('keeps the canvas under 4096 pixels a side', () => {
+    expect(renderRatio(3, 4, 1500) * 1500).toBeLessThanOrEqual(4096);
+  });
+  it('copes with a missing device ratio and a zero size', () => {
+    expect(renderRatio(Number.NaN, 2, 400)).toBe(2);
+    expect(renderRatio(2, 1, 0)).toBe(2);
+  });
+});
+
+describe('fullscreen', () => {
+  it('is supported only when the document says it is enabled and the element can ask', () => {
+    expect(fullscreenSupported({})).toBe(false);
+    expect(fullscreenSupported({ fullscreenEnabled: true })).toBe(true);
+    expect(fullscreenSupported({ webkitFullscreenEnabled: true }, {})).toBe(false);
+    expect(fullscreenSupported({ webkitFullscreenEnabled: true }, { webkitRequestFullscreen: () => undefined })).toBe(true);
+  });
+  it('reads the native state with or without the webkit prefix', () => {
+    expect(isNativeFullscreen({})).toBe(false);
+    expect(isNativeFullscreen({ fullscreenElement: {} as Element })).toBe(true);
+    expect(isNativeFullscreen({ webkitFullscreenElement: {} as Element })).toBe(true);
+  });
+  it('asks the element and reports whether it worked', async () => {
+    const requestFullscreen = vi.fn(async () => undefined);
+    expect(await enterFullscreen({ requestFullscreen }, { fullscreenEnabled: true })).toBe(true);
+    expect(requestFullscreen).toHaveBeenCalledOnce();
+  });
+  it('falls back cleanly when the browser has no full screen or refuses', async () => {
+    expect(await enterFullscreen({}, {})).toBe(false);
+    expect(await enterFullscreen({ requestFullscreen: async () => { throw new Error('denied'); } }, { fullscreenEnabled: true })).toBe(false);
+  });
+  it('uses the webkit calls on iPad Safari', async () => {
+    const webkitRequestFullscreen = vi.fn();
+    expect(await enterFullscreen({ webkitRequestFullscreen }, { webkitFullscreenEnabled: true })).toBe(true);
+    const webkitExitFullscreen = vi.fn();
+    await exitFullscreen({ webkitFullscreenElement: {} as Element, webkitExitFullscreen });
+    expect(webkitExitFullscreen).toHaveBeenCalledOnce();
+  });
+  it('does nothing when leaving while not in full screen', async () => {
+    const exit = vi.fn(async () => undefined);
+    await exitFullscreen({ exitFullscreen: exit });
+    expect(exit).not.toHaveBeenCalled();
   });
 });

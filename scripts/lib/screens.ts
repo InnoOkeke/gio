@@ -61,6 +61,176 @@ async function runAndWait(c: Cdp, selector: string): Promise<void> {
   await sleep(500);
 }
 
+const GAME = 'WHEN "up [FD 20]\nWHEN "right [RT 90]\nWHEN "space [FD 5]';
+
+/** A first run can bring a new friend to say hello: send them off so the stage is what is on screen. */
+async function dismissFriends(c: Cdp): Promise<void> {
+  for (let k = 0; k < 4; k++) {
+    // Friends arrive a moment after the drawing finishes.
+    if (!(await c.waitFor(`!!document.querySelector('[aria-labelledby="friend-title"] button')`, k === 0 ? 2500 : 1200))) return;
+    await c.evaluate(`document.querySelector('[aria-labelledby="friend-title"] button')?.click()`);
+    await sleep(400);
+  }
+}
+
+/** Waits until nothing (a friend saying hello, a toast) covers the middle of the stage. */
+async function stageOnTop(c: Cdp): Promise<void> {
+  const free = `(() => { const g = document.querySelector('.stage-gesture'); if (!g) return false; const r = g.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return !!e && g.contains(e); })()`;
+  for (let k = 0; k < 20; k++) {
+    if (await c.evaluate<boolean>(free)) return;
+    await c.evaluate(`document.querySelector('[aria-labelledby="friend-title"] button')?.click()`);
+    await sleep(400);
+  }
+  const what = await c.evaluate<string>(`(() => { const g = document.querySelector('.stage-gesture'); if (!g) return 'no stage'; const r = g.getBoundingClientRect(); const e = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); return e ? e.tagName + '.' + e.className + ' at ' + Math.round(r.left + r.width / 2) + ',' + Math.round(r.top + r.height / 2) + ' of ' + innerWidth + 'x' + innerHeight : 'nothing'; })()`);
+  throw new Error(`something stays on top of the stage: ${what}`);
+}
+
+/** Open the stage in full screen and check the overlay is on. */
+async function openFocus(c: Cdp): Promise<void> {
+  await dismissFriends(c);
+  await c.click('button', 'Full screen');
+  if (!(await c.waitFor(`!!document.querySelector('.studio-stage-pane[data-focus="true"]')`, 4000))) throw new Error('full screen did not open');
+  await sleep(500);
+  // Opening full screen is a deliberate jump, not a layout shift from loading.
+  await c.evaluate(`window.__cls = 0`);
+}
+
+interface View {
+  scale: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  centerX: number;
+  centerY: number;
+}
+
+const READ_VIEW = `(() => {
+  const v = document.querySelector('.stage-view');
+  const g = document.querySelector('.stage-gesture');
+  if (!v || !g) return null;
+  const m = new DOMMatrixReadOnly(getComputedStyle(v).transform);
+  const r = g.getBoundingClientRect();
+  return { scale: m.a, x: m.e, y: m.f, width: g.clientWidth, height: g.clientHeight, centerX: r.left + r.width / 2, centerY: r.top + r.height / 2 };
+})()`;
+
+async function readView(c: Cdp): Promise<View> {
+  const v = await c.evaluate<View>(READ_VIEW);
+  if (!v) throw new Error('no stage view on the page');
+  return v;
+}
+
+function expect(ok: boolean, message: string): void {
+  if (!ok) throw new Error(message);
+}
+
+/** Pinch out, pan, check the pan stays inside the frame, then double-tap back to the whole picture. */
+async function pinchChecks(c: Cdp): Promise<void> {
+  const coarse = (await c.evaluate<boolean>(`matchMedia('(pointer: coarse)').matches`)) === true;
+  await stageOnTop(c);
+  const start = await readView(c);
+  expect(start.scale === 1, `the stage should start at scale 1, not ${start.scale}`);
+  const center = { x: start.centerX, y: start.centerY };
+  if (coarse) {
+    // Headless Edge sometimes drops the first emulated touch sequence after a page load; the app
+    // never sees a pointerdown then, so the pinch is sent again rather than judged.
+    await c.evaluate(`window.__touches = 0; document.addEventListener('pointerdown', () => window.__touches++, true)`);
+    for (let k = 0; k < 3; k++) {
+      await c.pinch(center, Math.min(60, start.width / 5), Math.min(start.width * 0.8, 260));
+      await sleep(400);
+      if ((await readView(c)).scale > 1) break;
+    }
+  } else {
+    await c.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: center.x, y: center.y, deltaX: 0, deltaY: -300, modifiers: 2 });
+    await sleep(100);
+  }
+  await sleep(500);
+  const zoomed = await readView(c);
+  const seen = await c.evaluate<number>(`window.__touches ?? -1`);
+  expect(zoomed.scale > 1.5, `pinch out should zoom past 1.5, got ${zoomed.scale.toFixed(2)} (${seen} pointers reached the page at ${Math.round(center.x)},${Math.round(center.y)})`);
+  const first = { x: center.x + 20, y: center.y + 20 };
+  if (coarse) {
+    for (let k = 0; k < 3; k++) {
+      await c.drag(first, { x: first.x - 60, y: first.y - 40 });
+      await sleep(200);
+      const v = await readView(c);
+      if (v.x !== zoomed.x || v.y !== zoomed.y) break;
+    }
+  }
+  else await dragMouse(c, first, { x: first.x - 60, y: first.y - 40 });
+  await sleep(300);
+  const panned = await readView(c);
+  expect(panned.x !== zoomed.x || panned.y !== zoomed.y, 'one finger should pan once zoomed in');
+  if (coarse) await c.drag({ x: center.x + 40, y: center.y + 40 }, { x: center.x - 2000, y: center.y - 2000 }, 8);
+  else await dragMouse(c, { x: center.x + 40, y: center.y + 40 }, { x: center.x - 2000, y: center.y - 2000 });
+  await sleep(300);
+  const far = await readView(c);
+  const minX = far.width * (1 - far.scale);
+  const minY = far.height * (1 - far.scale);
+  expect(far.x <= 0.5 && far.x >= minX - 0.5 && far.y <= 0.5 && far.y >= minY - 0.5, `pan left the frame: x ${far.x.toFixed(1)}, y ${far.y.toFixed(1)}, limits ${minX.toFixed(1)}`);
+  if (coarse) {
+    // Two quick taps; tried twice because a busy machine can stretch the gap past a double tap.
+    for (let k = 0; k < 2 && (await readView(c)).scale !== 1; k++) {
+      await sleep(400);
+      await c.tap(center.x, center.y);
+      await sleep(30);
+      await c.tap(center.x, center.y);
+      await sleep(200);
+    }
+  } else {
+    for (let k = 0; k < 2; k++) {
+      await c.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: center.x, y: center.y, button: 'left', clickCount: k + 1 });
+      await c.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: center.x, y: center.y, button: 'left', clickCount: k + 1 });
+      await sleep(60);
+    }
+  }
+  await sleep(300);
+  const reset = await readView(c);
+  expect(reset.scale === 1, `double-tap should go back to the whole picture, scale is ${reset.scale.toFixed(2)}`);
+  // The zoom buttons work with a mouse or keyboard.
+  await c.click('button', 'Zoom in');
+  await sleep(150);
+  expect((await readView(c)).scale > 1, 'the + button should zoom in');
+  await c.click('button', 'Fit the whole drawing');
+  await sleep(150);
+  expect((await readView(c)).scale === 1, 'Fit should go back to the whole picture');
+}
+
+async function dragMouse(c: Cdp, from: { x: number; y: number }, to: { x: number; y: number }): Promise<void> {
+  await c.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: from.x, y: from.y, button: 'left', clickCount: 1 });
+  for (let i = 1; i <= 8; i++) {
+    await c.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: from.x + ((to.x - from.x) * i) / 8, y: from.y + ((to.y - from.y) * i) / 8, button: 'left', buttons: 1 });
+    await sleep(16);
+  }
+  await c.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: to.x, y: to.y, button: 'left', clickCount: 1 });
+}
+
+/** A game keeps answering the arrow keys while the stage is zoomed, and one finger never pans it. */
+async function gameWhileZoomed(c: Cdp): Promise<void> {
+  // Small screens offer full screen when a game starts; say "Not now" like a child who wants to stay.
+  await c.evaluate(`document.querySelector('.focus-offer button[aria-label="Not now"]')?.click()`);
+  await sleep(200);
+  await stageOnTop(c);
+  const start = await readView(c);
+  await c.click('button', 'Zoom in');
+  await c.click('button', 'Zoom in');
+  await sleep(300);
+  const zoomed = await readView(c);
+  expect(zoomed.scale > 1.5, `zoom in should work during a game, scale is ${zoomed.scale.toFixed(2)}`);
+  const turtle = () => c.evaluate<string>(`document.querySelector('.turtle')?.style.transform ?? ''`);
+  const before = await turtle();
+  await c.key('ArrowUp', 'ArrowUp', 38);
+  await sleep(700);
+  const after = await turtle();
+  expect(before !== after, 'the up arrow should still move the game turtle while zoomed');
+  const coarse = (await c.evaluate<boolean>(`matchMedia('(pointer: coarse)').matches`)) === true;
+  if (coarse) {
+    await c.drag({ x: start.centerX + 30, y: start.centerY + 30 }, { x: start.centerX - 40, y: start.centerY - 40 });
+    await sleep(300);
+    const still = await readView(c);
+    expect(still.x === zoomed.x && still.y === zoomed.y, 'one finger must not pan the stage while a game runs');
+  }
+}
 export const SCREENS: Screen[] = [
   { id: 'mode-picker', label: 'Mode picker', ready: 'h1', open: (c) => c.seed({}, '', 'h1') },
   { id: 'little-empty', label: 'Little studio, empty (first-win offer)', open: (c) => c.seed(little, '?mode=little') },
@@ -128,7 +298,7 @@ export const SCREENS: Screen[] = [
     id: 'game',
     label: 'A running game with the game pad',
     open: async (c) => {
-      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('WHEN "up [FD 20]\nWHEN "right [RT 90]\nWHEN "space [FD 5]') }, '?mode=coder');
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft(GAME) }, '?mode=coder');
       await runAndWait(c, '[aria-label="Game controls"]');
     },
   },
@@ -233,6 +403,38 @@ export const SCREENS: Screen[] = [
     },
   },
   // Empty slots, filled in by the feature that builds them.
-  { id: 'watch-mode', label: 'Full-screen watch mode (FEAT-002)', open: null },
+  {
+    id: 'watch-mode',
+    label: 'Full-screen watch mode',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 100 RT 90]') }, '?mode=coder');
+      await runAndWait(c, '.bubble-success');
+      await openFocus(c);
+    },
+  },
+  {
+    id: 'game-focus',
+    label: 'A running game in full screen with the game pad',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft(GAME) }, '?mode=coder');
+      await runAndWait(c, '[aria-label="Game controls"]');
+      await openFocus(c);
+    },
+  },
+  {
+    id: 'stage-pinch',
+    label: 'Pinch, pan and double-tap on the stage, game keys while zoomed',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 100 RT 90]') }, '?mode=coder');
+      await runAndWait(c, '.bubble-success');
+      await dismissFriends(c);
+      await pinchChecks(c);
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft(GAME) }, '?mode=coder');
+      await runAndWait(c, '[aria-label="Game controls"]');
+      await dismissFriends(c);
+      await gameWhileZoomed(c);
+      await c.evaluate(`window.__cls = 0`);
+    },
+  },
   { id: 'keyboard-editor', label: 'Keyboard-open editor (FEAT-003)', open: null },
 ];

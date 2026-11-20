@@ -5,6 +5,7 @@ import { MAP_LINES, say } from '../path/lines';
 import type { Star } from '../path/state';
 import { useVoice } from '../voice';
 import { CheckIcon, MicIcon, StarIcon, TrophyIcon } from './icons';
+import { TargetPreview } from './TargetPreview';
 interface QuestCardProps {
   quest: Quest;
   done: boolean;
@@ -60,6 +61,7 @@ export function QuestCard({ quest, done, feedback, star, hinted, review, nextLab
           </p>
         )}
       </div>
+      {quest.target && !done && <TargetPreview quest={quest} />}
       <div className="flex flex-wrap gap-2 shrink-0">
         {voice.supported && (
           <button

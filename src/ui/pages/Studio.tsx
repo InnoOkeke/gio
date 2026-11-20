@@ -14,17 +14,12 @@ import {
   HelpIcon,
   PauseIcon,
   PlayIcon,
-  PlusIcon,
   RabbitSpeedIcon,
   ResetIcon,
   RocketSpeedIcon,
-  SaveIcon,
-  LeafIcon,
-  ShareIcon,
   SpeakerIcon,
   SpeakerOffIcon,
   StepIcon,
-  MapIcon,
   TurtleSpeedIcon,
 } from '../components/icons';
 import { ExportMenu } from '../components/ExportMenu';
@@ -40,6 +35,13 @@ import { QuestCard } from '../components/Quests';
 import { HintCard } from '../components/HintCard';
 import { SkillCheckBanner } from '../components/SkillCheckBanner';
 import { Stage, type StageHandle } from '../components/Stage';
+import { ActionDock } from '../components/ActionDock';
+import { AskFold } from '../components/AskFold';
+import { FocusOffer, FocusToggle, useFocusMode } from '../components/FocusMode';
+import { StudioHeader } from '../components/StudioHeader';
+import { haptic } from '../haptics';
+import { useWindowClass } from '../responsive/useWindowClass';
+import '../responsive/studio.css';
 import { useToast } from '../components/Toast';
 import { TranslatedCode } from '../components/TranslatedCode';
 import { PythonPanel } from '../components/PythonPanel';
@@ -448,7 +450,10 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const askAfterFirstWin = () => {
-    if (little) document.getElementById('ask-input')?.focus();
+    if (little) {
+      setAskOpen(true);
+      window.setTimeout(() => document.getElementById('ask-input')?.focus(), 60);
+    }
     else editorRef.current?.focus();
   };
 
@@ -583,6 +588,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       const { newBadge, star, unitMastered, islandSailed, opened, masterEarned } = progress.complete(q.id, helped);
       if (masterEarned) record({ kind: 'logo-master' });
       setQuestStar(star);
+      haptic('win');
       const island = islandOf(q.id);
       const visit = reviewRef.current;
       if (visit) setReviewRun({ ...visit, results: [...visit.results.filter((x) => x.questId !== q.id), { questId: q.id, helped }] });
@@ -933,13 +939,24 @@ function StudioView({ initial }: { initial: Loaded }) {
     setBubble(WELCOME[mode]);
   };
 
+  const win = useWindowClass();
+  const compact = win.widthClass === 'compact';
+  const [askOpen, setAskOpen] = useState(false);
+  const paneRef = useRef<HTMLElement>(null);
+  const focus = useFocusMode(paneRef, gameKeys.length > 0, win.widthClass);
+  const askAndFold = async (prompt: string): Promise<boolean> => {
+    const done = await ask(prompt);
+    if (done) setAskOpen(false);
+    return done;
+  };
+
   const playing = status === 'playing';
   const sailedCount = progress.islands.filter((i) => i.sailed).length;
 
   /* ---------------- render ---------------- */
 
   const codePanel = little ? (
-    <section className="panel flex flex-col min-h-[460px] lg:h-[calc(100vh-300px)] lg:min-h-[600px] order-2 lg:order-1" aria-labelledby="code-title">
+    <section className="studio-code panel flex flex-col" aria-labelledby="code-title">
       <div className="panel-header">
         <h2 id="code-title" className="text-[20px] font-black">
           My blocks
@@ -973,7 +990,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       </div>
     </section>
   ) : (
-    <section className="panel flex flex-col min-h-[420px] lg:h-[calc(100vh-300px)] lg:min-h-[560px] order-2 lg:order-1" aria-labelledby="code-title">
+    <section className="studio-code panel flex flex-col" aria-labelledby="code-title">
       <div className="panel-header flex-wrap">
         <h2 id="code-title" className="text-[18px] font-black">
           Your code
@@ -1004,52 +1021,28 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   return (
     <GoldenShellContext.Provider value={rewards.goldenShell}>
-    <div className="min-h-full flex flex-col">
-      <header className="sticky top-0 z-30 backdrop-blur-xl bg-[rgba(245,242,234,0.82)] border-b border-line">
-        <div className="mx-auto max-w-[1360px] px-4 sm:px-6 h-[72px] flex items-center gap-2 sm:gap-3">
-          <a href="/" onClick={(e) => (e.preventDefault(), startNew())} aria-label="GIO home" className="shrink-0 rounded-2xl">
-            <Wordmark />
-          </a>
-          <div className="flex-1 flex justify-center min-w-0">
-            <label htmlFor="title" className="sr-only">
-              Drawing name
-            </label>
-            <input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              maxLength={80}
-              className="w-full max-w-[320px] min-h-[44px] px-4 rounded-full bg-transparent hover:bg-white focus:bg-white border border-transparent hover:border-line focus:border-line text-center text-[18px] font-extrabold text-ink outline-none transition-colors"
-            />
-          </div>
-          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-            <button type="button" className="btn btn-ghost hidden xl:inline-flex" onClick={chooseAgain} title="Switch age mode">
-              {MODE_LABEL[mode]}
-            </button>
-            <button type="button" className="btn btn-quiet max-sm:px-3" onClick={() => setGardenOpen(true)} aria-label="Gio's garden">
-              <LeafIcon className="text-[#12a36b]" /> <span className="hidden md:inline">Garden</span>
-            </button>
-            <button type="button" className="btn btn-quiet max-sm:px-3 relative" onClick={() => setQuestsOpen(true)} aria-label={`Adventure map, ${sailedCount} of ${progress.islands.length} islands sailed${progress.reviewDue ? ', a review is waiting' : ''}`}>
-              <MapIcon className="text-[#0f8fa6]" /> <span className="hidden md:inline">Map</span>
-              <span className="rounded-full bg-paper-3 px-2 py-0.5 text-[13px] font-black tabular-nums">
-                {sailedCount}/{progress.islands.length}
-              </span>
-              {progress.reviewDue && <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-[#ffc93c] ring-2 ring-white" aria-hidden="true" />}
-            </button>
-            <button type="button" className="btn btn-ghost hidden lg:inline-flex" onClick={startNew}>
-              <PlusIcon /> New
-            </button>
-            <button type="button" className="btn btn-quiet max-sm:px-3" onClick={() => void save()} disabled={saving || (!dirty && owned)} aria-label={project && !owned ? 'Save a copy' : 'Save'}>
-              <SaveIcon /> <span className="hidden sm:inline">{project && !owned ? 'Save a copy' : 'Save'}</span>
-            </button>
-            <button type="button" className="btn btn-primary max-sm:px-3" onClick={() => void share()} disabled={saving} aria-label="Share">
-              <ShareIcon /> <span className="hidden sm:inline">Share</span>
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="studio-root min-h-full flex flex-col" data-game={gameKeys.length > 0}>
+      <StudioHeader
+        compact={compact}
+        mode={mode}
+        title={title}
+        onTitle={setTitle}
+        onHome={startNew}
+        onChooseAgain={chooseAgain}
+        onGarden={() => setGardenOpen(true)}
+        onMap={() => setQuestsOpen(true)}
+        sailed={sailedCount}
+        islands={progress.islands.length}
+        reviewDue={Boolean(progress.reviewDue)}
+        saveLabel={project && !owned ? 'Save a copy' : 'Save'}
+        saveDisabled={saving || (!dirty && owned)}
+        onSave={() => void save()}
+        sharing={saving}
+        onShare={() => void share()}
+        onNew={startNew}
+      />
 
-      <main className="flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
+      <main className="studio-main flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
         {skill.run && quest && (
           <SkillCheckBanner
             stageName={islandByKey(skill.run.targetKey)?.name ?? 'the stage'}
@@ -1069,23 +1062,31 @@ function StudioView({ initial }: { initial: Loaded }) {
             else setBubble({ kind: 'info', text: 'In a quest you write the code yourself! You can say run, hint, explain or step.' });
           }} />
         ) : (
-          <AskTurtle mode={mode} hasCode={code.trim().length > 0} busy={asking} onAsk={ask} />
+          <AskFold widthClass={win.widthClass} layout={win.layout} open={askOpen} onOpen={setAskOpen} label={little ? 'Tell me what to draw!' : 'Describe a drawing and I will write the Logo'}>
+            <AskTurtle mode={mode} hasCode={code.trim().length > 0} busy={asking} onAsk={askAndFold} />
+          </AskFold>
         )}
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start">
+        <div className="studio-shell">
           {codePanel}
 
-          <section className="panel p-4 sm:p-5 flex flex-col gap-4 order-1 lg:order-2" aria-label="Turtle stage">
-            {/* Square stage sized so the Run button stays on screen on laptops. */}
-            <div className="relative mx-auto w-full" style={{ maxWidth: 'max(320px, min(640px, calc(100vh - 470px)))' }}>
+          <section ref={paneRef} data-focus={focus.active} className="studio-stage-pane panel p-4 sm:p-5 flex flex-col gap-4" aria-label="Turtle stage">
+            {/* The square stage is sized in CSS from its pane, so the Run button stays on screen. */}
+            <div className="studio-stage-slot">
+            <div className="studio-stage-box relative">
               <Stage ref={stageRef} onLine={onLine} onPrint={onPrint} onStatus={onStatus} onGameOver={onGameOver} mood={mood} stickers={rewards.shell} />
+              <FocusToggle focus={focus} />
+              <FocusOffer focus={focus} />
               {firstWin.phase === 'offer' && <FirstWinOffer mode={mode} onStart={startFirstWin} onSkip={skipFirstWin} />}
+            </div>
             </div>
             {firstWin.phase === 'yours' && (
               <FirstWinYours mode={mode} colour={firstWin.colour} onPick={pickFirstColour} onAsk={askAfterFirstWin} onDone={finishFirstWin} />
             )}
 
-            <div className="flex flex-wrap items-center justify-center gap-3">
+            <div className="studio-controls flex flex-wrap items-center justify-center gap-3">
+              {(!compact || focus.active) && (
+              <>
               <button type="button" className={`btn btn-lg ${playing ? 'btn-stop' : 'btn-primary'} min-w-[150px]`} onClick={onRunPress}>
                 {playing ? <PauseIcon size={22} /> : <PlayIcon size={22} />}
                 {playing ? 'Pause' : status === 'paused' ? 'Keep going' : 'Run'}
@@ -1093,7 +1094,9 @@ function StudioView({ initial }: { initial: Loaded }) {
               <button type="button" className="btn btn-quiet btn-lg" onClick={onStep} disabled={playing}>
                 <StepIcon /> Step
               </button>
-              <div className="segmented" role="radiogroup" aria-label="Turtle speed">
+              </>
+              )}
+              <div className="segmented studio-speed" role="radiogroup" aria-label="Turtle speed">
                 {SPEEDS.map((s) => (
                   <button key={s.id} type="button" role="radio" aria-checked={speed === s.id} onClick={() => setSpeed(s.id)}>
                     <span className="inline-flex items-center gap-1.5">
@@ -1102,7 +1105,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-1">
+              <div className="studio-secondary flex items-center gap-1">
                 <button type="button" className="btn btn-ghost btn-icon" onClick={onReset} aria-label="Clear the drawing" title="Clear the drawing">
                   <ResetIcon />
                 </button>
@@ -1113,7 +1116,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
             {gameKeys.length > 0 && <GamePad keys={gameKeys} onPress={pressKey} />}
 
-            <div className="flex flex-col gap-2">
+            <div className="studio-extras flex flex-col gap-2">
               <TurtleBubble message={bubble} mood={mood} stickers={rewards.shell} onShowLine={(line) => editorRef.current?.setProblemLine(line)} />
               <HintCard
                 open={tutor.open}
@@ -1149,14 +1152,16 @@ function StudioView({ initial }: { initial: Loaded }) {
                 <button type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void explain()} disabled={explaining || asking}>
                   <BulbIcon className="text-[#f4a72c]" /> {explaining ? 'Thinking…' : little ? 'What did I make?' : 'Explain my code'}
                 </button>
-                <button ref={stuckRef} type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void askForHint()} disabled={tutor.loading || asking || explaining}>
-                  <HelpIcon className="text-[#e0861a]" /> I&rsquo;m stuck
-                </button>
+                {!compact && (
+                  <button ref={stuckRef} type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void askForHint()} disabled={tutor.loading || asking || explaining}>
+                    <HelpIcon className="text-[#e0861a]" /> I&rsquo;m stuck
+                  </button>
+                )}
               </div>
             </div>
 
             {prints.length > 0 && (
-              <div className="rounded-[20px] bg-paper-3 px-4 py-3" aria-label="Messages from PRINT">
+              <div className="studio-extras rounded-[20px] bg-paper-3 px-4 py-3" aria-label="Messages from PRINT">
                 <span className="eyebrow">The turtle says</span>
                 <ul className="mt-1 flex flex-col gap-0.5 font-mono text-[15px] font-bold text-ink">
                   {prints.map((p, k) => (
@@ -1168,15 +1173,29 @@ function StudioView({ initial }: { initial: Loaded }) {
           </section>
         </div>
 
-        <footer className="pt-2 pb-6 text-center text-[13px] font-semibold text-ink-3">
-          GIO brings back Logo (1967), the language Seymour Papert and friends made so kids could learn by teaching a turtle.
-          {!little && ' Its turtle still lives on in Python today.'}{' '}
+        <footer className="studio-footer pt-2 pb-6 text-center text-[14px] font-semibold text-ink-3">
+          <span className="studio-footer-note">GIO brings back Logo (1967), the language Seymour Papert and friends made so kids could learn by teaching a turtle.
+          {!little && ' Its turtle still lives on in Python today.'}{' '}</span>
           <Link to="/privacy" className="underline underline-offset-4 font-extrabold">
             Privacy for parents
           </Link>
         </footer>
       </main>
 
+      {compact && !focus.active && (
+        <ActionDock
+          status={status}
+          onRun={onRunPress}
+          onStep={onStep}
+          onAsk={() => setAskOpen((v) => !v)}
+          askOpen={askOpen}
+          onStuck={() => void askForHint()}
+          stuckRef={stuckRef}
+          stuckDisabled={tutor.loading || asking || explaining}
+          onSave={() => void save()}
+          saveDisabled={saving || (!dirty && owned)}
+        />
+      )}
       <AdventureMap
         open={questsOpen}
         mode={mode}

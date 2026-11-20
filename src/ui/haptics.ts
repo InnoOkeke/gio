@@ -13,7 +13,9 @@ export interface HapticEnv {
 
 function browserEnv(): HapticEnv {
   if (typeof navigator === 'undefined') return { reducedMotion: true };
-  const vibrate = typeof navigator.vibrate === 'function' ? navigator.vibrate.bind(navigator) : undefined;
+  // Browsers refuse to vibrate before the first tap and log an error, so wait for one.
+  const active = (navigator as Navigator & { userActivation?: { hasBeenActive: boolean } }).userActivation?.hasBeenActive ?? true;
+  const vibrate = typeof navigator.vibrate === 'function' && active ? navigator.vibrate.bind(navigator) : undefined;
   const reducedMotion = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   return { vibrate, reducedMotion };
 }
