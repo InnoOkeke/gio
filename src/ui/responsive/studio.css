@@ -618,3 +618,18 @@ html[data-width='large'] .quest-preview {
     min-height: var(--touch);
   }
 }
+
+/* A small stage (phone landscape, keyboard up) has no room for a column of zoom buttons under the
+   Full screen button: lay them in a row along the bottom instead. */
+.studio-stage-box {
+  container-type: inline-size;
+  container-name: stagebox;
+}
+.zoom-control {
+  gap: 8px;
+}
+@container stagebox (max-width: 300px) {
+  .zoom-control {
+    flex-direction: row;
+  }
+}

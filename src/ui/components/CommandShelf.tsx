@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { NAMED_COLORS } from '../../logo/index.js';
+import { useWindowClass } from '../responsive/useWindowClass';
 
 interface Snippet {
   code: string;
@@ -60,10 +62,23 @@ const GROUPS: { title: string; snippets: Snippet[] }[] = [
 const SWATCHES = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 'pink', 'black'];
 
 export function CommandShelf({ onInsert }: { onInsert(code: string): void }) {
+  // On phones the groups become a swipeable tab strip so the shelf stays one short row.
+  const compact = useWindowClass().widthClass === 'compact';
+  const [tab, setTab] = useState(GROUPS[0]!.title);
+  const shown = (title: string) => !compact || tab === title;
   return (
-    <div className="flex flex-col gap-3 px-4 py-4 border-t border-line bg-paper-2 rounded-b-[28px] lg:min-h-0 lg:overflow-y-auto">
+    <div className="command-shelf flex flex-col gap-3 px-4 py-4 border-t border-line bg-paper-2 rounded-b-[28px] lg:min-h-0 lg:overflow-y-auto">
+      {compact && (
+        <div className="shelf-tabs" role="tablist" aria-label="Command groups" data-hscroll>
+          {[...GROUPS.map((g) => g.title), 'Colours'].map((title) => (
+            <button key={title} type="button" role="tab" aria-selected={tab === title} className="chip" onClick={() => setTab(title)}>
+              {title}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="flex flex-wrap gap-x-5 gap-y-3">
-        {GROUPS.map((group) => (
+        {GROUPS.filter((group) => shown(group.title)).map((group) => (
           <div key={group.title} className="flex flex-col gap-1.5">
             <span className="eyebrow">{group.title}</span>
             <div className="flex flex-wrap gap-1.5">
@@ -76,7 +91,7 @@ export function CommandShelf({ onInsert }: { onInsert(code: string): void }) {
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5" hidden={!shown('Colours')}>
         <span className="eyebrow">Colours</span>
         <div className="flex flex-wrap gap-2">
           {SWATCHES.map((name) => (

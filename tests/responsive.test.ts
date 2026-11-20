@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { classifyWidth, isLitePerf, layoutFor, isShortLandscape } from '../src/ui/responsive/window-class';
-import { isKeyboardOpen, keyboardInset } from '../src/ui/responsive/keyboard-inset';
+import { isKeyboardOpen, keyboardInset, nextBaseline } from '../src/ui/responsive/keyboard-inset';
 import { clampPan, clampZoom, pinchCenter, pinchDistance, renderRatio, zoomAbout } from '../src/ui/responsive/zoom';
 import { enterFullscreen, exitFullscreen, fullscreenSupported, isNativeFullscreen } from '../src/ui/responsive/fullscreen';
 import { haptic, HAPTIC_PATTERNS } from '../src/ui/haptics';
@@ -202,5 +202,18 @@ describe('fullscreen', () => {
     const exit = vi.fn(async () => undefined);
     await exitFullscreen({ exitFullscreen: exit });
     expect(exit).not.toHaveBeenCalled();
+  });
+});
+
+describe('nextBaseline', () => {
+  it('keeps the tallest height at the same width, so a shrunk layout still reads as keyboard open', () => {
+    const full = nextBaseline(null, 360, 800);
+    const shrunk = nextBaseline(full, 360, 480);
+    expect(shrunk.height).toBe(800);
+    const inset = keyboardInset({ layoutHeight: shrunk.height, visualHeight: 480, visualOffsetTop: 0 });
+    expect(isKeyboardOpen(inset, shrunk.height)).toBe(true);
+  });
+  it('starts over when the width changes (rotation)', () => {
+    expect(nextBaseline({ width: 360, height: 800 }, 800, 360)).toEqual({ width: 800, height: 360 });
   });
 });

@@ -259,7 +259,8 @@ async function main() {
     const report = (await evaluate(`(() => {
       const w = innerWidth;
       const wide = [...document.querySelectorAll('body *')].filter((e) => {
-        if (e.closest('.moment-confetti') || e.closest('.sr-only')) return false;
+        // Content inside an intentional sideways scroller (data-hscroll) is not page overflow.
+        if (e.closest('.moment-confetti') || e.closest('.sr-only') || e.parentElement?.closest('[data-hscroll]')) return false;
         const r = e.getBoundingClientRect();
         return r.width > 0 && r.height > 0 && (r.right > w + 1 || r.left < -1);
       }).slice(0, 4).map((e) => { const r = e.getBoundingClientRect(); const b = e.closest('button'); return e.tagName + ' ' + (b ? (b.getAttribute('aria-label') ?? b.textContent ?? '').trim().slice(0, 30) : '') + ' x' + Math.round(r.left) + '-' + Math.round(r.right); });

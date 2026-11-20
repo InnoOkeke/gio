@@ -1,0 +1,150 @@
+/* --------------------------------------------------------------------------
+ * On-screen keyboard: the command key row, the collapsed stage and editor sizes for touch.
+ * useKeyboardInset writes --kb (overlay keyboards, iOS), --vvh and html[data-keyboard].
+ * Android Chrome resizes the layout viewport (interactive-widget=resizes-content), so bottom: 0
+ * is already above its keyboard and --kb stays 0 there.
+ * -------------------------------------------------------------------------- */
+.key-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: var(--kb, 0px);
+  z-index: 45;
+  padding: 4px max(4px, var(--safe-right)) max(4px, var(--safe-bottom)) max(4px, var(--safe-left));
+  background: rgba(255, 255, 255, 0.97);
+  border-top: 1px solid var(--line);
+  box-shadow: 0 -6px 16px rgba(23, 38, 31, 0.1);
+}
+.key-row-scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  touch-action: pan-x;
+}
+.key-row-scroll::-webkit-scrollbar {
+  display: none;
+}
+.key-row-key {
+  flex: none;
+  min-width: 48px;
+  height: 48px;
+  padding: 0 12px;
+  scroll-snap-align: start;
+  border: none;
+  border-radius: 14px;
+  background: var(--paper-2, #f6f3ea);
+  box-shadow: 0 3px 0 var(--line-strong, #d8d2c0);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.key-row-key:active {
+  transform: translateY(2px);
+  box-shadow: none;
+}
+.key-row-key.is-run {
+  min-width: 72px;
+  background: var(--green-ink, #0b7a4f);
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+
+/* The shelf below the editor is replaced by the key row while the keyboard is up. */
+html[data-keyboard='open'] .command-shelf {
+  display: none;
+}
+
+/* Keyboard open: a 30% square stage above the editor, everything else folded away. */
+html[data-keyboard='open'][data-layout] .studio-stage-box {
+  width: min(calc(var(--vvh, 100dvh) * 0.3), 100cqw);
+}
+html[data-keyboard='open'] .studio-footer,
+html[data-keyboard='open'] .studio-extras,
+html[data-keyboard='open'] .ask-fold,
+html[data-keyboard='open'] .studio-stage-pane .studio-controls,
+html[data-keyboard='open'] .studio-stage-pane .zoom-control {
+  display: none;
+}
+html[data-keyboard='open'] .studio-code {
+  min-height: calc(var(--vvh, 100dvh) * 0.4);
+}
+html[data-keyboard='open'] .studio-root {
+  padding-bottom: calc(var(--key-row-h, 0px) + 12px);
+}
+
+/* Touch editors: bigger type and a roomy gutter. */
+@media (pointer: coarse) {
+  .editor-host .cm-scroller {
+    line-height: 1.6;
+  }
+  .editor-host .cm-content {
+    font-size: 18px;
+  }
+  .editor-host .cm-lineNumbers .cm-gutterElement {
+    padding: 0 14px 0 18px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .key-row-key:active {
+    transform: none;
+  }
+}
+
+/* Command shelf tabs on phones: one swipeable strip, chips never overflow the page. */
+.shelf-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.shelf-tabs .chip {
+  flex: none;
+  scroll-snap-align: start;
+}
+.shelf-tabs .chip[aria-selected='true'] {
+  background: var(--green-ink, #0b7a4f);
+  color: #fff;
+}
+.command-shelf .chip {
+  max-width: 100%;
+  white-space: normal;
+}
+
+@media (pointer: coarse) {
+  .command-shelf .chip {
+    min-width: var(--touch);
+  }
+}
+
+@media (pointer: coarse) {
+  .command-shelf [class*='gap-1.5'] {
+    gap: 8px;
+  }
+}
+
+html[data-layout='split'] .studio-main {
+  padding-bottom: max(8px, var(--safe-bottom));
+}
+.block-pill {
+  row-gap: 8px;
+}
+
+/* The key row replaces the shelf whenever it is showing (also with an iPad hardware keyboard). */
+html:has(.key-row) .command-shelf {
+  display: none;
+}

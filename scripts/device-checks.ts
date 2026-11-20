@@ -20,6 +20,8 @@ export interface TextFact {
   eyebrow: boolean;
 }
 export interface Facts {
+  /** The on-screen keyboard is up: the stage is collapsed on purpose. */
+  keyboardOpen?: boolean;
   w: number;
   h: number;
   scrollWidth: number;
@@ -81,7 +83,22 @@ export const COLLECT_FACTS = `(() => {
   const scope = modal || document;
   const targets = [...scope.querySelectorAll(SELECTOR)]
     .filter((e) => visible(e) && !e.disabled && !(modal && !modal.contains(e)))
-    .map((e) => ({ ...rectOf(e), name: label(e) }));
+    .map((e) => {
+      // A key scrolled out of its swipe row cannot be tapped: only the visible part counts.
+      const r = rectOf(e);
+      let clipped = false;
+      for (let n = e.parentElement; n && n !== document.body; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        if (!['hidden', 'clip', 'auto', 'scroll'].some((v) => cs.overflowX === v || cs.overflowY === v)) continue;
+        const s = n.getBoundingClientRect();
+        const before = r.right - r.left + (r.bottom - r.top);
+        r.left = Math.max(r.left, s.left); r.right = Math.min(r.right, s.right);
+        r.top = Math.max(r.top, s.top); r.bottom = Math.min(r.bottom, s.bottom);
+        if (r.right - r.left + (r.bottom - r.top) < before - 1) clipped = true;
+      }
+      return { ...r, name: label(e), clipped };
+    })
+    .filter((t) => !t.clipped && t.right - t.left > 1 && t.bottom - t.top > 1);
 
   const texts = [];
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
@@ -121,7 +138,7 @@ export const COLLECT_FACTS = `(() => {
   }
   return { w, h, scrollWidth: document.scrollingElement ? document.scrollingElement.scrollWidth : 0,
     layout: document.documentElement.dataset.layout || '', widthClass: document.documentElement.dataset.width || '',
-    overflowing, targets, texts, stage, runButton: runEl ? rectOf(runEl) : null, dialog, cls: window.__cls || 0 };
+    keyboardOpen: document.documentElement.dataset.keyboard === 'open', overflowing, targets, texts, stage, runButton: runEl ? rectOf(runEl) : null, dialog, cls: window.__cls || 0 };
 })()`;
 
 const width = (b: Box) => b.right - b.left;
@@ -191,7 +208,7 @@ export const safeArea: Assertion = (f, ctx) => {
 
 /** (e) the stage fills its pane and Run is on screen in split layout */
 export const stageFillsPane: Assertion = (f) => {
-  if (!f.stage) return [];
+  if (!f.stage || f.keyboardOpen) return [];
   const out: string[] = [];
   const side = Math.min(width(f.stage), height(f.stage));
   if (f.layout === 'split') {

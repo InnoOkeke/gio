@@ -52,6 +52,8 @@ async function main(): Promise<void> {
             continue;
           }
           try {
+            // A screen may change the viewport (the keyboard check does): start each one from the device.
+            await applyDevice(cdp, device, orientation);
             cdp.takeErrors();
             await screen.open(cdp);
             await sleep(300);

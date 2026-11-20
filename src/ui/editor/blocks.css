@@ -1,0 +1,203 @@
+/* --------------------------------------------------------------------------
+ * Blocks editor: drag and drop, palette rail, touch sizes.
+ * .blocks-editor is a size container, so the palette moves to a left rail when THIS pane is
+ * wide (a tablet in landscape), not when the window is.
+ * -------------------------------------------------------------------------- */
+.blocks-editor {
+  container-type: inline-size;
+  container-name: blocks;
+}
+.blocks-inner {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.blocks-program {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.blocks-palette {
+  flex: none;
+  max-height: 42%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: 0 0 28px 28px;
+}
+.palette-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+}
+.palette-tile {
+  min-height: 68px;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.palette-tile.is-dragging {
+  opacity: 0.45;
+}
+@container blocks (min-width: 560px) {
+  html[data-layout='split'] .blocks-inner {
+    flex-direction: row;
+  }
+  html[data-layout='split'] .blocks-palette {
+    order: -1;
+    flex: none;
+    width: 252px;
+    max-height: none;
+    border-top: none;
+    border-right: 1px solid var(--line);
+    border-radius: 0 0 0 28px;
+  }
+}
+
+.block-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Drop zones: a thin line at rest, a big target while something is being dragged. */
+.drop-slot {
+  height: 12px;
+  border-radius: 10px;
+  border: 2px dashed transparent;
+  transition: height 160ms ease, background-color 160ms ease, border-color 160ms ease;
+}
+.blocks-editor[data-dragging='true'] .drop-slot {
+  height: 36px;
+  background: rgba(122, 76, 240, 0.08);
+  border-color: rgba(122, 76, 240, 0.35);
+}
+@media (pointer: coarse) {
+  .blocks-editor[data-dragging='true'] .drop-slot {
+    height: 56px;
+  }
+}
+.blocks-editor[data-dragging='true'] .drop-slot.is-over {
+  background: rgba(122, 76, 240, 0.22);
+  border-color: #7a4cf0;
+  border-style: solid;
+}
+.drop-slot.is-empty {
+  min-height: 56px;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0;
+  background: rgba(122, 76, 240, 0.05);
+  border-color: rgba(122, 76, 240, 0.3);
+}
+.drop-slot-hint {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--ink-3);
+}
+.repeat-body {
+  min-height: 56px;
+}
+
+/* The grip on every block. Only the grip blocks touch scrolling, so swiping the rest of the list scrolls it. */
+.drag-handle {
+  flex: none;
+  width: 48px;
+  height: 48px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.22);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: -3px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.drag-handle.is-dragging {
+  background: rgba(255, 255, 255, 0.4);
+}
+.block-pill {
+  flex-wrap: wrap;
+  min-height: 60px;
+  row-gap: 8px;
+}
+.block-pill:has(.drag-handle.is-dragging) {
+  opacity: 0.4;
+}
+.block-pill.is-overlay {
+  min-width: 200px;
+  width: max-content;
+  padding-right: 20px;
+  cursor: grabbing;
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.3);
+  transform: rotate(-2deg) scale(1.03);
+}
+@container blocks (max-width: 440px) {
+  .block-glyph {
+    display: none;
+  }
+}
+@media (pointer: coarse) {
+  .block-pill {
+    min-height: 56px;
+  }
+  .block-value {
+    min-width: 52px;
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .drop-slot {
+    transition: none;
+  }
+  .block-pill.is-overlay {
+    transform: none;
+  }
+}
+
+/* Short landscape (phones on their side): the palette is one swipeable row and the code preview
+   is short, so the program list keeps most of the pane. */
+@media (max-height: 500px) {
+  .blocks-palette {
+    max-height: none;
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .blocks-palette .eyebrow {
+    display: none;
+  }
+  .palette-grid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 96px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .palette-tile {
+    min-height: 56px;
+  }
+  .studio-code pre[aria-label='Your blocks as Logo code'] {
+    max-height: 72px;
+  }
+  .blocks-program {
+    min-height: 120px;
+  }
+}

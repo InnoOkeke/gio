@@ -15,3 +15,13 @@ export function keyboardInset({ layoutHeight, visualHeight, visualOffsetTop }: V
 export function isKeyboardOpen(inset: number, layoutHeight: number): boolean {
   return inset > 120 && inset > layoutHeight * 0.15;
 }
+
+/**
+ * The tallest layout height seen at this width. Android Chrome (resizes-content) shrinks the layout
+ * viewport when the keyboard opens, so the inset alone reads 0; comparing with the baseline still
+ * tells that the keyboard is up. A new width (rotation, Split View) starts a new baseline.
+ */
+export function nextBaseline(prev: { width: number; height: number } | null, width: number, height: number): { width: number; height: number } {
+  if (!prev || prev.width !== width) return { width, height };
+  return { width, height: Math.max(prev.height, height) };
+}

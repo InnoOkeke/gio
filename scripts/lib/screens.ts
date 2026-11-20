@@ -231,6 +231,248 @@ async function gameWhileZoomed(c: Cdp): Promise<void> {
     expect(still.x === zoomed.x && still.y === zoomed.y, 'one finger must not pan the stage while a game runs');
   }
 }
+/* ---- FEAT-003: block drag and drop, on-screen keyboard, hardware keys ---- */
+
+type Pt = { x: number; y: number };
+const center = (r: { x: number; y: number; width: number; height: number }): Pt => ({ x: r.x + r.width / 2, y: r.y + r.height / 2 });
+async function rectOf(c: Cdp, selector: string): Promise<{ x: number; y: number; width: number; height: number }> {
+  const r = await c.evaluate<{ x: number; y: number; width: number; height: number } | null>(
+    `(() => { const e = document.querySelector(${JSON.stringify(selector)}); if (!e) return null; const r = e.getBoundingClientRect(); return { x: r.x, y: r.y, width: r.width, height: r.height }; })()`,
+  );
+  if (!r) throw new Error(`nothing matches ${selector}`);
+  return r;
+}
+const touchAt = (c: Cdp, type: 'touchStart' | 'touchMove' | 'touchEnd', p?: Pt) =>
+  c.send('Input.dispatchTouchEvent', { type, touchPoints: p ? [{ x: p.x, y: p.y, id: 1 }] : [] });
+
+/**
+ * A real touch drag: press, hold past the 150ms long-press, move a little so the drag starts, wait
+ * for the drop zones to grow, then glide to wherever `target` says the zone is now.
+ */
+async function touchDrag(c: Cdp, from: Pt, target: () => Promise<Pt>): Promise<void> {
+  const coarse = (await c.evaluate<boolean>(`matchMedia('(pointer: coarse)').matches`)) === true;
+  if (!coarse) {
+    // Desktop: a mouse drag (the pointer sensor starts after 6px).
+    const to0 = await target();
+    await c.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: from.x, y: from.y, button: 'left', clickCount: 1 });
+    let at = from;
+    for (let i = 1; i <= 14; i++) {
+      const to = i === 1 ? to0 : await target();
+      at = { x: at.x + (to.x - at.x) / (15 - i), y: at.y + (to.y - at.y) / (15 - i) };
+      await c.send('Input.dispatchMouseEvent', { type: 'mouseMoved', x: at.x, y: at.y, button: 'left', buttons: 1 });
+      await sleep(24);
+    }
+    await sleep(250);
+    await c.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: at.x, y: at.y, button: 'left', clickCount: 1 });
+    await sleep(500);
+    return;
+  }
+  await touchAt(c, 'touchStart', from);
+  await sleep(260);
+  for (let i = 1; i <= 4; i++) {
+    await touchAt(c, 'touchMove', { x: from.x, y: from.y - i * 4 });
+    await sleep(30);
+  }
+  await sleep(300);
+  // The list may autoscroll while the finger moves, so the target is read again on every step
+  // and the finger rests on it until it stops moving.
+  let at = { x: from.x, y: from.y - 16 };
+  for (let i = 1; i <= 14; i++) {
+    const to = await target();
+    at = { x: at.x + (to.x - at.x) / (15 - i), y: at.y + (to.y - at.y) / (15 - i) };
+    await touchAt(c, 'touchMove', at);
+    await sleep(24);
+  }
+  for (let k = 0; k < 8; k++) {
+    const to = await target();
+    if (Math.abs(to.x - at.x) < 2 && Math.abs(to.y - at.y) < 2) break;
+    at = to;
+    await touchAt(c, 'touchMove', at);
+    await sleep(80);
+  }
+  await sleep(250);
+  await touchAt(c, 'touchEnd');
+  await sleep(500);
+}
+
+const blocksLogo = (c: Cdp) =>
+  c.evaluate<string>(`(document.querySelector('pre[aria-label="Your blocks as Logo code"]')?.textContent ?? '').replace(/\\[/g, '[ ').replace(/\\]/g, ' ]').replace(/\\s+/g, ' ').trim()`);
+
+/** Scroll an element to the middle of the screen (or of its scroller) and give back its centre. */
+async function reveal(c: Cdp, selector: string): Promise<Pt> {
+  await c.evaluate(`document.querySelector(${JSON.stringify(selector)})?.scrollIntoView({ block: 'center', inline: 'nearest' })`);
+  await sleep(200);
+  return center(await rectOf(c, selector));
+}
+
+async function dropInto(c: Cdp, from: string, slot: string, expect_: string, what: string): Promise<void> {
+  const start = await reveal(c, from);
+  let first = true;
+  await touchDrag(c, start, async () => {
+    if (!first) return center(await rectOf(c, slot));
+    first = false;
+    return reveal(c, slot);
+  });
+  const got = await blocksLogo(c);
+  if (got !== expect_) {
+    const where = await c.evaluate<string>(`(() => { const p = document.querySelector('.blocks-program')?.getBoundingClientRect(); return 'program ' + (p ? Math.round(p.top) + '-' + Math.round(p.bottom) : '?') + ', viewport ' + innerWidth + 'x' + innerHeight; })()`);
+    throw new Error(`${what}: expected "${expect_}", got "${got}" (${where})`);
+  }
+}
+
+/** Drag from the palette into a Repeat, reorder with a handle, and drop into a nested Repeat. */
+async function blockDragChecks(c: Cdp): Promise<void> {
+  await c.waitFor(`!!document.querySelector('.palette-tile')`, 10000);
+  await c.click('button', 'See the code');
+  await sleep(300);
+  const start = await blocksLogo(c);
+  expect(start === 'REPEAT 4 [ FD 50 REPEAT 3 [ RT 10 ] ] FD 5', `the seeded program changed shape: "${start}"`);
+  // A quick vertical swipe on a palette tile scrolls; it must not add a block.
+  const tile = await reveal(c, '.palette-tile');
+  await c.swipe(tile, { x: tile.x, y: tile.y - 60 });
+  await sleep(300);
+  expect((await blocksLogo(c)) === start, 'a quick swipe on the palette added or moved a block');
+  // 1. Palette tile into the end of the outer Repeat.
+  await c.evaluate(`[...document.querySelectorAll('.palette-tile')].find((e) => e.textContent.includes('Turn left'))?.setAttribute('data-test', 'turn-left')`);
+  await dropInto(c, '[data-test="turn-left"]', '[data-slot="0:2"]', 'REPEAT 4 [ FD 50 REPEAT 3 [ RT 10 ] LT 90 ] FD 5', 'palette tile into the Repeat');
+  // 2. Reorder: the new block's handle to the start of the same Repeat.
+  await dropInto(c, '[data-block-path="0.2"]', '[data-slot="0:0"]', 'REPEAT 4 [ LT 90 FD 50 REPEAT 3 [ RT 10 ] ] FD 5', 'reordering with the handle');
+  // 3. A top-level block into the nested Repeat.
+  await dropInto(c, '[data-block-path="1"]', '[data-slot="0.2:1"]', 'REPEAT 4 [ LT 90 FD 50 REPEAT 3 [ RT 10 FD 5 ] ]', 'dropping into the nested Repeat');
+  await c.evaluate(`window.scrollTo(0, 0); document.querySelector('.blocks-program')?.scrollTo(0, 0)`);
+  await sleep(300);
+  await c.evaluate(`window.__cls = 0`);
+}
+
+/** Make the layout viewport as tall as the page is with the keyboard up (the Android Chrome way). */
+async function pressKeyboardUp(c: Cdp): Promise<{ full: number; kept: number }> {
+  const m = await c.evaluate<{ w: number; h: number; dpr: number; touch: boolean }>(`({ w: innerWidth, h: innerHeight, dpr: devicePixelRatio, touch: matchMedia('(pointer: coarse)').matches })`);
+  if (!m) throw new Error('no viewport');
+  const tablet = m.w >= 600 && m.h >= 700;
+  const shrink = tablet ? 380 : m.h > m.w ? 300 : Math.round(m.h * 0.45);
+  const landscape = m.w > m.h;
+  await c.send('Emulation.setDeviceMetricsOverride', {
+    width: m.w,
+    height: m.h - shrink,
+    deviceScaleFactor: m.dpr,
+    mobile: m.touch,
+    screenOrientation: { type: landscape ? 'landscapePrimary' : 'portraitPrimary', angle: landscape ? 90 : 0 },
+  });
+  return { full: m.h, kept: m.h - shrink };
+}
+
+interface KeyboardFacts {
+  keyboard: string;
+  keyRow: { top: number; bottom: number } | null;
+  caretBottom: number | null;
+  stageHeight: number;
+  vvh: number;
+  visibleLines: number;
+  focused: boolean;
+  text: string;
+}
+const KEYBOARD_FACTS = `(() => {
+  const kr = document.querySelector('.key-row')?.getBoundingClientRect();
+  const line = document.querySelector('.cm-activeLine')?.getBoundingClientRect();
+  const scroller = document.querySelector('.cm-scroller')?.getBoundingClientRect();
+  const lines = [...document.querySelectorAll('.cm-line')].filter((l) => { const r = l.getBoundingClientRect(); return scroller && r.top >= scroller.top - 1 && r.bottom <= Math.min(scroller.bottom, (kr ? kr.top : innerHeight)) + 1; }).length;
+  const stage = document.querySelector('.studio-stage-box')?.getBoundingClientRect();
+  return {
+    keyboard: document.documentElement.dataset.keyboard ?? '',
+    keyRow: kr ? { top: kr.top, bottom: kr.bottom } : null,
+    caretBottom: line ? line.bottom : null,
+    stageHeight: stage ? stage.height : 0,
+    vvh: window.visualViewport ? window.visualViewport.height : innerHeight,
+    visibleLines: lines,
+    focused: !!document.activeElement && document.activeElement.classList.contains('cm-content'),
+    text: document.querySelector('.cm-content')?.textContent ?? '',
+  };
+})()`;
+const readKeyboard = (c: Cdp) => c.evaluate<KeyboardFacts>(KEYBOARD_FACTS).then((f) => f as KeyboardFacts);
+
+/** Leaves the browser at the keyboard-up height so the layout facts are read with the keyboard open; the runner re-applies the device before the next screen. */
+async function keyboardChecks(c: Cdp): Promise<void> {
+  await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('') }, '?mode=coder');
+  await c.waitFor(`!!document.querySelector('.cm-content')`, 10000);
+  const coarse = (await c.evaluate<boolean>(`matchMedia('(pointer: coarse)').matches`)) === true;
+  if (!coarse) return; // The key row and the collapsed stage are for touch screens.
+
+  // An overlay keyboard (iOS Safari) shrinks only the visual viewport. Headless Edge may not
+  // support that; when the visual viewport does not move, say so and rely on the unit tests.
+  const probe = await c.send('Emulation.setVisibleSize', { width: await c.evaluate<number>('innerWidth'), height: Math.round(((await c.evaluate<number>('innerHeight')) ?? 600) * 0.6) });
+  const shrunk = (await c.evaluate<boolean>(`!!window.visualViewport && window.visualViewport.height < innerHeight - 50`)) === true;
+  // setVisibleSize resizes the headless window; put it back so later touches land inside it.
+  await c.send('Emulation.setVisibleSize', { width: 1600, height: 1600 });
+  if (probe.error || !shrunk) console.warn('  keyboard-editor: this browser cannot shrink only the visual viewport; the iOS overlay case is covered by the keyboardInset unit tests.');
+  else {
+    await c.evaluate(`document.querySelector('.cm-content')?.focus()`);
+    await sleep(500);
+    const o = await readKeyboard(c);
+    const vvBottom = await c.evaluate<number>(`window.visualViewport.offsetTop + window.visualViewport.height`);
+    expect(o.keyRow !== null && o.keyRow.bottom <= (vvBottom ?? 0) + 1, `overlay keyboard: the key row sits below the visible area (bottom ${o.keyRow?.bottom}, visible ${vvBottom})`);
+  }
+
+  const { full, kept } = await pressKeyboardUp(c);
+  await sleep(700);
+  await c.evaluate(`document.querySelector('.cm-content')?.focus()`);
+  for (let i = 1; i <= 8; i++) {
+    await c.type(`FD ${i * 10}`);
+    await c.key('Enter', 'Enter', 13);
+  }
+  await sleep(600);
+  const f = await readKeyboard(c);
+  const where = `(layout ${full} -> ${kept}px)`;
+  expect(f.keyboard === 'open', `the page should know the keyboard is open ${where}`);
+  expect(f.keyRow !== null, `the command key row should be showing ${where}`);
+  expect(f.keyRow!.bottom <= kept + 1, `the key row is below the viewport ${where}: bottom ${f.keyRow!.bottom}`);
+  expect(f.caretBottom !== null && f.caretBottom <= f.keyRow!.top + 1, `the caret line (bottom ${f.caretBottom}) is under the key row (top ${f.keyRow!.top}) ${where}`);
+  expect(f.stageHeight <= f.vvh * 0.3 + 6, `the stage should shrink to 30% of the visible height ${where}: ${Math.round(f.stageHeight)}px of ${Math.round(f.vvh)}px`);
+  // Phones in landscape have almost no height left: two lines is the honest floor there.
+  const needLines = kept >= 400 ? 4 : 2;
+  expect(f.visibleLines >= needLines, `only ${f.visibleLines} editor lines are visible, need ${needLines} ${where}`);
+  // Tapping a key types, and the editor keeps focus (so the keyboard stays up).
+  const before = f.text.length;
+  for (let k = 0; k < 2; k++) {
+    const key = await rectOf(c, '.key-row-key[aria-label^="Type FD"]');
+    await c.tap(key.x + key.width / 2, key.y + key.height / 2);
+    await sleep(300);
+    if ((await readKeyboard(c)).text.length > before) break;
+  }
+  const after = await readKeyboard(c);
+  expect(after.text.length > before, 'tapping the FD key did not type anything');
+  expect(after.focused, 'the editor lost focus when a key was tapped, so the keyboard would close');
+}
+
+/** Tab, arrows and Escape in the editor with a hardware keyboard, while a game is listening for arrows. */
+async function hardwareKeyChecks(c: Cdp): Promise<void> {
+  await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft(GAME) }, '?mode=coder');
+  const m = await c.evaluate<{ w: number; coarse: boolean }>(`({ w: innerWidth, coarse: matchMedia('(pointer: coarse)').matches })`);
+  if (!m?.coarse || m.w < 600) return; // iPad and Android tablets with a keyboard
+  await runAndWait(c, '[aria-label="Game controls"]');
+  await dismissFriends(c);
+  await c.evaluate(`document.querySelector('.focus-offer button[aria-label="Not now"]')?.click(); document.querySelector('.cm-content')?.focus()`);
+  await sleep(300);
+  const line = () => c.evaluate<string>(`document.querySelector('.cm-activeLine')?.textContent ?? ''`);
+  const turtle = () => c.evaluate<string>(`document.querySelector('.turtle')?.style.transform ?? ''`);
+  const length = () => c.evaluate<number>(`document.querySelector('.cm-content')?.textContent.length ?? 0`);
+  await c.key('ArrowUp', 'ArrowUp', 38);
+  await c.key('ArrowUp', 'ArrowUp', 38);
+  await c.key('ArrowUp', 'ArrowUp', 38);
+  const top = await line();
+  const turtleBefore = await turtle();
+  await c.key('ArrowDown', 'ArrowDown', 40);
+  await sleep(500);
+  expect((await line()) !== top, 'the arrow keys should move the caret in the editor');
+  expect((await turtle()) === turtleBefore, 'the game took the arrow keys that were meant for the editor');
+  const len = await length();
+  await c.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9, text: '\t' });
+  await c.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
+  await sleep(250);
+  expect(((await length()) ?? 0) > (len ?? 0), 'Tab should indent in the editor');
+  await c.key('Escape', 'Escape', 27);
+  await sleep(250);
+  expect((await c.evaluate<boolean>(`!document.activeElement?.closest('.cm-editor')`)) === true, 'Escape should leave the editor');
+}
 export const SCREENS: Screen[] = [
   { id: 'mode-picker', label: 'Mode picker', ready: 'h1', open: (c) => c.seed({}, '', 'h1') },
   { id: 'little-empty', label: 'Little studio, empty (first-win offer)', open: (c) => c.seed(little, '?mode=little') },
@@ -436,5 +678,15 @@ export const SCREENS: Screen[] = [
       await c.evaluate(`window.__cls = 0`);
     },
   },
-  { id: 'keyboard-editor', label: 'Keyboard-open editor (FEAT-003)', open: null },
+  {
+    id: 'block-drag',
+    label: 'Little studio: drag from the palette, reorder with a handle, drop into a nested Repeat',
+    open: async (c) => {
+      await c.seed({ ...little, 'gio.progress': LITTLE_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 50 REPEAT 3 [RT 10]]\nFD 5') }, '?mode=little');
+      await dismissFriends(c);
+      await blockDragChecks(c);
+    },
+  },
+  { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },
+  { id: 'hardware-keys', label: 'Hardware keyboard on tablets: arrows, Tab and Escape in the editor', open: hardwareKeyChecks },
 ];

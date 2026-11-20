@@ -54,8 +54,9 @@ import { DEFAULT_FIRST_COLOUR, firstWinProgram, markFirstWinShown, readFirstWin,
 import { LINES, pickLine, welcomeBackLine } from '../gio/lines';
 import { moodFor, type GioMood } from '../gio/mood';
 import { daysAway, localDateKey } from '../gio/rewards';
-import { BlocksEditor } from '../editor/BlocksEditor';
-import { LogoEditor, type LogoEditorHandle } from '../editor/LogoEditor';
+import type { LogoEditorHandle } from '../editor/LogoEditor';
+import { CommandKeyRow, applyKey } from '../components/CommandKeyRow';
+import { useKeyboardInset } from '../responsive/useKeyboardInset';
 import { MODE_LABEL, useMode, type AgeMode } from '../mode';
 import { createDelayed } from '../path/delayed';
 import { useQuestHelp } from '../path/help';
@@ -111,6 +112,10 @@ function fileName(title: string, ext: string): string {
   return `${safe || 'gio-drawing'}.${ext}`;
 }
 const ReplayDialog = lazy(() => import('../components/ReplayDialog'));
+// Each editor loads only in the mode that uses it: dnd-kit with the blocks, CodeMirror with Coder code.
+const BlocksEditor = lazy(() => import('../editor/BlocksEditor').then((m) => ({ default: m.BlocksEditor })));
+const LogoEditor = lazy(() => import('../editor/LogoEditor').then((m) => ({ default: m.LogoEditor })));
+const EditorSkeleton = () => <div className="h-full min-h-[240px] bg-paper-2 animate-pulse" aria-busy="true" aria-label="Loading the editor" />;
 
 interface ReviewRun {
   islandKey: string;
@@ -401,7 +406,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     const map: Record<string, GameKey> = { ArrowUp: 'UP', ArrowDown: 'DOWN', ArrowLeft: 'LEFT', ArrowRight: 'RIGHT', ' ': 'SPACE' };
     const onKey = (e: KeyboardEvent) => {
       const el = e.target as HTMLElement | null;
-      if (el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
+      if (el && (el.isContentEditable || el.closest('.cm-editor') || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName))) return;
       const key = map[e.key];
       if (!key || !gameKeys.includes(key)) return;
       e.preventDefault();
@@ -940,6 +945,8 @@ function StudioView({ initial }: { initial: Loaded }) {
   };
 
   const win = useWindowClass();
+  useKeyboardInset();
+  const [editorFocused, setEditorFocused] = useState(false);
   const compact = win.widthClass === 'compact';
   const [askOpen, setAskOpen] = useState(false);
   const paneRef = useRef<HTMLElement>(null);
@@ -961,7 +968,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         <h2 id="code-title" className="text-[20px] font-black">
           My blocks
         </h2>
-        <button type="button" className="btn btn-ghost min-h-[40px] px-3 text-[14px]" onClick={() => setShowLogoUnderBlocks((v) => !v)} aria-pressed={showLogoUnderBlocks}>
+        <button type="button" className="btn btn-ghost min-h-[var(--touch)] px-3 text-[14px]" onClick={() => setShowLogoUnderBlocks((v) => !v)} aria-pressed={showLogoUnderBlocks}>
           {showLogoUnderBlocks ? 'Hide the code' : 'See the code'}
         </button>
       </div>
@@ -972,7 +979,9 @@ function StudioView({ initial }: { initial: Loaded }) {
       )}
       <div className="flex-1 min-h-0">
         {blockView.ok ? (
-          <BlocksEditor blocks={blockView.blocks} runningLine={runningLine} onChange={(b) => replaceCode(blocksToLogo(b))} />
+          <Suspense fallback={<EditorSkeleton />}>
+            <BlocksEditor blocks={blockView.blocks} runningLine={runningLine} onChange={(b) => replaceCode(blocksToLogo(b))} />
+          </Suspense>
         ) : (
           <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
             <p className="m-0 text-[20px] font-black">This drawing uses big-kid code</p>
@@ -1004,7 +1013,9 @@ function StudioView({ initial }: { initial: Loaded }) {
         </div>
       </div>
       <div id="panel-logo" role="tabpanel" aria-labelledby="tab-logo" className="flex-1 min-h-[240px]" hidden={codeTab !== 'logo'}>
-        <LogoEditor ref={editorRef} initialCode={code} onChange={setCode} onRunShortcut={() => run(codeRef.current)} />
+        <Suspense fallback={<EditorSkeleton />}>
+          <LogoEditor ref={editorRef} initialCode={code} onChange={setCode} onRunShortcut={() => run(codeRef.current)} onFocusChange={setEditorFocused} />
+        </Suspense>
       </div>
       {codeTab !== 'logo' && (
         <div id={`panel-${codeTab}`} role="tabpanel" aria-labelledby={`tab-${codeTab}`} className="flex-1 min-h-0">
@@ -1016,6 +1027,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         </div>
       )}
       {codeTab === 'logo' && <CommandShelf onInsert={(snippet) => editorRef.current?.insert(snippet)} />}
+      <CommandKeyRow visible={codeTab === 'logo' && editorFocused && win.coarse} onKey={(k) => applyKey(k, editorRef.current, () => run(codeRef.current))} />
     </section>
   );
 
