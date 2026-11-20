@@ -24,7 +24,7 @@ const run = (files: Record<string, string> = FILES) => buildManifest(Object.keys
 const urls = (files?: Record<string, string>) => run(files).entries.map((e) => e.url);
 
 describe('buildManifest', () => {
-  it('includes html, js, css, latin fonts, runner, logo, manifest and icons', () => {
+  it('includes html, js, css, latin fonts, logo, manifest and icons', () => {
     const list = urls();
     expect(list).toEqual(
       expect.arrayContaining([
@@ -33,8 +33,6 @@ describe('buildManifest', () => {
         '/assets/editor-bbb.js',
         '/assets/main-ccc.css',
         '/assets/nunito-latin-wght-normal-111.woff2',
-        '/py/runner.html',
-        '/py/runner-ddd.js',
         '/logo.svg',
         '/manifest.webmanifest',
         '/icons/icon-192.png',
@@ -42,9 +40,9 @@ describe('buildManifest', () => {
     );
   });
 
-  it('never includes Pyodide, the old sw.js, other writing systems or unreferenced fonts', () => {
+  it('never includes the Python frame, Pyodide, the old sw.js, other writing systems or unreferenced fonts', () => {
     const list = urls();
-    expect(list.some((u) => u.startsWith('/py/pyodide-'))).toBe(false);
+    expect(list.some((u) => u.startsWith('/py/'))).toBe(false);
     expect(list).not.toContain('/sw.js');
     expect(list).not.toContain('/assets/nunito-latin-ext-wght-normal-222.woff2');
     expect(list).not.toContain('/assets/nunito-cyrillic-wght-normal-333.woff2');
@@ -54,7 +52,6 @@ describe('buildManifest', () => {
   it('gives hashed files rev null and other files a content hash', () => {
     const byUrl = new Map(run().entries.map((e) => [e.url, e.rev]));
     expect(byUrl.get('/assets/main-aaa.js')).toBeNull();
-    expect(byUrl.get('/py/runner-ddd.js')).toBeNull();
     expect(byUrl.get('/')).toMatch(/^[0-9a-f]{64}$/);
     expect(byUrl.get('/logo.svg')).toMatch(/^[0-9a-f]{64}$/);
   });

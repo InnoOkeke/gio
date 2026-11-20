@@ -19,8 +19,8 @@ const isLatinFont = (file: string): boolean => /\/[^/]*-latin-(?!ext)[^/]*\.woff
 
 /**
  * bundleFiles and publicFiles are paths relative to the output folder, with forward slashes.
- * Hashed files (assets/*, py/runner-*.js) get rev null because their URL changes with their content.
- * Everything else gets a content hash. Pyodide is never listed: it is large and is kept only after the child opts in.
+ * Hashed files (assets/*) get rev null because their URL changes with their content.
+ * Everything else gets a content hash. The Python frame (py/*) is never listed: the worker passes /py/* straight through because the sandboxed frame is not controlled by it.
  */
 export function buildManifest(bundleFiles: readonly string[], publicFiles: readonly string[], readFile: Reader): BuiltManifest {
   const byUrl = new Map<string, ManifestEntry>();
@@ -38,8 +38,7 @@ export function buildManifest(bundleFiles: readonly string[], publicFiles: reado
     else if (/^assets\/[^/]+\.woff2$/.test(file)) {
       const name = file.slice(file.lastIndexOf('/') + 1);
       if (isLatinFont(`/${file}`) && cssText.includes(name)) add(`/${file}`, null);
-    } else if (file === 'py/runner.html') add(`/${file}`, sha256(readFile(file)));
-    else if (/^py\/runner-[^/]+\.js$/.test(file)) add(`/${file}`, null);
+    }
   }
   for (const file of [...publicFiles].sort()) {
     if (file.startsWith('py/pyodide-') || file === 'sw.js') continue;

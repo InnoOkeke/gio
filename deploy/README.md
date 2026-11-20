@@ -47,7 +47,7 @@ GIO installs as an app and opens without internet. `vite build` writes `dist/ui/
 - **404, not the app page:** a missing `/assets/*`, `/py/*`, `/api/*`, `/sw.js` or any path with a file extension returns 404. Only app routes (`/`, `/p/:slug`, `/certificate`, `/privacy`) get `index.html`, so a stale chunk request can never be cached as HTML.
 - **Compression:** `deploy/setup.sh` also gzips `application/manifest+json`. On an existing server add it to the `gzip_types` line in `/etc/nginx/nginx.conf` and reload nginx.
 - **API Gateway:** the HTTP API passes these headers through and does not cache, so nothing else is needed there. Do not add caching in front of `sw.js` or `index.html`.
-- **Updates:** a new service worker installs in the background and waits. The child sees "A new GIO is ready" and chooses Update now or Later; closing and reopening the app also picks it up.
+- **Updates:** a new service worker installs in the background and waits. The child sees "A new GIO is ready" and chooses Update now or Later; closing and reopening the app also picks it up. After Update now, the new version removes the old cache and takes over every open tab. A second tab still on the old build can get a 404 for a lazy chunk (Python editor, replay, GIF) until it is reloaded. Drafts autosave, so no code is lost.
 
 ## Updating
 

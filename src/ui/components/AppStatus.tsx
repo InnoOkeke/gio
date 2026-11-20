@@ -146,7 +146,7 @@ export function AppStatus() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed inset-x-0 bottom-0 z-50 pointer-events-none flex flex-col items-center sm:items-start gap-2 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] [@media(max-height:479px)]:bottom-auto [@media(max-height:479px)]:top-0 [@media(max-height:479px)]:items-center [@media(max-height:479px)]:pt-[calc(env(safe-area-inset-top)+8px)]"
+      className="fixed inset-x-0 bottom-0 z-40 pointer-events-none flex flex-col items-center sm:items-start gap-2 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] [@media(max-height:479px)]:bottom-auto [@media(max-height:479px)]:top-0 [@media(max-height:479px)]:items-center [@media(max-height:479px)]:pt-[calc(env(safe-area-inset-top)+8px)]"
     >
       {!online && (
         <p className="pointer-events-auto m-0 rounded-full bg-ink text-white px-4 py-2 text-[15px] font-extrabold shadow-lg">No internet. Drawing and quests still work.</p>

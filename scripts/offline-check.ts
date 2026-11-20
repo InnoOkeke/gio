@@ -148,6 +148,45 @@ async function main() {
     }
   };
 
+  /** The status layer at phone and tablet sizes: inside the screen, under dialogs, big enough to tap and readable. */
+  const SIZES = [
+    { name: 'phone 360x640', width: 360, height: 640 },
+    { name: 'phone 412x915', width: 412, height: 915 },
+    { name: 'tablet 820x1180', width: 820, height: 1180 },
+  ];
+  const STATUS_PROBE = `(() => {
+    const host = document.querySelector('[role=status].fixed');
+    if (!host) return { problems: ['the status layer is missing'], shown: 0, sideways: false };
+    const problems = [];
+    const lum = (c) => { const v = c.match(/[\\d.]+/g).slice(0, 3).map(Number).map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : Math.pow((x + 0.055) / 1.055, 2.4); }); return 0.2126 * v[0] + 0.7152 * v[1] + 0.0722 * v[2]; };
+    const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+    const solid = (el) => { for (let e = el; e; e = e.parentElement) { const c = getComputedStyle(e).backgroundColor; if (c && !/rgba\\(.*, 0\\)|transparent/.test(c)) return c; } return 'rgb(255,255,255)'; };
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const sideways = document.documentElement.scrollWidth > vw + 1;
+    if (Number(getComputedStyle(host).zIndex) >= 50) problems.push('the status layer is not under the dialogs (z-index ' + getComputedStyle(host).zIndex + ')');
+    const items = [...host.children];
+    for (const el of items) {
+      const r = el.getBoundingClientRect();
+      if (r.left < -0.5 || r.right > vw + 0.5 || r.top < -0.5 || r.bottom > vh + 0.5) problems.push('"' + el.textContent.slice(0, 25) + '" is outside the screen');
+      const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+      if (!el.contains(hit)) problems.push('"' + el.textContent.slice(0, 25) + '" is covered by something');
+      const c = ratio(getComputedStyle(el.querySelector('p, li') ?? el).color, solid(el));
+      if (c < 4.5) problems.push('"' + el.textContent.slice(0, 25) + '" has contrast ' + c.toFixed(2));
+      for (const b of el.querySelectorAll('button')) { const br = b.getBoundingClientRect(); if (br.height < 44 || br.width < 44) problems.push('button "' + b.textContent + '" is ' + Math.round(br.width) + 'x' + Math.round(br.height)); }
+    }
+    return { problems, shown: items.length, sideways };
+  })()`;
+  const statusAtSizes = async (what: string, expectShown: number) => {
+    for (const s of SIZES) {
+      await send('Emulation.setDeviceMetricsOverride', { width: s.width, height: s.height, deviceScaleFactor: 1, mobile: true });
+      await sleep(400);
+      const r = (await evaluate(STATUS_PROBE)) as { problems: string[]; shown: number; sideways: boolean };
+      // Sideways scrolling of the whole page belongs to the Studio layout (responsive-layouts work), so it is reported here, not failed.
+      if (r.sideways) console.log(`  note: at ${s.name} the page itself scrolls sideways (Studio layout, not the status layer)`);
+      expect(r.shown >= expectShown && r.problems.length === 0, `${what} at ${s.name}: ${r.shown} shown, ${r.problems.length === 0 ? 'inside the screen, under dialogs, 44px targets, contrast 4.5+' : r.problems.join('; ')}`);
+    }
+    await send('Emulation.clearDeviceMetricsOverride');
+  };
   /* Every request the page makes, and the bytes of each, from the very first navigation. */
   const seen: string[] = [];
   const requestUrl = new Map<string, string>();
@@ -255,7 +294,7 @@ async function main() {
     expect(await waitFor(`!!document.querySelector('#title') && !!document.querySelector('.cm-content')`, 15000), `${url.replace(base, '')} opens and draws its page offline`);
   }
   expect((await body()).includes('No internet. Drawing and quests still work.'), 'the offline pill is visible');
-
+  await statusAtSizes('the offline pill', 1);
   console.log('drawing');
   await type('REPEAT 4 [FD 100 RT 90]', true);
   expect(!(await stageHasInk()), 'the stage is empty before Run');
@@ -350,6 +389,7 @@ async function main() {
   expect((await evaluate(`window.__noReload`)) === 'same page', 'the banner appeared without a reload');
   expect((await editorText()) === edited, 'the code in the editor is unchanged by the banner');
   expect((await body()).includes('Your code is kept.'), 'the banner says the code is kept');
+  await statusAtSizes('the update card', 1);
   const assetHitsBeforeUpdate = log.filter((u) => u.startsWith('/assets/') || u.startsWith('/icons/') || u.startsWith('/py/')).length;
   console.log(`  server saw ${log.length} requests while the second build installed; files under /assets, /icons, /py: ${assetHitsBeforeUpdate}`);
   expect(assetHitsBeforeUpdate === 0, 'unchanged hashed files were copied from the old cache, not downloaded again');
@@ -367,6 +407,14 @@ async function main() {
   await go(`${base}/`);
   await clear();
   expect(await waitFor(`(document.querySelector('.cm-content')?.textContent ?? '') === ${JSON.stringify(draft)}`, 15000), `the new drawing's draft came back (${draft})`);
+  console.log('the iPhone guide');
+  const IPHONE = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+  await send('Emulation.setUserAgentOverride', { userAgent: IPHONE });
+  await evaluate(`localStorage.setItem('gio.pwa', JSON.stringify({ visits: 1, installDismissedAt: null, seenReady: true }))`);
+  await go(`${base}/`);
+  await clear();
+  expect(await waitFor(`document.body.innerText.includes('Add to Home Screen')`, 10000), 'Safari on iPhone shows the Add to Home Screen guide on the second visit');
+  await statusAtSizes('the iPhone guide', 1);
 }
 
 const finish = async (code: number) => {
