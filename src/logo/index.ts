@@ -5,9 +5,9 @@ import { parse, type Program } from './parser.js';
 
 export { LogoError } from './errors.js';
 export { parse } from './parser.js';
-export type { Program, Procedure, Stmt, Expr } from './parser.js';
+export type { Program, Procedure, Stmt, Expr, ParseOptions } from './parser.js';
 export { run, formatValue, INITIAL_STATE, DEFAULT_BACKGROUND, DEFAULT_LIMITS } from './interpreter.js';
-export type { TurtleEvent, TurtleState, RunResult, RunOptions, RunLimits, Value, GameSession } from './interpreter.js';
+export type { TurtleEvent, TurtleState, RunResult, RunOptions, RunLimits, Value, GameSession, WorldHost, WorldPose } from './interpreter.js';
 export { PRIMITIVES, lookupPrimitive, GAME_KEYS } from './primitives.js';
 export type { PrimitiveSpec, GameKey } from './primitives.js';
 export { parseTune, noteHz, noteName } from './music.js';

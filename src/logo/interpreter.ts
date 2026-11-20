@@ -55,8 +55,32 @@ export interface RunLimits {
 
 export const DEFAULT_LIMITS: RunLimits = { maxOps: 200_000, maxEvents: 20_000, maxDepth: 200, maxSeconds: 180 };
 
+/** A turtle pose in turtle units. Heading is degrees, 0 = up, clockwise. */
+export interface WorldPose {
+  x: number;
+  y: number;
+  heading: number;
+}
+
+/**
+ * A world that decides what the turtle's moves mean (Gio's Adventure). Without one, nothing changes:
+ * the interpreter draws on a free canvas exactly as before.
+ */
+export interface WorldHost {
+  /** Where the turtle starts. */
+  pose(): WorldPose;
+  /** FORWARD, BACK, RIGHT, LEFT and the adventure commands. Returns the new pose. Throws a LogoError for a bad input or a lost attempt. */
+  command(name: string, arg: number | null, line: number): WorldPose;
+  /** An adventure reporter such as AHEAD, or undefined when the world does not know the name. */
+  reporter(name: string): Value | undefined;
+  /** True once the level is won. The interpreter then stops cleanly. */
+  readonly finished: boolean;
+}
+
 export interface RunOptions {
   limits?: Partial<RunLimits>;
+  /** Run inside a world instead of on the free canvas. */
+  world?: WorldHost;
   /** Returns a number in [0, 1). Injected so tests can be deterministic. */
   random?: () => number;
 }
@@ -83,6 +107,9 @@ class StopSignal {}
 
 /** GAMEOVER ends the whole game, even from inside a procedure. */
 class GameOverSignal {}
+
+/** The world says the level is won, so the plan stops at once, even from inside a procedure. */
+class LevelEndSignal {}
 
 /** A LogoError raised while running, carrying everything drawn before the problem. */
 export class LogoRunError extends LogoError {
@@ -122,6 +149,7 @@ class Interpreter {
   private tempo = 120;
   private readonly limits: RunLimits;
   private readonly random: () => number;
+  private readonly world: WorldHost | undefined;
 
   constructor(
     private readonly program: Program,
@@ -129,6 +157,8 @@ class Interpreter {
   ) {
     this.limits = { ...DEFAULT_LIMITS, ...options.limits };
     this.random = options.random ?? Math.random;
+    this.world = options.world;
+    if (this.world) this.state = { ...this.state, ...this.world.pose() };
   }
 
   run(): RunResult {
@@ -136,7 +166,7 @@ class Interpreter {
       this.execBlock(this.program.main);
     } catch (err) {
       if (err instanceof LogoError) throw new LogoRunError(err, this.result());
-      if (!(err instanceof StopSignal) && !(err instanceof GameOverSignal)) throw err;
+      if (!(err instanceof StopSignal) && !(err instanceof GameOverSignal) && !(err instanceof LevelEndSignal)) throw err;
     }
     return this.result();
   }
@@ -169,7 +199,7 @@ class Interpreter {
       this.execBlock(body);
     } catch (err) {
       if (err instanceof LogoError) throw new LogoRunError(err, this.result());
-      if (!(err instanceof StopSignal) && !(err instanceof GameOverSignal)) throw err;
+      if (!(err instanceof StopSignal) && !(err instanceof GameOverSignal) && !(err instanceof LevelEndSignal)) throw err;
     }
     return [...this.events];
   }
@@ -338,9 +368,24 @@ class Interpreter {
     }
   }
 
+  /** Ask the world to carry out a command, then show the pose it answers with. */
+  private worldCommand(world: WorldHost, name: string, arg: number | null, line: number): void {
+    const pose = world.command(name, arg, line);
+    this.state.x = round(pose.x);
+    this.state.y = round(pose.y);
+    this.state.heading = normalizeHeading(pose.heading);
+    this.emit({ type: name === 'RIGHT' || name === 'LEFT' ? 'turn' : 'move', line, state: this.snapshot() });
+    if (world.finished) throw new LevelEndSignal();
+  }
+
   private execCommand(name: string, argExprs: Expr[], pos: SourcePos): void {
     const line = pos.line;
     const num = (k: number) => this.toNumber(this.eval(argExprs[k]!), name, argExprs[k]!.pos);
+
+    if (this.world && (name === 'FORWARD' || name === 'BACK' || name === 'RIGHT' || name === 'LEFT')) {
+      this.worldCommand(this.world, name, num(0), line);
+      return;
+    }
 
     switch (name) {
       case 'FORWARD':
@@ -466,6 +511,10 @@ class Interpreter {
         this.emit({ type: 'gameover', line, state: this.snapshot() });
         throw new GameOverSignal();
       default:
+        if (this.world) {
+          this.worldCommand(this.world, name, argExprs.length ? num(0) : null, line);
+          return;
+        }
         throw new LogoError(`I don't know how to ${name} yet.`, pos);
     }
   }
@@ -551,8 +600,11 @@ class Interpreter {
         const b = this.eval(argExprs[1]!);
         return [...(Array.isArray(a) ? a : [a]), ...(Array.isArray(b) ? b : [b])];
       }
-      default:
+      default: {
+        const sensed = this.world?.reporter(name);
+        if (sensed !== undefined) return sensed;
         throw new LogoError(`I don't know how to ${name} yet.`, pos);
+      }
     }
   }
 

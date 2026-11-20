@@ -1,6 +1,6 @@
 import { LogoError, suggest, type SourcePos } from './errors.js';
 import { tokenize, type Token } from './lexer.js';
-import { allPrimitiveNames, GAME_KEYS, lookupPrimitive, type GameKey } from './primitives.js';
+import { allPrimitiveNames, GAME_KEYS, lookupPrimitive, type GameKey, type PrimitiveSpec } from './primitives.js';
 
 export type Expr =
   | { kind: 'num'; value: number; pos: SourcePos }
@@ -30,6 +30,14 @@ export interface Procedure {
 export interface Program {
   procedures: Map<string, Procedure>;
   main: Stmt[];
+}
+
+/** Optional extras for one parse. Without them the parser behaves exactly as it does in Studio. */
+export interface ParseOptions {
+  /** Words known only to this parse (the adventure words), keyed by upper-case name. A child's own TO with the same name wins. */
+  words?: ReadonlyMap<string, PrimitiveSpec>;
+  /** When given, only these canonical words (FORWARD, REPEAT, IF, TO ...) may be used. Anything else is a friendly error. */
+  allow?: ReadonlySet<string>;
 }
 
 const RESERVED = new Set(['TO', 'END', 'REPEAT', 'IF', 'IFELSE', 'MAKE', 'STOP', 'WHEN']);
@@ -65,7 +73,23 @@ class Parser {
   constructor(
     private readonly tokens: Token[],
     private readonly arities: Map<string, number>,
+    private readonly options: ParseOptions = {},
   ) {}
+
+  private lookup(name: string): PrimitiveSpec | undefined {
+    return this.options.words?.get(name.toUpperCase()) ?? lookupPrimitive(name);
+  }
+
+  /** A word added after programs were saved: the program's own TO of the same name keeps its meaning. */
+  private isLate(name: string): boolean {
+    return LATE_WORDS.has(name) || (this.options.words?.has(name) ?? false);
+  }
+
+  private gate(word: string, pos: SourcePos): void {
+    const allow = this.options.allow;
+    if (!allow || allow.has(word)) return;
+    throw new LogoError(`${word} isn't part of this level. Here you can use: ${[...allow].join(', ')}.`, pos);
+  }
 
   parseProgram(): Program {
     const procedures = new Map<string, Procedure>();
@@ -73,6 +97,7 @@ class Parser {
     while (!this.atEnd()) {
       const t = this.peek()!;
       if (t.type === 'word' && t.text === 'TO') {
+        this.gate('TO', t.pos);
         const proc = this.parseProcedure();
         if (procedures.has(proc.name)) {
           throw new LogoError(`You taught me ${proc.name} twice. Give the second one a different name.`, proc.pos);
@@ -94,7 +119,7 @@ class Parser {
     this.next();
     const name = nameTok.text;
     this.rejectDashedName(nameTok);
-    if (RESERVED.has(name) || (lookupPrimitive(name) && !LATE_WORDS.has(name))) {
+    if (RESERVED.has(name) || (this.lookup(name) && !this.isLate(name))) {
       throw new LogoError(`${name} is already a Logo word. Pick a different name for your command.`, nameTok.pos);
     }
     const params: string[] = [];
@@ -156,19 +181,23 @@ class Parser {
       case 'END':
         throw new LogoError('There is an END without a TO before it.', t.pos);
       case 'REPEAT': {
+        this.gate('REPEAT', t.pos);
         const count = this.parseExpression('REPEAT', t.pos);
         return { kind: 'repeat', count, body: this.parseBlock('REPEAT', t.pos), pos: t.pos };
       }
       case 'IF': {
+        this.gate('IF', t.pos);
         const cond = this.parseExpression('IF', t.pos);
         return { kind: 'if', cond, then: this.parseBlock('IF', t.pos), otherwise: null, pos: t.pos };
       }
       case 'IFELSE': {
+        this.gate('IFELSE', t.pos);
         const cond = this.parseExpression('IFELSE', t.pos);
         const then = this.parseBlock('IFELSE', t.pos);
         return { kind: 'if', cond, then, otherwise: this.parseBlock('IFELSE', t.pos), pos: t.pos };
       }
       case 'MAKE': {
+        this.gate('MAKE', t.pos);
         const nameTok = this.peek();
         if (!nameTok || nameTok.type !== 'quoted') {
           throw new LogoError('MAKE needs a name with a quote mark, like MAKE "size 50.', nameTok?.pos ?? t.pos);
@@ -177,6 +206,7 @@ class Parser {
         return { kind: 'make', name: nameTok.text, value: this.parseExpression('MAKE', t.pos), pos: t.pos };
       }
       case 'WHEN': {
+        this.gate('WHEN', t.pos);
         const keyTok = this.peek();
         const key = keyTok?.type === 'quoted' ? keyTok.text : '';
         if (!(GAME_KEYS as readonly string[]).includes(key)) {
@@ -186,11 +216,13 @@ class Parser {
         return { kind: 'when', key: key as GameKey, body: this.parseBlock('WHEN', t.pos), pos: t.pos };
       }
       case 'STOP':
+        this.gate('STOP', t.pos);
         return { kind: 'stop', pos: t.pos };
     }
 
-    const prim = LATE_WORDS.has(t.text) && this.arities.has(t.text) ? undefined : lookupPrimitive(t.text);
+    const prim = this.isLate(t.text) && this.arities.has(t.text) ? undefined : this.lookup(t.text);
     if (prim) {
+      this.gate(prim.name, t.pos);
       if (prim.kind === 'reporter') {
         throw new LogoError(`${prim.name} gives back a value. Use it inside a command, like FD ${prim.name}${prim.arity ? ' 100' : ''}.`, t.pos);
       }
@@ -221,10 +253,10 @@ class Parser {
       return new LogoError(`Names can't have a dash (-) in them, because - means minus. Try ${t.text}_${rest.text} instead.`, t.pos);
     }
     const glued = /^([A-Z]+)(\d+(?:\.\d+)?)$/.exec(t.text);
-    if (glued && (lookupPrimitive(glued[1]!) || this.arities.has(glued[1]!))) {
+    if (glued && (this.lookup(glued[1]!) || this.arities.has(glued[1]!))) {
       return new LogoError(`Put a space between ${glued[1]} and ${glued[2]}, like ${glued[1]} ${glued[2]}.`, t.pos);
     }
-    const hint = suggest(t.text, [...allPrimitiveNames(), ...this.arities.keys()]);
+    const hint = suggest(t.text, [...allPrimitiveNames(), ...(this.options.words?.keys() ?? []), ...this.arities.keys()]);
     return new LogoError(
       hint ? `I don't know how to ${t.text}. Did you mean ${hint}?` : `I don't know how to ${t.text}. You can teach me with TO ${t.text} … END.`,
       t.pos,
@@ -309,8 +341,9 @@ class Parser {
       case 'lbracket':
         return this.parseLiteralList();
       case 'word': {
-        const prim = lookupPrimitive(t.text);
+        const prim = this.isLate(t.text) && this.arities.has(t.text) ? undefined : this.lookup(t.text);
         if (prim?.kind === 'reporter') {
+          this.gate(prim.name, t.pos);
           this.next();
           // A reporter's inputs stop before a comparison, so DISTANCE :x :y < 15 compares the distance.
           const args: Expr[] = [];
@@ -372,7 +405,7 @@ class Parser {
   }
 }
 
-export function parse(source: string): Program {
+export function parse(source: string, options: ParseOptions = {}): Program {
   const tokens = tokenize(source);
-  return new Parser(tokens, collectSignatures(tokens)).parseProgram();
+  return new Parser(tokens, collectSignatures(tokens), options).parseProgram();
 }
