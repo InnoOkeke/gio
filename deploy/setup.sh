@@ -107,7 +107,8 @@ http {
     client_max_body_size 200k;
     # The Python engine (about 13.5 MB, the wasm is 9.6 MB) shrinks to about 7.5 MB with gzip.
     gzip on;
-    gzip_types application/wasm application/javascript text/javascript application/zip application/json text/css image/svg+xml;
+    # application/manifest+json is the installable app's manifest.webmanifest.
+    gzip_types application/wasm application/javascript text/javascript application/zip application/json application/manifest+json text/css image/svg+xml;
     gzip_min_length 1024;
     # API Gateway reports the visitor in the last "Forwarded: ...;for=<ip>" entry and sends no
     # X-Forwarded-For. Pass that IP on so per-visitor rate limits work (TRUST_PROXY=1).

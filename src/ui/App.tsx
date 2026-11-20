@@ -2,6 +2,7 @@ import { Component, type ReactNode } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Wordmark } from './components/GioMark';
 import { ModePicker } from './components/ModePicker';
+import { AppStatus } from './components/AppStatus';
 import { ModeProvider, useMode } from './mode';
 import Certificate from './pages/Certificate';
 import NotFound from './pages/NotFound';
@@ -58,6 +59,7 @@ export default function App() {
           <Route path="/privacy" element={<Privacy />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <AppStatus />
       </ModeProvider>
     </AppErrorBoundary>
   );

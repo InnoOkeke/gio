@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState } from 'react';
-import type { PythonControls } from '../python/usePythonRun';
+import { PYTHON_OFFLINE_TEXT, type PythonControls } from '../python/usePythonRun';
 import { TranslatedCode } from './TranslatedCode';
 
 const PythonEditor = lazy(() => import('../editor/PythonEditor'));
@@ -35,7 +35,7 @@ export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanel
         <button type="button" className="btn btn-primary min-h-[48px] px-5 text-[16px]" disabled={loading} onClick={() => void py.getReady()}>
           {loading ? 'Getting Python ready…' : 'Get Python ready'}
         </button>
-        {py.phase === 'failed' && <p className="m-0 text-[15px] font-bold text-[#b4236b]">I couldn't get Python. Check your connection, then try again.</p>}
+        {py.phase === 'failed' && <p className="m-0 text-[15px] font-bold text-[#b4236b]">{py.failure === PYTHON_OFFLINE_TEXT ? PYTHON_OFFLINE_TEXT : "I couldn't get Python. Check your connection, then try again."}</p>}
       </div>
     </div>
   ) : null;

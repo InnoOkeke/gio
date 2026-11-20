@@ -78,6 +78,16 @@ In the Python tab, Turtle Coders can press **Run this Python** and watch their t
 - `tests/python-runtime.test.ts` loads Pyodide in Node and checks that every program in `scripts/check-programs.ts` ends in the same place and draws the same, with the same notes and pauses, as GIO's Logo interpreter.
 
 ---
+
+## Offline and install
+
+GIO is built for cheap phones with patchy data. After the first visit it opens with no internet, and on Android it can be added to the home screen ("Put GIO on this phone"; iPhone and iPad get a short Share, then Add to Home Screen guide).
+
+- **Works offline:** drawing, Run, blocks, quests, the adventure map, pictures and movies. Unsaved work stays on the phone, including unsaved changes to a saved drawing (`gio.unsaved`).
+- **Needs the internet:** the turtle helper (Ask, Explain, I'm stuck), Save and Share, opening a shared link, talking to Gio, and starting Python. Offline, each one says so plainly instead of hanging.
+- **How:** a hand-written service worker (`src/ui/offline/sw.ts`, bundled by a small Vite plugin) keeps only GIO's own files, about 1.6 MB (0.8 MB compressed). It never stores API answers or a child's code. New versions wait until the child taps "Update now", so a drawing is never interrupted. The Python engine is not kept offline: its sandboxed frame is outside the service worker's reach.
+
+---
 ## Getting Started
 
 ### Prerequisites

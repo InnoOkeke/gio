@@ -3,7 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type GameKey, type GameSession, type TargetLanguage, type TurtleEvent } from '../../logo/index.js';
 import { TICK_MS } from '../../logo/primitives.js';
 import { checkQuest, CONCEPTS, features, playWithPresses, type Quest } from '../../logo/quests.js';
-import { api, ApiError, local, type AssistantStyle } from '../api';
+import { api, ApiError, local, OFFLINE_MESSAGE, SLOW_MESSAGE, type AssistantStyle } from '../api';
+import { reportPlayerStatus } from '../offline/activity';
 import { AskTurtle } from '../components/AskTurtle';
 import { CommandShelf } from '../components/CommandShelf';
 import { GamePad } from '../components/GamePad';
@@ -116,7 +117,8 @@ interface ReviewRun {
   results: { questId: string; helped: boolean }[];
 }
 
-type Loaded = { title: string; code: string; slug: string | null; editKey: string | null };
+/** `saved` is the server's title and code when unsaved edits from this phone were put back on top of them. */
+type Loaded = { title: string; code: string; slug: string | null; editKey: string | null; saved?: string };
 
 export default function Studio() {
   const { slug: routeSlug } = useParams<{ slug?: string }>();
@@ -135,7 +137,12 @@ export default function Studio() {
     }
     api
       .getProject(routeSlug)
-      .then((p) => !cancelled && setLoaded({ title: p.title, code: p.code, slug: p.slug, editKey: local.editKeyFor(p.slug) ?? null }))
+      .then((p) => {
+        if (cancelled) return;
+        // Edits this phone had not saved yet (kept across a reload or an app update) go back on top of the saved copy.
+        const unsaved = local.loadUnsaved(p.slug);
+        setLoaded({ title: unsaved?.title ?? p.title, code: unsaved?.code ?? p.code, slug: p.slug, editKey: local.editKeyFor(p.slug) ?? null, ...(unsaved ? { saved: `${p.title}\n${p.code}` } : {}) });
+      })
       .catch((err: Error) => !cancelled && setLoadError(err.message));
     return () => {
       cancelled = true;
@@ -145,7 +152,7 @@ export default function Studio() {
   if (loadError) {
     return (
       <CenteredMessage
-        title="I couldn't find that drawing"
+        title={loadError === OFFLINE_MESSAGE || loadError === SLOW_MESSAGE ? 'This drawing needs the internet' : "I couldn't find that drawing"}
         text={loadError === 'Project not found' ? 'The link might be wrong, or the drawing was never saved.' : loadError}
         action={{ label: 'Start a new drawing', run: () => navigate('/') }}
       />
@@ -188,7 +195,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [project, setProject] = useState<{ slug: string; editKey: string | null } | null>(
     initial.slug ? { slug: initial.slug, editKey: initial.editKey } : null,
   );
-  const [savedSnapshot, setSavedSnapshot] = useState(initial.slug ? `${initial.title}\n${initial.code}` : '');
+  const [savedSnapshot, setSavedSnapshot] = useState(initial.saved ?? (initial.slug ? `${initial.title}\n${initial.code}` : ''));
   const [status, setStatus] = useState<PlayerStatus>('idle');
   const [speed, setSpeed] = useState<Speed>(little ? 'turtle' : 'rabbit');
   const [bubble, setBubble] = useState<BubbleMessage>(initial.code ? { kind: 'info', text: 'Press Run to watch me draw it!' } : offerFirstWin ? { kind: 'info', text: FIRST_WIN_TEXT[mode].offer } : cameBack ? { kind: 'info', text: welcomeBackLine() } : WELCOME[mode]);
@@ -289,10 +296,12 @@ function StudioView({ initial }: { initial: Loaded }) {
   }, [bubble]);
   const mood: GioMood = asking || explaining || tutor.loading ? 'thinking' : moodLive ? moodFor(bubble) : 'idle';
 
-  // Keep unsaved new work safe in this browser.
+  // Keep unsaved work safe in this browser: new work in the draft, edits of a saved drawing until they are saved.
   useEffect(() => {
     if (!project) local.saveDraft(title, code);
-  }, [project, title, code]);
+    else if (`${title}\n${code}` !== savedSnapshot) local.saveUnsaved(project.slug, title, code);
+    else local.clearUnsaved(project.slug);
+  }, [project, title, code, savedSnapshot]);
 
   useEffect(() => {
     stageRef.current?.setSpeed(speed);
@@ -603,6 +612,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const onStatus = useCallback(
     (s: PlayerStatus) => {
       setStatus(s);
+      reportPlayerStatus(s);
       if (py.handleStatus(s)) return;
       // A finished key press in a game is not the end of the program.
       if (s === 'done' && pressingRef.current) return;

@@ -5,6 +5,7 @@ import type { BubbleMessage } from '../components/TurtleBubble';
 import type { PythonEditorHandle } from '../editor/PythonEditor';
 import { deletePythonDoc, readPythonDoc, writePythonDoc, MAX_ENTRY_CHARS, type PythonDoc } from './doc';
 import type { PythonResult } from './protocol';
+import { isOffline } from '../api';
 import { PythonRuntime, PYTHON_READY_KEY } from './runtime';
 
 export type PythonPhase = 'idle' | 'loading' | 'ready' | 'failed';
@@ -25,6 +26,8 @@ interface Options {
 }
 
 const DROPPED_TEXT = 'Some of what your Python drew could not be shown.';
+/** The engine is not kept on the phone (the browser does not cache it for the locked frame), so starting Python always needs the internet. */
+export const PYTHON_OFFLINE_TEXT = 'Python needs the internet to get ready. Logo drawing and quests still work without it.';
 function rememberedReady(): boolean {
   try {
     return localStorage.getItem(PYTHON_READY_KEY) === '1';
@@ -149,6 +152,12 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
 
   /** The child said yes to the download (or had before): load Python and remember it. */
   const getReady = useCallback(async (): Promise<boolean> => {
+    // No connection: say so before making the frame, which would otherwise wait for a download that cannot come.
+    if (isOffline()) {
+      setPhase('failed');
+      setFailure(PYTHON_OFFLINE_TEXT);
+      return false;
+    }
     setFailure(null);
     setPhase('loading');
     try {
@@ -197,7 +206,7 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
       if (!runtime().isReady()) {
         optionsRef.current.setBubble({ kind: 'info', text: 'Getting real Python ready…' });
         if (!(await getReady())) {
-          optionsRef.current.setBubble({ kind: 'problem', text: "I couldn't get Python ready. Check your connection and try again." });
+          optionsRef.current.setBubble({ kind: 'problem', text: isOffline() ? PYTHON_OFFLINE_TEXT : "I couldn't get Python ready. Check your connection and try again." });
           activeRef.current = false;
           setActive(false);
           return;

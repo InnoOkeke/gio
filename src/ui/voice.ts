@@ -27,12 +27,13 @@ function recognitionCtor(): RecognitionCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
+const OFFLINE_VOICE = 'Talking to Gio needs the internet. You can still type.';
 const FRIENDLY_ERRORS: Record<string, string> = {
   'not-allowed': 'I need permission to use the microphone. A grown-up can allow it in the browser.',
   'service-not-allowed': 'I need permission to use the microphone. A grown-up can allow it in the browser.',
   'no-speech': "I didn't hear anything. Tap the microphone and try again.",
   'audio-capture': "I can't find a microphone.",
-  network: "I couldn't understand that because the internet connection dropped.",
+  network: OFFLINE_VOICE,
 };
 
 /**
@@ -69,7 +70,7 @@ export function useVoice(onText: (text: string) => void) {
       setHeard(text);
     };
     rec.onerror = (e) => {
-      if (e.error !== 'aborted') setError(FRIENDLY_ERRORS[e.error] ?? 'Something went wrong with the microphone. Try again?');
+      if (e.error !== 'aborted') setError(navigator.onLine === false ? OFFLINE_VOICE : (FRIENDLY_ERRORS[e.error] ?? 'Something went wrong with the microphone. Try again?'));
     };
     rec.onend = () => {
       recRef.current = null;

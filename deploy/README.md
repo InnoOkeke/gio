@@ -37,6 +37,18 @@ Turtle Coders can run real Python in the browser (Pyodide, which is CPython comp
 - **Compression:** `deploy/setup.sh` turns on nginx `gzip` for `application/wasm`, JavaScript, zip and JSON. On an existing server add the same three `gzip` lines to the `http` block of `/etc/nginx/nginx.conf` and reload nginx.
 - **Caching:** Express sends `Cache-Control: public, max-age=31536000, immutable` for `/py/pyodide-*/` (the version is in the path, so a new version gets a new path). `/py/*` also sends `Access-Control-Allow-Origin: *` and `Cross-Origin-Resource-Policy: cross-origin` because the sandboxed frame has no origin of its own, and `/py/runner.html` has its own strict Content-Security-Policy. Do not strip those headers in nginx or API Gateway.
 - Nothing downloads until a child taps "Get Python ready" (or has done so before on that device).
+- **Not kept offline:** the sandboxed frame has an opaque origin, so the service worker does not control it and, as measured in Edge, the browser's HTTP cache does not reuse the engine for it either. Every visit that starts Python downloads the engine again, and Python needs the internet to start.
+
+## Offline app (service worker)
+
+GIO installs as an app and opens without internet. `vite build` writes `dist/ui/sw.js`, `manifest.webmanifest` and the icons. The service worker keeps only GIO's own files (index, JS, CSS, the latin Nunito font, icons, the Python frame page); it never touches `/api/*` or `/py/*`.
+
+- **Headers (Express):** `/assets/*` is `public, max-age=31536000, immutable`. `index.html`, `sw.js` and `manifest.webmanifest` are `no-cache`, so a new version is found on the next visit. `logo.svg` and `/icons/*` are `public, max-age=86400`.
+- **404, not the app page:** a missing `/assets/*`, `/py/*`, `/api/*`, `/sw.js` or any path with a file extension returns 404. Only app routes (`/`, `/p/:slug`, `/certificate`, `/privacy`) get `index.html`, so a stale chunk request can never be cached as HTML.
+- **Compression:** `deploy/setup.sh` also gzips `application/manifest+json`. On an existing server add it to the `gzip_types` line in `/etc/nginx/nginx.conf` and reload nginx.
+- **API Gateway:** the HTTP API passes these headers through and does not cache, so nothing else is needed there. Do not add caching in front of `sw.js` or `index.html`.
+- **Updates:** a new service worker installs in the background and waits. The child sees "A new GIO is ready" and chooses Update now or Later; closing and reopening the app also picks it up.
+
 ## Updating
 
 Run as root on the server, for example with Systems Manager Run Command:

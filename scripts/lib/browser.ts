@@ -129,7 +129,9 @@ export async function launchBrowser(base: string, outDir: string): Promise<Brows
    */
   const seed = async (entries: Record<string, unknown>, query: string) => {
     await send('Storage.clearDataForOrigin', { origin: new URL(base).origin, storageTypes: 'all' });
-    const script = `(() => { try { const e = ${JSON.stringify(entries)}; for (const k of Object.keys(e)) localStorage.setItem(k, typeof e[k] === 'string' ? e[k] : JSON.stringify(e[k])); } catch (err) { /* about:blank has no storage */ } })()`;
+    // Quiet by default: the install tip and the "works offline" note stay away unless a check seeds gio.pwa itself.
+    const all = { 'gio.pwa': { visits: 1, seenReady: true, installDismissedAt: Date.now() }, ...entries };
+    const script = `(() => { try { const e = ${JSON.stringify(all)}; for (const k of Object.keys(e)) localStorage.setItem(k, typeof e[k] === 'string' ? e[k] : JSON.stringify(e[k])); } catch (err) { /* about:blank has no storage */ } })()`;
     const added = await send('Page.addScriptToEvaluateOnNewDocument', { source: script });
     await send('Page.navigate', { url: `${base}/${query}` });
     await waitFor(`!!document.querySelector('#title')`, 15000);

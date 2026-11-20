@@ -13,6 +13,8 @@ let uiDir = '';
 beforeAll(async () => {
   tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-static-'));
   process.env['DB_PATH'] = path.join(tmpDir, 'db', 'test.db');
+  // The AI route reads this when the app is built; set it here so the test does not depend on the shell (as api.test.ts does).
+  process.env['AI_DAILY_LIMIT'] = '2';
   uiDir = path.join(tmpDir, 'ui');
   fs.mkdirSync(path.join(uiDir, 'assets'), { recursive: true });
   fs.mkdirSync(path.join(uiDir, 'icons'), { recursive: true });

@@ -41,20 +41,47 @@ function readError(error: unknown, status: number): string {
   return status === 429 ? 'Too many tries. Please wait a moment.' : `Something went wrong (${status}).`;
 }
 
-async function request<T>(method: string, url: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json', ...headers },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch {
-    throw new Error("Can't reach GIO right now. Check your internet connection.");
+export const OFFLINE_MESSAGE = 'Gio needs the internet for this one. Drawing and quests still work, and your code is safe on this phone.';
+export const SLOW_MESSAGE = 'Gio is taking too long. Check your connection and try again.';
+/** API Gateway gives up after 30 s, so a request still open after 35 s is not coming back. */
+export const REQUEST_TIMEOUT_MS = 35_000;
+
+/** The request never reached GIO: no internet, a dropped connection, or no answer in time (`slow`). */
+export class OfflineError extends Error {
+  constructor(readonly reason: 'offline' | 'slow' = 'offline') {
+    super(reason === 'slow' ? SLOW_MESSAGE : OFFLINE_MESSAGE);
+    this.name = 'OfflineError';
   }
-  const json = (await res.json().catch(() => ({ success: false }))) as Envelope<T>;
-  if (!res.ok || !json.success || json.data === undefined) throw new ApiError(readError(json.error, res.status), json.code === 'redirect');
-  return json.data;
+}
+
+/** True only when the browser is sure there is no connection. */
+export function isOffline(): boolean {
+  return typeof navigator !== 'undefined' && navigator.onLine === false;
+}
+
+async function request<T>(method: string, url: string, body?: unknown, headers: Record<string, string> = {}): Promise<T> {
+  if (isOffline()) throw new OfflineError();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    let res: Response;
+    try {
+      res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json', ...headers },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch (err) {
+      throw new OfflineError(err instanceof Error && err.name === 'AbortError' ? 'slow' : 'offline');
+    }
+    const json = (await res.json().catch(() => ({ success: false }))) as Envelope<T>;
+    if (controller.signal.aborted) throw new OfflineError('slow');
+    if (!res.ok || !json.success || json.data === undefined) throw new ApiError(readError(json.error, res.status), json.code === 'redirect');
+    return json.data;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 export type AssistantStyle = 'code' | 'blocks';
@@ -96,10 +123,72 @@ function readKeys(): Record<string, string> {
   }
 }
 
+/** Unsaved edits of saved drawings, newest last, so an app update or a reload never loses them. */
+export const UNSAVED = 'gio.unsaved';
+export const MAX_UNSAVED = 5;
+export interface UnsavedEdit {
+  slug: string;
+  title: string;
+  code: string;
+}
+
+let full = false;
+const fullListeners = new Set<() => void>();
+
+/** True once this browser refused to store something because the phone (or the browser's share of it) is full. */
+export function storageFull(): boolean {
+  return full;
+}
+
+export function onStorageFull(listener: () => void): () => void {
+  fullListeners.add(listener);
+  return () => {
+    fullListeners.delete(listener);
+  };
+}
+
+/** Runs one storage write. A full phone is reported instead of thrown, so the drawing keeps working. */
+function write(change: () => void): boolean {
+  try {
+    change();
+    return true;
+  } catch {
+    if (!full) {
+      full = true;
+      for (const listener of fullListeners) listener();
+    }
+    return false;
+  }
+}
+
+function readUnsaved(): UnsavedEdit[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(UNSAVED) ?? '[]') as unknown;
+    if (!Array.isArray(list)) return [];
+    return list.filter((e): e is UnsavedEdit => typeof e?.slug === 'string' && typeof e?.title === 'string' && typeof e?.code === 'string');
+  } catch {
+    return [];
+  }
+}
+
 export const local = {
   editKeyFor: (slug: string): string | undefined => readKeys()[slug],
-  rememberEditKey(slug: string, editKey: string) {
-    localStorage.setItem(KEYS, JSON.stringify({ ...readKeys(), [slug]: editKey }));
+  rememberEditKey(slug: string, editKey: string): boolean {
+    return write(() => localStorage.setItem(KEYS, JSON.stringify({ ...readKeys(), [slug]: editKey })));
+  },
+  loadUnsaved(slug: string): { title: string; code: string } | null {
+    const hit = readUnsaved().find((e) => e.slug === slug);
+    return hit ? { title: hit.title, code: hit.code } : null;
+  },
+  saveUnsaved(slug: string, title: string, code: string): boolean {
+    const list = [...readUnsaved().filter((e) => e.slug !== slug), { slug, title, code }].slice(-MAX_UNSAVED);
+    return write(() => localStorage.setItem(UNSAVED, JSON.stringify(list)));
+  },
+  clearUnsaved(slug: string): boolean {
+    const list = readUnsaved();
+    if (!list.some((e) => e.slug === slug)) return true;
+    const rest = list.filter((e) => e.slug !== slug);
+    return write(() => (rest.length ? localStorage.setItem(UNSAVED, JSON.stringify(rest)) : localStorage.removeItem(UNSAVED)));
   },
   loadDraft(): { title: string; code: string } | null {
     try {
@@ -109,10 +198,10 @@ export const local = {
       return null;
     }
   },
-  saveDraft(title: string, code: string) {
-    localStorage.setItem(DRAFT, JSON.stringify({ title, code }));
+  saveDraft(title: string, code: string): boolean {
+    return write(() => localStorage.setItem(DRAFT, JSON.stringify({ title, code })));
   },
-  clearDraft() {
-    localStorage.removeItem(DRAFT);
+  clearDraft(): boolean {
+    return write(() => localStorage.removeItem(DRAFT));
   },
 };
