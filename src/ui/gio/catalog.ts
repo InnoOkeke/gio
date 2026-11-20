@@ -2,7 +2,7 @@ import type { Concept, QuestAudience } from '../../logo/quests.js';
 import { CONCEPTS } from '../../logo/quests.js';
 
 export type FriendId = 'olly' | 'dot' | 'chip' | 'puff' | 'nutmeg' | 'hoot' | 'bree' | 'spindle' | 'hop';
-export type StickerId = Concept | 'first-drawing' | 'bug-fixer';
+export type StickerId = Concept | 'first-drawing' | 'bug-fixer' | 'adventurer';
 
 /** The learning signal that brings a friend to the garden. */
 export type UnlockRule = 'repeat' | 'bug-fixed' | 'colours' | 'circle' | 'make' | 'if' | 'to' | 'recursion' | 'when';
@@ -76,6 +76,7 @@ export const STICKERS: readonly Sticker[] = [
   })),
   { id: 'first-drawing', name: 'First drawing', hint: 'Run a drawing you made yourself.', modes: BOTH },
   { id: 'bug-fixer', name: 'Bug fixer', hint: 'Fix a bug so your drawing works.', modes: BOTH },
+  { id: 'adventurer', name: 'Adventurer', hint: "Win a level in Gio's Adventure.", modes: BOTH },
 ];
 
 export const SHELL_SLOTS = 7;

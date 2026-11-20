@@ -25,7 +25,7 @@ const run = (features: Feature[], colours = 1, drewLines = true): RewardEvent =>
 describe('catalog', () => {
   it('gives every friend and sticker a name, hint and modes', () => {
     expect(FRIENDS).toHaveLength(9);
-    expect(STICKERS).toHaveLength(11);
+    expect(STICKERS).toHaveLength(12);
     expect(SHELL_SLOTS).toBe(7);
     for (const item of [...FRIENDS, ...STICKERS]) {
       expect(item.name.length).toBeGreaterThan(0);
@@ -33,7 +33,7 @@ describe('catalog', () => {
       expect(item.modes.length).toBeGreaterThan(0);
     }
     expect(new Set(FRIEND_IDS).size).toBe(9);
-    expect(new Set(STICKER_IDS).size).toBe(11);
+    expect(new Set(STICKER_IDS).size).toBe(12);
   });
 
   it('keeps every friend introduction short enough for one bubble', () => {
@@ -127,6 +127,48 @@ describe('applyEvent', () => {
   });
 });
 
+describe('adventure-level event', () => {
+  const win = (over: Partial<Extract<RewardEvent, { kind: 'adventure-level' }>> = {}): RewardEvent => ({ kind: 'adventure-level', levelId: 'woods-05', mode: 'coder', features: [], fixedBug: false, ...over });
+
+  it('gives the Adventurer sticker and counts the day, and nothing else for a plain win', () => {
+    const r = applyEvent(emptyRewards(), win(), TODAY);
+    expect(r.newStickers).toEqual(['adventurer']);
+    expect(r.newFriends).toEqual([]);
+    expect(r.state.days).toEqual([TODAY]);
+    expect(r.state.shell[0]).toBe('adventurer');
+  });
+
+  it('frees the friend for the feature the plan used', () => {
+    expect(applyEvent(emptyRewards(), win({ features: ['REPEAT'] }), TODAY).newFriends).toEqual(['olly']);
+    expect(applyEvent(emptyRewards(), win({ features: ['IF'] }), TODAY).newFriends).toEqual(['hoot']);
+  });
+
+  it('keeps coder-only friends away from Little Turtles', () => {
+    expect(applyEvent(emptyRewards(), win({ mode: 'little', features: ['IF'] }), TODAY).newFriends).toEqual([]);
+    expect(applyEvent(emptyRewards(), win({ mode: 'little', features: ['REPEAT'] }), TODAY).newFriends).toEqual(['olly']);
+  });
+
+  it('gives Dot and the bug fixer sticker for a fixed bug', () => {
+    const r = applyEvent(emptyRewards(), win({ levelId: 'maze-05', fixedBug: true }), TODAY);
+    expect(r.newFriends).toEqual(['dot']);
+    expect(r.newStickers).toEqual(expect.arrayContaining(['adventurer', 'bug-fixer']));
+  });
+
+  it('earns nothing twice, also after the same friend came from a quest', () => {
+    const fromQuest = applyEvent(emptyRewards(), run(['REPEAT']), TODAY).state;
+    const first = applyEvent(fromQuest, win({ features: ['REPEAT'] }), TODAY);
+    expect(first.newFriends).toEqual([]);
+    const second = applyEvent(first.state, win({ features: ['REPEAT'] }), TODAY);
+    expect(second.newFriends).toEqual([]);
+    expect(second.newStickers).toEqual([]);
+    expect(second.state).toEqual(first.state);
+  });
+
+  it('survives a round trip through parseRewards', () => {
+    const state = applyEvent(emptyRewards(), win({ features: ['REPEAT'] }), TODAY).state;
+    expect(parseRewards(JSON.parse(JSON.stringify(state)))).toEqual(state);
+  });
+});
 describe('placeSticker', () => {
   const earned = applyEvent(applyEvent(emptyRewards(), run([]), TODAY).state, { kind: 'bug-fixed' }, TODAY).state;
 

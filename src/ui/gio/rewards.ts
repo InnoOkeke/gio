@@ -1,5 +1,5 @@
 import { QUESTS, type Concept, type Feature, type QuestAudience } from '../../logo/quests.js';
-import { FRIEND_IDS, SHELL_SLOTS, STICKER_IDS, type FriendId, type StickerId } from './catalog';
+import { FRIEND_IDS, SHELL_SLOTS, friendById, STICKER_IDS, type FriendId, type StickerId } from './catalog';
 import { LEGACY_QUEST_IDS } from '../path/legacy';
 
 export interface RewardsState {
@@ -18,6 +18,8 @@ export type RewardEvent =
   | { kind: 'run-ok'; features: readonly Feature[]; colours: number; drewLines: boolean }
   | { kind: 'quest-done'; questId: string; features: readonly Feature[]; colours: number; newBadge: Concept | null }
   | { kind: 'bug-fixed' }
+  /** A level of Gio's Adventure was won. `features` are the ones the winning plan used to free a caged friend. */
+  | { kind: 'adventure-level'; levelId: string; mode: QuestAudience; features: readonly Feature[]; fixedBug: boolean }
   | { kind: 'logo-master' };
 
 export interface RewardResult {
@@ -236,6 +238,14 @@ export function applyEvent(state: RewardsState, event: RewardEvent, today: strin
   } else if (event.kind === 'bug-fixed') {
     friends.push('dot');
     stickers.push('bug-fixer');
+  } else if (event.kind === 'adventure-level') {
+    // Friends follow the mode, as in the garden: Little Turtles never meet the coder-only friends.
+    friends = friendsFromSignals(event.features, 0).filter((id) => friendById(id).modes.includes(event.mode));
+    stickers.push('adventurer');
+    if (event.fixedBug) {
+      friends.push('dot');
+      stickers.push('bug-fixer');
+    }
   }
 
   const granted = grant(state, friends, stickers);

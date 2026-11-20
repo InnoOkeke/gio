@@ -1,7 +1,7 @@
 import type { ReactElement } from 'react';
 import { stickerById, type StickerId } from '../../gio/catalog';
 
-/* Eleven original stickers. Each has its own outline and its own picture, so no sticker
+/* Twelve original stickers. Each has its own outline and its own picture, so no sticker
  * depends on colour alone. All are drawn in a 40 by 40 box centred on 0. */
 
 const INK = '#17261f';
@@ -90,6 +90,14 @@ export const STICKER_ART: Record<StickerId, () => ReactElement> = {
     <g>
       <polygon points="0,-19 4.7,-6.5 18.1,-5.9 7.6,2.5 11.2,15.4 0,8 -11.2,15.4 -7.6,2.5 -18.1,-5.9 -4.7,-6.5" fill="#ffc93c" {...SHAPE} />
       <path d="M -6 0 L -1 5 L 7 -5" {...DARK} />
+    </g>
+  ),
+  adventurer: () => (
+    <g>
+      <circle r="18" fill="#7bc96f" {...SHAPE} />
+      <path d="M -5 13 L -5 -11" {...WHITE} />
+      <path d="M -5 -11 L 11 -6 L -5 -1 Z" fill="#ffc93c" {...SHAPE} strokeWidth="2" />
+      <path d="M -12 13 L 8 13" {...WHITE} />
     </g>
   ),
 };

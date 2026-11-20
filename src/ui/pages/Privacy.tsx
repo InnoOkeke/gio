@@ -45,6 +45,9 @@ export default function Privacy() {
           <p className="m-0">The Logo Master certificate has a box for a name. If someone types one, it is kept in the browser (<code>gio.certificate</code>), up to 40 characters, so it is still there next time. It is never sent to GIO&rsquo;s server and is not put in the link. The &ldquo;Forget my name&rdquo; button on the certificate page deletes it, and so does clearing the site data. The name only appears on the printed page if someone prints it.</p>
         </Section>
 
+        <Section title="Gio&rsquo;s Adventure">
+          <p className="m-0">Gio&rsquo;s Adventure keeps its own record in the browser (<code>gio.adventure</code>): which levels were won, the stars on each, the fewest commands used, the date of the win, and which story cards were shown. The last plan a child wrote for each level (up to 100 levels) is kept in <code>gio.adventure.code</code> so a level can be picked up again. Neither key is sent to GIO, and neither changes quest progress. Clearing the browser&rsquo;s site data removes them.</p>
+        </Section>
         <Section title="Pictures, movies and drawing files">
           <p className="m-0">Pictures, movies and drawing files (SVG) are made on the child&rsquo;s own device and saved to its downloads folder, or shared through the phone&rsquo;s own share menu. Nothing is uploaded to GIO. A movie carries only the drawing and a small &ldquo;Made with GIO&rdquo; mark.</p>
         </Section>
