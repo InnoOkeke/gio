@@ -1,8 +1,11 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import zlib from 'zlib';
+import { build as esbuild } from 'esbuild';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import { buildManifest } from './scripts/lib/sw-build';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const PYODIDE_VERSION = '314.0.8';
@@ -54,8 +57,48 @@ function pyodideFiles(): Plugin {
   };
 }
 
+function listFiles(dir: string, prefix = ''): string[] {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? listFiles(path.join(dir, e.name), `${prefix}${e.name}/`) : [`${prefix}${e.name}`]));
+}
+
+/**
+ * Builds GIO's service worker (src/ui/offline/sw.ts) into dist/ui/sw.js with the precache list and a build id baked in.
+ * Build only: the dev server never serves or registers a worker. Pyodide is never in the list.
+ */
+function gioServiceWorker(): Plugin {
+  return {
+    name: 'gio-service-worker',
+    apply: 'build',
+    enforce: 'post',
+    async writeBundle(options) {
+      const outDir = options.dir ?? path.join(here, 'dist', 'ui');
+      if (!fs.existsSync(path.join(outDir, 'index.html'))) return;
+      const read = (rel: string) => fs.readFileSync(path.join(outDir, rel));
+      const { entries, buildId } = buildManifest(listFiles(outDir), listFiles(path.join(here, 'public')), read);
+      await esbuild({
+        entryPoints: [path.join(here, 'src/ui/offline/sw.ts')],
+        outfile: path.join(outDir, 'sw.js'),
+        bundle: true,
+        format: 'iife',
+        minify: true,
+        target: 'es2020',
+        define: { __GIO_MANIFEST__: JSON.stringify(entries), __GIO_BUILD_ID__: JSON.stringify(buildId) },
+        logLevel: 'warning',
+      });
+      let raw = 0;
+      let gz = 0;
+      for (const entry of entries) {
+        const bytes = read(entry.url === '/' ? 'index.html' : entry.url.slice(1));
+        raw += bytes.length;
+        gz += zlib.gzipSync(bytes).length;
+      }
+      console.log(`service worker: build ${buildId}, ${entries.length} precache entries, ${raw} bytes raw, ${gz} bytes gzip`);
+    },
+  };
+}
 export default defineConfig({
-  plugins: [react(), pyodideFiles()],
+  plugins: [react(), pyodideFiles(), gioServiceWorker()],
   root: 'src/ui',
   publicDir: '../../public',
   build: {

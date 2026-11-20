@@ -9,7 +9,13 @@ import aiRouter from './routes/ai.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { pyHeaders } from './middleware/py.js';
 
-export function createApp(): Express {
+import { setStaticHeaders, spaFallback } from './middleware/static.js';
+export interface AppOptions {
+  /** Folder holding the built UI. Defaults to dist/ui under the current directory. */
+  uiDistDir?: string;
+}
+export function createApp(options: AppOptions = {}): Express {
+  const uiDistDir = options.uiDistDir ?? path.join(process.cwd(), 'dist', 'ui');
   const app = express();
 
   // Behind a load balancer or reverse proxy, set TRUST_PROXY (e.g. "1") so rate limits see real client IPs.
@@ -29,12 +35,9 @@ export function createApp(): Express {
   });
 
   // Serve the built UI in production. In development Vite serves it on :5173 and proxies /api here.
-  const uiDistDir = path.join(process.cwd(), 'dist', 'ui');
   if (fs.existsSync(uiDistDir)) {
-    app.use(express.static(uiDistDir));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(uiDistDir, 'index.html'));
-    });
+    app.use(express.static(uiDistDir, { setHeaders: setStaticHeaders }));
+    app.use(spaFallback(uiDistDir));
   }
 
   app.use(errorHandler);

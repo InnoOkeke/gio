@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022", "WebWorker"],
+    "strict": true,
+    "skipLibCheck": true,
+    "types": []
+  },
+  "include": ["src/ui/offline/sw.ts", "src/ui/offline/cache-rules.ts"]
+}
