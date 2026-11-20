@@ -53,7 +53,7 @@ export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanel
     </div>
   ) : null;
 
-  if (py.mine) {
+  if (py.mine && !py.locked) {
     return (
       <div className="h-full flex flex-col min-h-0">
         {status}

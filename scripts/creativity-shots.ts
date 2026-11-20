@@ -189,6 +189,19 @@ async function main() {
         !!csp && csp.includes("default-src 'none'") && csp.includes("script-src 'self' blob: 'wasm-unsafe-eval'") && csp.includes('worker-src blob:') && csp.includes("connect-src 'self'") && csp.includes("frame-ancestors 'self'"),
         `runner.html carries the plan's Content-Security-Policy (${csp})`,
       );
+      console.log('python in a quest');
+      await click('button', 'Adventure map');
+      await waitFor(`!!document.querySelector('#map-title')`, 10000);
+      await sleep(700);
+      await click('button', 'Go!');
+      await sleep(900);
+      await click('[role=tab]', 'Python');
+      await sleep(500);
+      const lockedText = (await evaluate(`document.querySelector('#panel-python')?.textContent ?? ''`)) as string;
+      expect(lockedText.includes('Python runs are for your own drawings'), 'an open quest shows the read-only Python with its note');
+      expect(!(await evaluate(`!!document.querySelector('#panel-python .cm-content[contenteditable=true]')`)), 'an open quest has no editable Python, even after Make it mine');
+      expect(!lockedText.includes('Start again from my Logo') && !lockedText.includes('Run my Python') && !lockedText.includes('Make it mine'), 'an open quest has no start-again, run or make-it-mine button');
+      await escape();
     }
 
     /* ---------------------------------------------------------------- Little Turtles */

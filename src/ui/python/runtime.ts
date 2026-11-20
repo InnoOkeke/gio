@@ -170,7 +170,8 @@ export class PythonRuntime {
       window.clearTimeout(w.timer);
       const ready = validateReady(data.ready);
       const problem = validateProblem(data.error);
-      const result: PythonResult = { events: validateEvents(data.events).events, ...(problem ? { error: problem } : {}), keys: ready.keys, ticks: ready.ticks };
+      const checked = validateEvents(data.events);
+      const result: PythonResult = { events: checked.events, ...(checked.dropped > 0 ? { dropped: checked.dropped } : {}), ...(problem ? { error: problem } : {}), keys: ready.keys, ticks: ready.ticks };
       this.scheduleTimers(result);
       w.resolve(result);
     }

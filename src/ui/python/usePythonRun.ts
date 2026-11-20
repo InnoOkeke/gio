@@ -24,6 +24,7 @@ interface Options {
   onStart(): void;
 }
 
+const DROPPED_TEXT = 'Some of what your Python drew could not be shown.';
 function rememberedReady(): boolean {
   try {
     return localStorage.getItem(PYTHON_READY_KEY) === '1';
@@ -134,6 +135,10 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
   /** Events that come from a key press or a game timer go straight to the stage. */
   function afterEvents(result: PythonResult): void {
     if (!activeRef.current) return;
+    if (result.dropped) {
+      hadProblemRef.current = true;
+      optionsRef.current.setBubble({ kind: 'info', text: DROPPED_TEXT });
+    }
     if (result.events.length) {
       pressingRef.current = true;
       stageRef.current?.appendEvents(result.events);
@@ -201,14 +206,17 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
       const result = await runtime().run(code);
       if (!activeRef.current) return;
       setGameKeys(result.keys);
+      if (result.dropped) hadProblemRef.current = true;
       const keyed = result.keys.length > 0 || result.ticks.length > 0;
       if (!result.events.length) {
         if (result.error) reportProblem(result);
+        else if (result.dropped) optionsRef.current.setBubble({ kind: 'info', text: DROPPED_TEXT });
         else optionsRef.current.setBubble({ kind: 'info', text: keyed ? 'Game on! Press the arrow keys to play.' : 'That Python made no drawing. Add a command like forward(100), then run it.' });
         return;
       }
       stageRef.current?.load(resultFor(result.events));
       if (result.error) reportProblem(result);
+      else if (result.dropped) optionsRef.current.setBubble({ kind: 'info', text: DROPPED_TEXT });
       else optionsRef.current.setBubble({ kind: 'info', text: keyed ? 'Game on! Press the arrow keys to play.' : 'Running your Python. This is real Python, in your browser!' });
       if (step) stageRef.current?.step();
       else stageRef.current?.play();

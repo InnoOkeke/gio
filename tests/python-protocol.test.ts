@@ -5,6 +5,12 @@ const state = { x: 0, y: 0, heading: 0, penDown: true, color: '#1f2933', size: 2
 const ev = (fields: Record<string, unknown>) => ({ line: 1, state, ...fields });
 
 describe('validateEvents', () => {
+  it('stops at 20000 events and says how many it left out', () => {
+    const many = Array.from({ length: 20005 }, () => ev({ type: 'move' }));
+    const { events, dropped } = validateEvents(many);
+    expect(events).toHaveLength(20000);
+    expect(dropped).toBe(5);
+  });
   it('accepts well-formed events of every kind', () => {
     const raw = [
       ev({ type: 'line', x1: 0, y1: 0, x2: 10, y2: 5, color: '#FF0000', size: 3 }),

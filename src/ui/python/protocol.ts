@@ -22,6 +22,8 @@ export interface PythonProblem {
 
 export interface PythonResult {
   events: TurtleEvent[];
+  /** How many events from the frame were not safe or too many to draw. */
+  dropped?: number;
   error?: PythonProblem;
   keys: GameKey[];
   ticks: { id: number; ms: number }[];
@@ -46,6 +48,8 @@ const WORLD = 1000;
 const GAME_KEYS: readonly string[] = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'SPACE'];
 const MAX_TEXT = 200;
 const MAX_TONES = 256;
+/** The most events one Python call may bring back; the same cap the Python shim keeps. */
+export const MAX_EVENTS = 20000;
 
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 const finite = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
@@ -141,9 +145,9 @@ function cleanEvent(raw: unknown): TurtleEvent | null {
 export function validateEvents(raw: unknown): { events: TurtleEvent[]; dropped: number } {
   if (!Array.isArray(raw)) return { events: [], dropped: 0 };
   const events: TurtleEvent[] = [];
-  let dropped = 0;
-  for (const item of raw) {
-    const clean = cleanEvent(item);
+  let dropped = Math.max(0, raw.length - MAX_EVENTS);
+  for (let i = 0; i < Math.min(raw.length, MAX_EVENTS); i += 1) {
+    const clean = cleanEvent(raw[i]);
     if (clean) events.push(clean);
     else dropped += 1;
   }
