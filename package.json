@@ -20,6 +20,7 @@
     "check:browser": "tsx scripts/browser-check.ts",
     "check:shots": "tsx scripts/gio-shots.ts",
     "check:map-shots": "tsx scripts/map-shots.ts",
+    "check:devices": "tsx scripts/devices-check.ts",
     "check:learning": "tsx scripts/learning-shots.ts",
     "report:stages": "tsx scripts/stages-report.ts",
     "check:creativity": "tsx scripts/creativity-shots.ts",

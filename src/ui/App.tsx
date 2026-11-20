@@ -8,6 +8,7 @@ import Certificate from './pages/Certificate';
 import NotFound from './pages/NotFound';
 import Privacy from './pages/Privacy';
 import Studio from './pages/Studio';
+import { useWindowClass } from './responsive/useWindowClass';
 
 interface ErrorBoundaryState {
   error: Error | null;
@@ -49,6 +50,7 @@ function StudioGate() {
 }
 
 export default function App() {
+  useWindowClass();
   return (
     <AppErrorBoundary>
       <ModeProvider>

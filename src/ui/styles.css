@@ -45,6 +45,26 @@
 
   --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* Notches and home indicators */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Touch targets: 44px with a mouse, 48px with a finger, 56px for the main action */
+  --touch: 44px;
+  --touch-lg: 56px;
+
+  /* Written by useKeyboardInset: on-screen keyboard height and the visible height */
+  --kb: 0px;
+  --vvh: 100dvh;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --touch: 48px;
+  }
 }
 
 @layer base {
@@ -52,9 +72,26 @@
   body,
   #root {
     height: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button,
+  a,
+  summary,
+  [role='button'] {
+    touch-action: manipulation;
   }
 
   body {
+    padding-inline: var(--safe-left) var(--safe-right);
+    overscroll-behavior-y: none;
     margin: 0;
     background-color: var(--bg);
     background-image: radial-gradient(var(--bg-dots) 1.2px, transparent 1.2px);
@@ -1260,6 +1297,82 @@
 .first-win-swatch:active {
   transform: scale(0.94);
 }
+/* --------------------------------------------------------------------------
+ * Touch: fingers need 48px targets, 8px apart, and no text input may trigger iOS zoom
+ * -------------------------------------------------------------------------- */
+@media (pointer: coarse) {
+  .btn,
+  .chip,
+  .segmented button,
+  .palette-tile,
+  .save-row,
+  .hint-chip,
+  summary,
+  select {
+    min-height: var(--touch);
+  }
+  .btn-icon {
+    width: var(--touch);
+    min-width: var(--touch);
+  }
+  .btn-lg {
+    min-height: var(--touch-lg);
+  }
+  .swatch,
+  .first-win-swatch,
+  .block-step {
+    width: var(--touch);
+    height: var(--touch);
+    min-width: var(--touch);
+  }
+  .segmented {
+    gap: 8px;
+  }
+  .block-pill {
+    gap: 8px;
+  }
+  .chip {
+    margin: 0;
+  }
+  input:not([type='checkbox']):not([type='radio']):not([type='range']),
+  select,
+  textarea {
+    min-height: var(--touch);
+    font-size: 16px !important;
+  }
+}
+
+/* Touch screens have no hover: stop hover lifts from sticking after a tap. */
+@media (hover: none) {
+  .btn:hover:not(:disabled):not(:active),
+  .chip:hover:not(:active),
+  .swatch:hover:not(:active),
+  .block-pill:hover:not(:active),
+  .block-step:hover:not(:active),
+  .palette-tile:hover:not(:active),
+  .isle-card:hover:not(:active),
+  .qtile:hover:not(:disabled):not(:active),
+  .hint-chip:hover:not(:disabled):not(:active),
+  .first-win-swatch:hover:not(:active) {
+    transform: none;
+  }
+}
+
+/* Lighter look for small or data-saving devices (data-perf is set by useWindowClass). */
+html[data-perf='lite'] {
+  --shadow-2: var(--shadow-1);
+  --shadow-3: var(--shadow-1);
+}
+html[data-perf='lite'] * {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+html[data-perf='lite'] .btn-primary,
+html[data-perf='lite'] .btn-magic,
+html[data-perf='lite'] .btn-stop {
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.2);
+}
+
 /* Utilities come after the component styles so classes like hidden and sm:inline win. */
 @tailwind utilities;
 
@@ -1294,6 +1407,8 @@
   .crawl-gio {
     transition: none !important;
   }
+  /* Animations added by the responsive layouts (sheet-in, bottom-sheet-in, zoom easing, dock
+     transitions) are listed here as they appear; the global 1ms rule above already covers them. */
 }
 
 /* --------------------------------------------------------------------------
@@ -1334,6 +1449,7 @@
   body,
   #root {
     height: auto !important;
+    min-height: 0 !important;
     background: #fff !important;
   }
   body {
