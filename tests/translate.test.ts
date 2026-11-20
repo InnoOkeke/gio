@@ -220,11 +220,11 @@ describe('music, waits and frames', () => {
     expect(py('PLAY [C]')).not.toContain('tracer(0)');
   });
   it('renames kid variables that would shadow the helpers', () => {
-    const out = py('MAKE "wait 5\nFD :wait');
+    const out = py('MAKE "wait 5\nFD :wait\nPLAY [C]');
     expect(out).toContain('wait_ = 5');
     expect(out).toContain('forward(wait_)');
-    expect(py('MAKE "frame 1\nMAKE "play 2\nMAKE "update 3')).toContain('update_ = 3');
-    expect(js('MAKE "wait 5\nFD :wait')).toContain('let wait_ = 5;');
+    expect(py('MAKE "frame 1\nMAKE "play 2\nMAKE "update 3\nWAIT 1')).toContain('update_ = 3');
+    expect(js('MAKE "wait 5\nFD :wait\nPLAY [C]')).toContain('let wait_ = 5;');
   });
   it('writes JavaScript calls', () => {
     const out = js('SETTEMPO 90\nPLAY [C D E 2]\nWAIT 30\nFRAME');

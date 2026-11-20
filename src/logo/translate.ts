@@ -31,8 +31,12 @@ const PYTHON_RESERVED = new Set([
   'sqrt', 'sin', 'cos', 'radians', 'speed', 'logo_arc', 'logo_clearscreen', 'palette', 'onkey', 'listen',
   'on_up', 'on_down', 'on_left', 'on_right', 'on_space', 'on_tick', 'show', 'dot', 'logo_dot', 'game_over', 'distance',
   'ontimer', 'position', 'turtle',
-  'play', 'settempo', 'wait', 'frame', 'update', 'tracer', 'sleep', 'note_hz', 'winsound', '_tempo', '_tone',
 ]);
+/** Names the sound, wait and movie helpers use. They are only kept free when the program uses PLAY, SETTEMPO, WAIT or FRAME, so older programs translate exactly as before. */
+const PYTHON_RESERVED_CREATIVE = ['play', 'settempo', 'wait', 'frame', 'update', 'tracer', 'sleep', 'note_hz', 'winsound', '_tempo', '_tone'];
+const JS_RESERVED_CREATIVE = ['play', 'settempo', 'setTempo', 'wait', 'frame'];
+const CREATIVE_COMMANDS = new Set(['PLAY', 'SETTEMPO', 'WAIT', 'FRAME']);
+let creativeNamesReserved = false;
 
 const JS_KEYWORDS = new Set([
   'break', 'case', 'catch', 'class', 'const', 'continue', 'debugger', 'default', 'delete', 'do', 'else', 'export', 'extends',
@@ -43,7 +47,7 @@ const JS_KEYWORDS = new Set([
 const JS_RESERVED = new Set([
   'forward', 'back', 'right', 'left', 'penup', 'pendown', 'home', 'clearscreen', 'clean', 'goto', 'setx', 'sety', 'setheading',
   'pencolor', 'pensize', 'background', 'hideturtle', 'showturtle', 'heading', 'xcor', 'ycor', 'arc', 'circle', 'onkey',
-  'ontick', 'show', 'dot', 'gameover', 'distance', 'play', 'settempo', 'setTempo', 'wait', 'frame',
+  'ontick', 'show', 'dot', 'gameover', 'distance',
 ]);
 
 function identifier(name: string, language: TargetLanguage): string {
@@ -51,7 +55,8 @@ function identifier(name: string, language: TargetLanguage): string {
   if (/^[0-9]/.test(id)) id = `_${id}`;
   const keywords = language === 'python' ? PYTHON_KEYWORDS : JS_KEYWORDS;
   const reserved = language === 'python' ? PYTHON_RESERVED : JS_RESERVED;
-  if (keywords.has(id) || reserved.has(id)) id = `${id}_`;
+  const creative = creativeNamesReserved && (language === 'python' ? PYTHON_RESERVED_CREATIVE : JS_RESERVED_CREATIVE).includes(id);
+  if (keywords.has(id) || reserved.has(id) || creative) id = `${id}_`;
   return id;
 }
 
@@ -718,7 +723,18 @@ class Translator {
 }
 
 export function translate(program: Program, source: string, language: TargetLanguage): Translation {
-  return new Translator(program, source, language).translate();
+  let usesCreative = false;
+  const look = (s: Stmt): void => {
+    if (s.kind === 'command' && CREATIVE_COMMANDS.has(s.name)) usesCreative = true;
+  };
+  walk(program.main, look);
+  for (const proc of program.procedures.values()) walk(proc.body, look);
+  creativeNamesReserved = usesCreative;
+  try {
+    return new Translator(program, source, language).translate();
+  } finally {
+    creativeNamesReserved = false;
+  }
 }
 
 export function toText(t: Translation): string {

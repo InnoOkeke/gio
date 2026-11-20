@@ -135,9 +135,9 @@ export function blocksToLogo(blocks: Block[], depth = 0): string {
         case 'color': return `${pad}SETPENCOLOR "${b.color}`;
         case 'size': return `${pad}SETPENSIZE ${b.n}`;
         case 'circle': return `${pad}CIRCLE ${b.n}`;
-        case 'note': return `PLAY [${b.pitch}${b.beats === 2 ? ' 2' : ''}]`;
-        case 'frame': return `FRAME`;
-        case 'wait': return `WAIT ${b.n}`;
+        case 'note': return `${pad}PLAY [${b.pitch}${b.beats === 2 ? ' 2' : ''}]`;
+        case 'frame': return `${pad}FRAME`;
+        case 'wait': return `${pad}WAIT ${b.n}`;
         case 'repeat': {
           if (!b.body.length) return `${pad}REPEAT ${b.n} [ ]`;
           return `${pad}REPEAT ${b.n} [\n${blocksToLogo(b.body, depth + 1)}\n${pad}]`;

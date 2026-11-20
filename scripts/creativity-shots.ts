@@ -19,12 +19,28 @@ const outDir = path.join(os.tmpdir(), 'gio-creativity');
 const CODER_PROGRESS = ['c-line', 'c-square', 'c-bug-square', 'c-function', 'c-dashes', 'c-game'];
 const LITTLE_PROGRESS = ['l-walk', 'l-corner', 'l-square'];
 const origin = new URL(base).origin;
+/** Kid Python that tries every way to reach the internet. The program only reaches its end if each attempt failed. */
+const PY_NETWORK_TRIES = [
+  'import turtle, js',
+  'def tries(name, attempt):',
+  '    try:',
+  '        attempt()',
+  '    except BaseException:',
+  '        return',
+  "    raise Exception('OPEN ' + name)",
+  "tries('fetch', lambda: js.fetch('https://example.com/'))",
+  "tries('prototype', lambda: js.WorkerGlobalScope.prototype.fetch.call(js.self, 'https://example.com/'))",
+  "tries('xhr', lambda: js.XMLHttpRequest.new())",
+  "tries('websocket', lambda: js.WebSocket.new('wss://example.com/'))",
+  'turtle.forward(10)',
+  '',
+].join('\n');
 
 let session: BrowserSession | null = null;
 
 async function main() {
   session = await launchBrowser(base, outDir);
-  const { send, evaluate, waitFor, click, seed, type, shot, escape, closeDialogs, fits, downloads, on } = session;
+  const { send, evaluate, waitFor, click, seed, type, stored, shot, escape, closeDialogs, fits, downloads, on } = session;
 
   const outside: string[] = [];
   on('Network.requestWillBeSent', (p) => {
@@ -115,7 +131,8 @@ async function main() {
       await escape();
 
       console.log('python');
-      await seed({ 'gio.mode': 'coder', 'gio.progress': CODER_PROGRESS }, '?mode=coder');
+      // Only the first quest is done, so the open drawing is the square a kid Python run below would pass.
+      await seed({ 'gio.mode': 'coder', 'gio.progress': ['c-line'] }, '?mode=coder');
       await closeDialogs();
       await type('REPEAT 4 [FD 100 RT 90]', true);
       await click('[role=tab]', 'Python');
@@ -133,10 +150,14 @@ async function main() {
       await sleep(500);
       await fits('python editor', '#panel-python');
 
+      const GUARDED = ['gio.progress', 'gio.rewards', 'gio.firstWin'];
+      const snapshot = async () => JSON.stringify(await Promise.all(GUARDED.map((k) => stored(k))));
+      const rewardsBefore = await snapshot();
       await typePython('import turtle\nfor i in range(4):\n    turtle.forward(100)\n    turtle.right(90)\n');
       await click('button.btn-lg', 'Run');
       expect(await waitFor(`!!document.querySelector('.bubble-success')`, 30000), 'a Python turtle program runs to the end');
       expect(await stageHasInk(), 'the stage has non-blank pixels after the Python run');
+      expect((await snapshot()) === rewardsBefore, 'a Python run that draws the open square awards nothing and completes no quest');
       await shot(n('python-run'));
 
       await typePython('import turtle\nturtle.forward(50)\nturtle.forward(oops)\n');
@@ -148,6 +169,11 @@ async function main() {
       await shot(n('python-error'));
       await idle(30000);
 
+      console.log('python has no network');
+      await typePython(PY_NETWORK_TRIES);
+      await click('button.btn-lg', 'Run');
+      expect(await waitFor(`!!document.querySelector('.bubble-success')`, 30000), 'fetch, the prototype route, XMLHttpRequest and WebSocket all fail inside kid Python');
+      await idle(30000);
       await typePython('while True:\n    pass\n');
       const started = Date.now();
       await click('button.btn-lg', 'Run');

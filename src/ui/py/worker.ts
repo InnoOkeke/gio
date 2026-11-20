@@ -12,18 +12,26 @@ const scope = self as unknown as Record<string, unknown> & { postMessage(message
 
 let calls: PythonCalls | null = null;
 
-/** After Pyodide has loaded, nothing in the worker can reach the network or load more scripts. */
-function takeAwayTheNetwork(): void {
-  for (const name of ['fetch', 'XMLHttpRequest', 'WebSocket', 'importScripts', 'EventSource', 'WebTransport', 'Worker', 'SharedWorker']) {
+const NETWORK_NAMES = ['fetch', 'XMLHttpRequest', 'WebSocket', 'importScripts', 'EventSource', 'WebTransport', 'Worker', 'SharedWorker'];
+/** Closes the door on one object. The names are replaced where they are defined, so the prototype route is shut too. */
+function lockDown(target: object | null): void {
+  if (!target) return;
+  for (const name of NETWORK_NAMES) {
     try {
-      Object.defineProperty(self, name, { value: undefined, writable: false, configurable: false });
+      Object.defineProperty(target, name, { value: undefined, writable: false, configurable: false });
     } catch {
-      /* already locked */
+      /* the check below tells us if a door stayed open */
     }
   }
 }
-
-async function start(base: string): Promise<void> {
+/** After Pyodide has loaded, nothing in the worker can reach the network or load more scripts. */
+function takeAwayTheNetwork(): void {
+  const globalProto = (self as unknown as { constructor?: { prototype?: object } }).constructor?.prototype;
+  const workerProto = (globalThis as unknown as { WorkerGlobalScope?: { prototype?: object } }).WorkerGlobalScope?.prototype;
+  for (const target of [self, Object.getPrototypeOf(self) as object | null, globalProto ?? null, workerProto ?? null]) lockDown(target);
+  const open = NETWORK_NAMES.filter((name) => typeof (self as unknown as Record<string, unknown>)[name] !== 'undefined');
+  if (open.length) throw new Error(`The network could not be switched off (${open.join(', ')}).`);
+}async function start(base: string): Promise<void> {
   const importer = scope['importScripts'] as ((url: string) => void) | undefined;
   if (typeof importer === 'function') {
     importer(`${base}pyodide.js`);

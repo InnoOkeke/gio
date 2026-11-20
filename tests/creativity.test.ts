@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type TurtleEvent } from '../src/logo/index.js';
+import { blocksToLogo, check, execute, press, start, toBlocks, toText, translate, type Block, type TurtleEvent } from '../src/logo/index.js';
 
 function events(source: string, limits?: { maxSeconds?: number }): TurtleEvent[] {
   const res = execute(source, { limits });
@@ -144,5 +144,26 @@ describe('blocks', () => {
     expect(blocks('PLAY "C')).toEqual({ ok: false, reason: 'it plays notes blocks cannot show' });
     expect(blocks('MAKE "t [C D]\nPLAY :t').ok).toBe(false);
     expect(blocks('WAIT :x').ok).toBe(false);
+  });
+});
+
+describe('creativity seams', () => {
+  it('indents Note, Next picture and Wait blocks inside REPEAT', () => {
+    const original: Block[] = [{ kind: 'repeat', n: 2, body: [{ kind: 'note', pitch: 'C', beats: 1 }, { kind: 'frame' }, { kind: 'wait', n: 5 }] }];
+    const logo = blocksToLogo(original);
+    expect(logo).toBe('REPEAT 2 [\n  PLAY [C]\n  FRAME\n  WAIT 5\n]');
+    const parsed = check(logo);
+    expect(parsed.ok && toBlocks(parsed.program)).toEqual({ ok: true, blocks: original });
+  });
+  it('keeps the new helper names free for programs that do not use the new commands', () => {
+    const run = (source: string, language: 'python' | 'javascript') => {
+      const res = check(source);
+      if (!res.ok) throw new Error(res.problem.message);
+      return toText(translate(res.program, source, language));
+    };
+    const old = 'MAKE "sleep 3\nMAKE "update 4\nFD :sleep + :update';
+    expect(run(old, 'python')).toContain('sleep = 3');
+    expect(run(old, 'python')).not.toContain('sleep_');
+    expect(run('MAKE "sleep 3\nPLAY [C]\nFD :sleep', 'python')).toContain('sleep_ = 3');
   });
 });
