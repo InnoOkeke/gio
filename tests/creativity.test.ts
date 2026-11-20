@@ -167,3 +167,26 @@ describe('creativity seams', () => {
     expect(run('MAKE "sleep 3\nPLAY [C]\nFD :sleep', 'python')).toContain('sleep_ = 3');
   });
 });
+describe('programs that teach their own FRAME, WAIT or PLAY', () => {
+  const src = 'TO FRAME :n\n REPEAT 4 [FD :n RT 90]\nEND\nTO WAIT\n RT 10\nEND\nTO PLAY :n\n FD :n\nEND\nFRAME 30 WAIT PLAY 20';
+  const text = (language: 'python' | 'javascript') => {
+    const res = check(src);
+    if (!res.ok) throw new Error(res.problem.message);
+    return toText(translate(res.program, src, language));
+  };
+  it('runs the child\'s own commands with no sound, wait or frame events', () => {
+    const list = events(src);
+    expect(list.some((e) => e.type === 'frame' || e.type === 'play' || e.type === 'wait')).toBe(false);
+    expect(list.filter((e) => e.type === 'line').length).toBe(5);
+  });
+  it('translates them as ordinary procedures without the movie or sound helpers', () => {
+    const py = text('python');
+    expect(py).toContain('def frame(n):');
+    expect(py).toContain('def play(n):');
+    expect(py).not.toContain('sleep');
+    expect(text('javascript')).toContain('function frame(n)');
+  });
+  it('still reads FRAME as the new command when the program does not define it', () => {
+    expect(events('FRAME').some((e) => e.type === 'frame')).toBe(true);
+  });
+});

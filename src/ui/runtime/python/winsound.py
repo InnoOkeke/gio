@@ -9,6 +9,8 @@ def Beep(frequency, duration):
         raise TypeError("Beep needs whole numbers: Beep(hertz, milliseconds)")
     if frequency < 37 or frequency > 32767:
         raise ValueError("frequency must be in 37 thru 32767")
+    if frequency > 8000:
+        raise ValueError("GIO's stage plays notes up to 8000 hertz, so Beep(%d, ...) can't be played" % frequency)
     if duration < 0:
         raise ValueError("duration must not be negative")
     _turtle._emit_play([{"hz": frequency, "seconds": duration / 1000.0}])

@@ -217,6 +217,11 @@ describe('the turtle shim', () => {
     const r = runPy('import winsound\nwinsound.Beep(440, 250)\n');
     expect(r.events[0]).toMatchObject({ type: 'play', tones: [{ hz: 440, seconds: 0.25 }] });
     expect(runPy('import winsound\nwinsound.Beep(20, 100)\n').error?.message).toContain('37 thru 32767');
+    expect(runPy('import winsound\nwinsound.Beep(9000, 500)\n').error?.message).toContain('up to 8000 hertz');
+  });
+  it('setup and screensize stop with a plain message instead of doing nothing', () => {
+    expect(runPy('import turtle\nturtle.setup(800, 800)\n').error?.message).toBe("GIO's turtle can't do setup yet.");
+    expect(runPy('import turtle\nturtle.Screen().screensize(500, 500)\n').error?.message).toBe("GIO's turtle can't do screensize yet.");
   });
   it('update() is a frame only when tracer(0) is on', () => {
     expect(runPy('from turtle import *\nupdate()\n').events).toEqual([]);

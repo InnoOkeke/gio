@@ -24,6 +24,8 @@ export const PROGRAMS: Record<string, string> = {
   loop: 'REPEAT 4 [PLAY [C E] FD 20 RT 90]',
   flipbook: 'REPEAT 5 [CLEAN FD 10 * REPCOUNT FRAME RT 20]',
   pause: 'FD 10 WAIT 30 FD 10',
+  slownote: 'SETTEMPO 20 PLAY [C 16] FD 10',
+  ownframe: 'TO FRAME :n\n REPEAT 4 [FD :n RT 90]\nEND\nTO WAIT\n RT 10\nEND\nTO PLAY :n\n FD :n\nEND\nFRAME 30 WAIT PLAY 20',
 };
 
 /** Keys pressed (in order) for programs that are games. Python calls the same handler functions. */

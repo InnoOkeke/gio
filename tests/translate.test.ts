@@ -246,3 +246,15 @@ describe('music, waits and frames', () => {
     expect(j.lines.find((l) => l.text === 'frame();')?.src).toBe(2);
   });
 });
+describe('programs that teach their own FRAME, WAIT or PLAY', () => {
+  const src = 'TO FRAME :n\n FD :n\nEND\nTO WAIT\n RT 10\nEND\nTO PLAY :n\n BK :n\nEND\nFRAME 30 WAIT PLAY 20';
+  it('translate exactly as ordinary procedures, with no sound or movie helpers', () => {
+    const p = py(src);
+    expect(p).toContain('def frame(n):');
+    expect(p).toContain('def wait():');
+    expect(p).toContain('def play(n):');
+    expect(p).not.toContain('sleep');
+    expect(p).not.toContain('tracer');
+    expect(js(src)).toContain('function play(n)');
+  });
+});

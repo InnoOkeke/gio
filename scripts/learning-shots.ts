@@ -258,8 +258,8 @@ async function main() {
   const entry = /<script[^>]+src="\/assets\/([^"]+\.js)"/.exec(html)?.[1];
   const main = info.find((c) => c.name === entry);
   expect(chunks.length >= 3, `three script chunks: main, replay dialog and gif encoder (${chunks.length})`);
-  // 720 kB before Phase 4; music, blocks and the Python host code (not Pyodide, which is fetched only on request) brought it to about 790 kB.
-  expect(!!main && main.size < 800_000, `the main chunk ${entry} stays under 800 kB (${((main?.size ?? 0) / 1000).toFixed(1)} kB)`);
+  // The editor libraries have their own chunk and Pyodide is fetched only on request, so the main chunk stays under the Phase 3 budget.
+  expect(!!main && main.size < 720_000, `the main chunk ${entry} stays under 720 kB (${((main?.size ?? 0) / 1000).toFixed(1)} kB)`);
   expect(!/gifenc|ReplayDialog/.test(html), 'the gif encoder and replay dialog are not loaded up front');
 }
 

@@ -34,6 +34,9 @@ export interface Program {
 
 const RESERVED = new Set(['TO', 'END', 'REPEAT', 'IF', 'IFELSE', 'MAKE', 'STOP', 'WHEN']);
 
+/** Words added after programs were already being saved. A program that teaches its own TO FRAME keeps meaning its own FRAME. */
+const LATE_WORDS = new Set(['PLAY', 'SETTEMPO', 'WAIT', 'FRAME']);
+
 /**
  * Logo procedure calls take a fixed number of inputs, so the parser needs every
  * procedure's arity before it can read a call. A first pass collects `TO name :a :b` headers.
@@ -91,7 +94,7 @@ class Parser {
     this.next();
     const name = nameTok.text;
     this.rejectDashedName(nameTok);
-    if (RESERVED.has(name) || lookupPrimitive(name)) {
+    if (RESERVED.has(name) || (lookupPrimitive(name) && !LATE_WORDS.has(name))) {
       throw new LogoError(`${name} is already a Logo word. Pick a different name for your command.`, nameTok.pos);
     }
     const params: string[] = [];
@@ -186,7 +189,7 @@ class Parser {
         return { kind: 'stop', pos: t.pos };
     }
 
-    const prim = lookupPrimitive(t.text);
+    const prim = LATE_WORDS.has(t.text) && this.arities.has(t.text) ? undefined : lookupPrimitive(t.text);
     if (prim) {
       if (prim.kind === 'reporter') {
         throw new LogoError(`${prim.name} gives back a value. Use it inside a command, like FD ${prim.name}${prim.arity ? ' 100' : ''}.`, t.pos);

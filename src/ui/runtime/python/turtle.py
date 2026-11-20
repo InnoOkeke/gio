@@ -509,13 +509,13 @@ class _Screen:
         return colormode(c)
 
     def setup(self, *args, **kwargs):
-        pass
+        raise _cant("setup")
 
     def title(self, *args):
         pass
 
     def screensize(self, *args):
-        pass
+        raise _cant("screensize")
 
 
 _screen = _Screen()
@@ -662,7 +662,7 @@ def bye():
 
 
 def setup(*args, **kwargs):
-    pass
+    raise _cant("setup")
 
 
 def title(*args):
@@ -670,7 +670,7 @@ def title(*args):
 
 
 def screensize(*args):
-    pass
+    raise _cant("screensize")
 
 
 def getscreen():

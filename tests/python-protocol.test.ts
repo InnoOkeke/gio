@@ -62,12 +62,12 @@ describe('validateEvents', () => {
     expect(events).toHaveLength(1);
     expect(events[0]).toMatchObject({ text: 'x'.repeat(200) });
   });
-  it('caps tones at 256, turns out-of-range pitches into rests and clamps seconds to 16', () => {
+  it('caps tones at 256, turns out-of-range pitches into rests and clamps seconds to 48', () => {
     const tones = Array.from({ length: 1000 }, () => ({ hz: 440, seconds: 0.1 }));
     const long = validateEvents([ev({ type: 'play', tones })]).events[0];
     expect(long?.type === 'play' && long.tones.length).toBe(256);
     const odd = validateEvents([ev({ type: 'play', tones: [{ hz: 5, seconds: 1 }, { hz: 9000, seconds: 1 }, { hz: 20, seconds: 99 }, { hz: 8000, seconds: 0 }] })]).events[0];
-    expect(odd?.type === 'play' && odd.tones).toEqual([{ hz: null, seconds: 1 }, { hz: null, seconds: 1 }, { hz: 20, seconds: 16 }, { hz: 8000, seconds: 0 }]);
+    expect(odd?.type === 'play' && odd.tones).toEqual([{ hz: null, seconds: 1 }, { hz: null, seconds: 1 }, { hz: 20, seconds: 48 }, { hz: 8000, seconds: 0 }]);
     expect(validateEvents([ev({ type: 'play', tones: [{ hz: 440, seconds: -1 }] })]).dropped).toBe(1);
     expect(validateEvents([ev({ type: 'play', tones: 'C D E' })]).dropped).toBe(1);
   });

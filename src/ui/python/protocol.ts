@@ -124,7 +124,7 @@ function cleanEvent(raw: unknown): TurtleEvent | null {
       for (const t of raw['tones'].slice(0, MAX_TONES)) {
         if (!isObject(t) || !finite(t['seconds']) || t['seconds'] < 0) return null;
         const hz = finite(t['hz']) && t['hz'] >= 20 && t['hz'] <= 8000 ? t['hz'] : null;
-        tones.push({ hz, seconds: clamp(t['seconds'], 0, 16) });
+        tones.push({ hz, seconds: clamp(t['seconds'], 0, 48) });
       }
       return { type: 'play', tones, ...base };
     }
