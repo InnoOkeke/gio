@@ -23,7 +23,8 @@
     "check:learning": "tsx scripts/learning-shots.ts",
     "report:stages": "tsx scripts/stages-report.ts",
     "check:creativity": "tsx scripts/creativity-shots.ts",
-    "build:icons": "tsx scripts/make-icons.ts"
+    "build:icons": "tsx scripts/make-icons.ts",
+    "check:offline": "tsx scripts/offline-check.ts"
   },
   "engines": {
     "node": ">=20.0.0"

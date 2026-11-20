@@ -59,6 +59,8 @@ export interface BrowserSession {
   on(method: string, handler: (params: Record<string, unknown>) => void): void;
   /** Closes the page connection, stops the browser and removes its temporary profile. */
   cleanup(): void;
+  /** The DevTools port, for checks that also talk to other targets such as a service worker. */
+  debugPort: number;
 }
 
 export async function launchBrowser(base: string, outDir: string): Promise<BrowserSession> {
@@ -226,5 +228,5 @@ export async function launchBrowser(base: string, outDir: string): Promise<Brows
   await send('Page.enable');
   await send('Network.enable');
 
-  return { send, evaluate, waitFor, click, seed, type, shot, escape, closeDialogs, fits, size, stored, downloads, on, cleanup };
+  return { send, evaluate, waitFor, click, seed, type, shot, escape, closeDialogs, fits, size, stored, downloads, on, cleanup, debugPort: port };
 }

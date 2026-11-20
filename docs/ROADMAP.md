@@ -114,3 +114,7 @@ At most two workflows run at once, paired so they don't edit the same files.
 | 4 | Phase 5 classrooms · C talk with Gio |
 | 5 | G Mathland units + D story adventures · 3 seasonal events + 5 ghost race + 6 take-turns |
 | 6 | H parents + F songs + E photo challenges · 7 AR floor turtle |
+
+### Phase 3, offline app (PWA): done
+
+GIO installs on a phone and drawing, quests, the adventure map, GIF export and the privacy and certificate pages work with no connection. The AI and saving need the internet, and say so kindly. Python needs the internet each time it starts (the locked box cannot use the app cache). Measured by `npm run check:offline` (build 63c2bc84ec0b): first load of `/` transfers 1,127,674 bytes uncompressed (8 requests, the Node server does not compress; production nginx does). The offline cache holds 18 files, 1,584,123 bytes raw, 830,844 bytes gzip, with a budget of 15 percent above that. Languages are still open.
