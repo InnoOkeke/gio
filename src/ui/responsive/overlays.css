@@ -68,7 +68,7 @@ html[data-width='compact'] .sheet-root[data-variant='page'] > .sheet-panel > .sh
 @media (min-width: 600px) {
   .sheet-root {
     align-items: center;
-    padding: 16px;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   }
   .sheet-grab {
     display: none;

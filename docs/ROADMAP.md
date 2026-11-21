@@ -88,7 +88,9 @@ Little Turtles stages are block-based: Shape Shore, Loop Lagoon, Colour Cove, Pe
 8. **Colouring pages and `FILL`.** Print any drawing as a colouring sheet; a `FILL` command colours in shapes.
 9. **Gio's Adventure, a game you play with code.** A world of levels (forests, rivers, caves, a castle) where kids write commands to get Gio through: walk around rocks, `REPEAT` across a long bridge, `IF` there's a river then swim, collect gems, free trapped friends, beat boss levels. Each world introduces one coding idea; Maze mode is its first world. Blocks for Little Turtles, typed code for Turtle Coders.
 
-## Tablet-first and phone-first layouts (priority)
+## Tablet-first and phone-first layouts: done
+
+Done. How it works, the decisions and the reviewed screenshots are in [RESPONSIVE.md](RESPONSIVE.md). Every later feature must pass `npm run check:devices` (exit 0) and follow the "Rules for new UI" checklist there.
 
 Kids use tablets and phones more than computers, so these come before new waves and every later feature must keep them working.
 

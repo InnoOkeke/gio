@@ -653,6 +653,17 @@ html[data-width='large'] .quest-preview {
   .skill-banner-note {
     display: none;
   }
+  [data-testid='skill-banner'] {
+    padding-top: 8px;
+    padding-bottom: 8px;
+  }
+  .quest-card .eyebrow {
+    display: none;
+  }
+  /* The faint target is already on the stage; the side-by-side copy needs height a phone on its side does not have. */
+  html[data-width] .quest-card .quest-preview {
+    display: none;
+  }
   .quest-card {
     padding-top: 12px;
     padding-bottom: 12px;
@@ -661,4 +672,10 @@ html[data-width='large'] .quest-preview {
   .quest-card > span:first-child {
     display: none;
   }
+}
+
+/* The first-drawing offer never spills over the controls when the stage is short: it scrolls inside the stage. */
+.first-win-offer {
+  overflow-y: auto;
+  justify-content: safe center;
 }

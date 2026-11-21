@@ -133,12 +133,15 @@ Open [http://localhost:3001](http://localhost:3001). The API and the built UI ar
 npm run typecheck && npm run lint && npm test
 ```
 
-With the production server running (`npm run build`, then `node dist/api/server.js`), two browser checks drive headless Edge or Chrome:
+With the production server running (`npm run build`, then `node dist/api/server.js`), these browser checks drive headless Edge or Chrome:
 
 ```bash
 GIO_URL=http://localhost:3001 npm run check:learning     # first win, hint ladder, Save menu, garden
 GIO_URL=http://localhost:3001 npm run check:creativity   # music, flipbook GIF, blocks, Python in the browser, privacy
+GIO_URL=http://localhost:3001 npm run check:devices      # every screen on 6 phones and tablets in both orientations plus desktop, touch emulated
 ```
+
+`check:devices` must exit 0 before a feature is done. It checks 48 px touch targets, readable text, safe areas, the stage size, dialogs and layout shift, and writes screenshots to your temp folder. See [docs/RESPONSIVE.md](docs/RESPONSIVE.md).
 
 ---
 

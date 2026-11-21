@@ -639,6 +639,9 @@ export const SCREENS: Screen[] = [
       await sleep(400);
       await c.click('button', 'Start the skill check');
       await sleep(900);
+      // the map closing and the quest card arriving follow the tap; only movement after that is judged
+      await c.evaluate(`window.__cls = 0`);
+      await sleep(300);
     },
   },
   {

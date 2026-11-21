@@ -13,6 +13,8 @@ export interface Box {
 }
 export interface Target extends Box {
   name: string;
+  /** Its scroller can still scroll down, so it can be brought out from under the home bar. */
+  scrollsMore?: boolean;
 }
 export interface TextFact {
   text: string;
@@ -118,7 +120,14 @@ export const COLLECT_FACTS = `(() => {
           if (scrollsClear) clipped = true;
         }
       }
-      return { ...r, name: label(e), clipped };
+      let scrollsMore = false;
+      for (let n = e.parentElement; n && n !== document.body; n = n.parentElement) {
+        const cs = getComputedStyle(n);
+        if (!['auto', 'scroll'].includes(cs.overflowY)) continue;
+        if (n.scrollTop + n.clientHeight < n.scrollHeight - 1) scrollsMore = true;
+        break;
+      }
+      return { ...r, name: label(e), clipped, scrollsMore };
     })
     .filter((t) => !t.clipped && t.right - t.left > 1 && t.bottom - t.top > 1);
 
@@ -226,7 +235,7 @@ export const readableText: Assertion = (f) => {
 export const safeArea: Assertion = (f, ctx) => {
   const { top, right, bottom, left } = ctx.insets;
   if (!(top || right || bottom || left)) return [];
-  const bad = f.targets.filter((t) => t.bottom > 0 && t.top < f.h && ((top && t.top < top - 0.5) || (bottom && t.bottom > f.h - bottom + 0.5) || (left && t.left < left - 0.5) || (right && t.right > f.w - right + 0.5)));
+  const bad = f.targets.filter((t) => t.bottom > 0 && t.top < f.h && ((top && t.top < top - 0.5) || (bottom && !t.scrollsMore && t.bottom > f.h - bottom + 0.5) || (left && t.left < left - 0.5) || (right && t.right > f.w - right + 0.5)));
   return bad.slice(0, 5).map((t) => `${t.name} sits inside the safe area (insets ${top}/${right}/${bottom}/${left})`);
 };
 
