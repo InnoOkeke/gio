@@ -1,17 +1,15 @@
+import plugin from 'tailwindcss/plugin';
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./src/ui/**/*.{ts,tsx,html}'],
   theme: {
     extend: {
+      // Only plain widths here: Tailwind drops every max-* and min-[...] variant (max-sm:, ...) when a
+      // screen is an object, so the media-feature variants below are plugins instead.
       screens: {
         medium: '600px',
         expanded: '840px',
         large: '1200px',
-        land: { raw: '(orientation: landscape)' },
-        short: { raw: '(max-height: 500px)' },
-        coarse: { raw: '(pointer: coarse)' },
-        fine: { raw: '(pointer: fine)' },
-        hoverable: { raw: '(hover: hover)' },
       },
       spacing: { touch: '48px', 'touch-lg': '56px' },
       minHeight: { touch: '48px', 'touch-lg': '56px' },
@@ -28,5 +26,13 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(({ addVariant }) => {
+      addVariant('land', '@media (orientation: landscape)');
+      addVariant('short', '@media (max-height: 500px)');
+      addVariant('coarse', '@media (pointer: coarse)');
+      addVariant('fine', '@media (pointer: fine)');
+      addVariant('hoverable', '@media (hover: hover)');
+    }),
+  ],
 };

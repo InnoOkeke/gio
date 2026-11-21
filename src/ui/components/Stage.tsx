@@ -168,9 +168,11 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
     burst.style.left = `${((x + WORLD_HALF) / (WORLD_HALF * 2)) * size}px`;
     burst.style.top = `${((WORLD_HALF - y) / (WORLD_HALF * 2)) * size}px`;
     burst.replaceChildren();
-    for (let k = 0; k < 16; k++) {
+    // Lighter devices (data-perf='lite') get half the confetti.
+    const pieces = document.documentElement.dataset['perf'] === 'lite' ? 8 : 16;
+    for (let k = 0; k < pieces; k++) {
       const piece = document.createElement('span');
-      const angle = (k / 16) * Math.PI * 2;
+      const angle = (k / pieces) * Math.PI * 2;
       const dist = 46 + Math.random() * 40;
       piece.style.background = BURST_COLORS[k % BURST_COLORS.length]!;
       piece.style.setProperty('--dx', `${Math.cos(angle) * dist}px`);

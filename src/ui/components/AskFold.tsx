@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { LayoutMode, WidthClass } from '../responsive/window-class';
+import { useSheetDrag } from '../responsive/useSheetDrag';
 import { SparkleIcon } from './icons';
 
 interface AskFoldProps {
@@ -23,6 +24,7 @@ export function AskFold({ widthClass, layout, open, onOpen, label, children }: A
   const bodyRef = useRef<HTMLDivElement>(null);
   const mode = widthClass === 'large' ? 'always' : widthClass === 'compact' ? 'sheet' : layout === 'split' ? 'popover' : 'inline';
   const shown = mode === 'always' || open;
+  useSheetDrag(bodyRef, () => onOpen(false), mode === 'sheet' && open);
 
   useEffect(() => {
     if (!open || mode === 'always') return;

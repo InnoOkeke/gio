@@ -124,6 +124,80 @@ function expect(ok: boolean, message: string): void {
   if (!ok) throw new Error(message);
 }
 
+const GARDEN_OPEN = `!!document.querySelector('#garden-title')`;
+const FOCUS_ON_GARDEN_BUTTON = `document.activeElement?.getAttribute('aria-label') === "Gio's garden"`;
+
+async function openGarden(c: Cdp): Promise<void> {
+  // A tap or click focuses the button in Chrome; element.click() alone would not, so focus it first.
+  await c.evaluate(`[...document.querySelectorAll('button[aria-label="Gio\\'s garden"]')].find((b) => b.getBoundingClientRect().width > 0)?.focus()`);
+  await c.click('button', "Gio's garden");
+  expect(await c.waitFor(GARDEN_OPEN, 6000), 'the garden did not open');
+  await sleep(700);
+}
+
+/**
+ * (f) for sheets: on a phone the garden is anchored to the bottom and a real touch drag on its header
+ * closes it; on every device a tap on the dark scrim and Escape close it; focus goes back to the button.
+ */
+async function sheetGestureChecks(c: Cdp): Promise<void> {
+  await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS }, '?mode=coder');
+  const facts = await c.evaluate<{ compact: boolean; coarse: boolean }>(`({ compact: document.documentElement.dataset.width === 'compact', coarse: matchMedia('(pointer: coarse)').matches })`);
+  if (facts?.compact && facts.coarse) {
+    await openGarden(c);
+    const box = await c.evaluate<{ top: number; bottom: number; h: number; hx: number; hy: number }>(`(() => {
+      const p = document.querySelector('.sheet-panel').getBoundingClientRect();
+      const h = document.querySelector('.sheet-panel [data-sheet-header]').getBoundingClientRect();
+      return { top: p.top, bottom: p.bottom, h: innerHeight, hx: h.left + 40, hy: h.top + h.height / 2 };
+    })()`);
+    expect(!!box && Math.abs(box.bottom - box.h) <= 2, `the garden sheet should be anchored to the bottom, it ends at ${box?.bottom} of ${box?.h}`);
+    // Headless Edge can drop the first touch sequence after a load, so the drag is sent up to 3 times.
+    for (let k = 0; k < 3 && (await c.evaluate<boolean>(GARDEN_OPEN)); k++) {
+      await c.drag({ x: box!.hx, y: box!.hy }, { x: box!.hx, y: box!.hy + 260 }, 14);
+      await sleep(700);
+    }
+    expect(!(await c.evaluate<boolean>(GARDEN_OPEN)), 'a swipe down on the sheet header did not close the garden');
+    expect((await c.evaluate<boolean>(FOCUS_ON_GARDEN_BUTTON)) === true, 'focus did not return to the garden button after the swipe');
+  }
+  await openGarden(c);
+  // The scrim shows to the left of the drawer on tablets and above the sheet on phones.
+  const spot = await c.evaluate<{ x: number; y: number }>(`(() => { const p = document.querySelector('.sheet-panel').getBoundingClientRect(); return p.left > 40 ? { x: 20, y: innerHeight / 2 } : { x: innerWidth / 2, y: Math.max(4, p.top / 2) }; })()`);
+  if (facts?.coarse) await c.tap(spot!.x, spot!.y);
+  else {
+    await c.send('Input.dispatchMouseEvent', { type: 'mousePressed', x: spot!.x, y: spot!.y, button: 'left', clickCount: 1 });
+    await c.send('Input.dispatchMouseEvent', { type: 'mouseReleased', x: spot!.x, y: spot!.y, button: 'left', clickCount: 1 });
+  }
+  await sleep(500);
+  expect(!(await c.evaluate<boolean>(GARDEN_OPEN)), `a tap on the scrim at ${Math.round(spot!.x)},${Math.round(spot!.y)} did not close the garden`);
+  await openGarden(c);
+  await c.key('Escape', 'Escape', 27);
+  await sleep(400);
+  expect(!(await c.evaluate<boolean>(GARDEN_OPEN)), 'Escape did not close the garden');
+  expect((await c.evaluate<boolean>(FOCUS_ON_GARDEN_BUTTON)) === true, 'focus did not return to the garden button after Escape');
+  // Leave the sheet open so its layout is measured too.
+  await openGarden(c);
+  await c.evaluate(`window.__cls = 0`);
+}
+
+/** Master hotfix 30cbafa: long code scrolls inside the editor at every size and never covers the shelf or key row. */
+async function longCodeChecks(c: Cdp): Promise<void> {
+  const lines = Array.from({ length: 40 }, (_, i) => (i % 2 ? 'RT 9' : `FD ${10 + i}`)).join('\n');
+  await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft(lines) }, '?mode=coder');
+  expect(await c.waitFor(`document.querySelectorAll('.cm-line').length > 0`, 8000), 'the editor did not load');
+  await sleep(500);
+  const r = await c.evaluate<{ editor: number; vh: number; scrolls: boolean; fits: boolean; overlap: string }>(`(() => {
+    const ed = document.querySelector('.cm-editor');
+    const sc = document.querySelector('.cm-scroller');
+    const e = ed.getBoundingClientRect();
+    const hit = (sel) => [...document.querySelectorAll(sel)].some((n) => { const b = n.getBoundingClientRect(); return b.width > 0 && b.height > 0 && b.left < e.right && b.right > e.left && b.top < e.bottom - 1 && b.bottom > e.top + 1; });
+    const overlap = ['.command-shelf', '.key-row'].filter(hit).join(', ');
+    return { editor: e.height, vh: innerHeight, scrolls: sc.scrollHeight > sc.clientHeight + 4, fits: sc.scrollHeight <= sc.clientHeight + 4, overlap };
+  })()`);
+  expect(!!r, 'could not measure the editor');
+  expect(!r!.overlap, `the editor overlaps ${r!.overlap}`);
+  expect(r!.editor <= r!.vh, `the editor is ${Math.round(r!.editor)}px tall, taller than the ${r!.vh}px screen, so long code is not scrolling inside it`);
+  expect(r!.scrolls || r!.fits, 'the editor neither scrolls nor fits its code');
+}
+
 /** Pinch out, pan, check the pan stays inside the frame, then double-tap back to the whole picture. */
 async function pinchChecks(c: Cdp): Promise<void> {
   const coarse = (await c.evaluate<boolean>(`matchMedia('(pointer: coarse)').matches`)) === true;
@@ -663,6 +737,30 @@ export const SCREENS: Screen[] = [
       await sleep(900);
     },
   },
+  {
+    id: 'more-menu',
+    label: 'More menu (phones; tablets have no More button and show the Save menu instead)',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 100 RT 90]') }, '?mode=coder');
+      const hasMore = await c.evaluate<boolean>(`!!document.querySelector('button[aria-label="More"]')`);
+      if (hasMore) await c.click('button[aria-label="More"]');
+      else await c.click('button[aria-haspopup=dialog]', 'Save');
+      if (!(await c.waitFor(`!!document.querySelector('[role=dialog][aria-modal=true]')`, 4000))) throw new Error('the menu did not open');
+      await sleep(600);
+    },
+  },
+  {
+    id: 'ask-sheet',
+    label: 'Ask Gio: a bottom sheet on phones, a fold on tablets, always open on large screens',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS }, '?mode=coder');
+      const opener = await c.evaluate<boolean>(`[...document.querySelectorAll('button')].some((b) => /Ask Gio/.test((b.getAttribute('aria-label') ?? '') + (b.textContent ?? '')) && b.getBoundingClientRect().width > 0)`);
+      if (opener) await c.click('button', 'Ask Gio');
+      await sleep(600);
+    },
+  },
+  { id: 'sheet-gestures', label: 'Sheets: swipe down, scrim tap and Escape close the garden and return focus', open: sheetGestureChecks },
+  { id: 'long-code', label: 'A 40-line program scrolls inside the editor and never covers the command shelf', open: longCodeChecks },
   // Empty slots, filled in by the feature that builds them.
   {
     id: 'watch-mode',
@@ -682,6 +780,16 @@ export const SCREENS: Screen[] = [
       await openFocus(c);
     },
   },
+  // Before stage-pinch: headless Edge touch emulation misreads fast swipes after the pinch screen (FEAT-003).
+  {
+    id: 'block-drag',
+    label: 'Little studio: drag from the palette, reorder with a handle, drop into a nested Repeat',
+    open: async (c) => {
+      await c.seed({ ...little, 'gio.progress': LITTLE_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 50 REPEAT 3 [RT 10]]\nFD 5') }, '?mode=little');
+      await dismissFriends(c);
+      await blockDragChecks(c);
+    },
+  },
   {
     id: 'stage-pinch',
     label: 'Pinch, pan and double-tap on the stage, game keys while zoomed',
@@ -695,15 +803,6 @@ export const SCREENS: Screen[] = [
       await dismissFriends(c);
       await gameWhileZoomed(c);
       await c.evaluate(`window.__cls = 0`);
-    },
-  },
-  {
-    id: 'block-drag',
-    label: 'Little studio: drag from the palette, reorder with a handle, drop into a nested Repeat',
-    open: async (c) => {
-      await c.seed({ ...little, 'gio.progress': LITTLE_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 50 REPEAT 3 [RT 10]]\nFD 5') }, '?mode=little');
-      await dismissFriends(c);
-      await blockDragChecks(c);
     },
   },
   { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },

@@ -5,10 +5,10 @@ import { friendById } from '../gio/catalog';
 import { islandByKey, stageCount, stageNumber } from '../path/islands';
 import { MAP_LINES, say } from '../path/lines';
 import { GOLD_TO_MASTER } from '../path/state';
-import { useDialog } from '../useDialog';
 import { FriendPicture } from './gio/FriendArt';
 import { StickerPicture } from './gio/StickerArt';
 import { StarIcon } from './icons';
+import { Sheet } from './Sheet';
 import { TurtleSprite } from './TurtleSprite';
 
 /** A moment worth stopping for: a unit mastered, an island sailed, a review or skill check finished, or Logo Master earned. */
@@ -38,10 +38,12 @@ interface MasteryMomentProps {
 const CONFETTI = ['#ffc93c', '#ec3f86', '#2b9bf4', '#12a36b', '#7a4cf0', '#ef5a4c'];
 
 function Confetti() {
+  // Lighter devices get half the pieces.
+  const count = document.documentElement.dataset['perf'] === 'lite' ? 9 : 18;
   return (
     <div className="moment-confetti" aria-hidden="true">
-      {Array.from({ length: 18 }, (_, i) => {
-        const angle = (i / 18) * Math.PI * 2;
+      {Array.from({ length: count }, (_, i) => {
+        const angle = (i / count) * Math.PI * 2;
         const reach = 120 + (i % 3) * 36;
         return (
           <span
@@ -62,9 +64,7 @@ function Confetti() {
 
 /** The celebration. Silent on purpose, like FriendDialog: Gio's bubble already told the story once, aloud. */
 export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose, onCertificate, onGarden }: MasteryMomentProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
   const primaryRef = useRef<HTMLButtonElement>(null);
-  useDialog(panelRef, primaryRef, onClose);
 
   const island = islandByKey(moment.islandKey);
   const name = island?.name ?? 'the island';
@@ -146,10 +146,8 @@ export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose,
   const friendLabel = island && moment.kind === 'island' ? friendById(island.resident).name : null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="moment-title">
-      <div className="absolute inset-0 bg-[rgba(23,38,31,0.5)] backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
-      <div ref={panelRef} className="friend-card relative w-full max-w-[400px] rounded-[28px] bg-white p-6 text-center shadow-[0_24px_60px_rgba(8,40,60,0.35)]">
-        <Confetti />
+    <Sheet open variant="page" labelledBy="moment-title" onClose={onClose} initialFocus={primaryRef} className="sheet-white moment-panel" overlay={<Confetti />}>
+      <div className="relative mx-auto w-full max-w-[400px] p-6 text-center">
         <p className="m-0 text-[14px] font-extrabold uppercase tracking-wide text-[#08603e]">{eyebrow}</p>
         <div className="mx-auto my-1 h-[112px] w-[112px]" aria-hidden="true">
           <TurtleSprite mood="cheer" stickers={shell} golden={moment.kind === 'master'} />
@@ -172,6 +170,6 @@ export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose,
           </button>
         </div>
       </div>
-    </div>
+    </Sheet>
   );
 }

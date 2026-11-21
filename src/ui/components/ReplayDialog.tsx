@@ -3,6 +3,7 @@ import type { TurtleEvent } from '../../logo/index.js';
 import { encodeGif } from '../export/gif';
 import { planReplay, renderReplayFrames, REPLAY_LIMITS } from '../export/replay';
 import { CloseIcon, DownloadIcon } from './icons';
+import { Sheet } from './Sheet';
 import { TurtleSprite } from './TurtleSprite';
 
 interface ReplayDialogProps {
@@ -41,32 +42,6 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
   const panelRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'working', progress: 0 });
   const [attempt, setAttempt] = useState(0);
-  // Studio passes a new onClose on every render; keep one keyboard listener and one focus return.
-  const closeRef = useRef(onClose);
-  closeRef.current = onClose;
-
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        closeRef.current();
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      const items = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled)') ?? []);
-      if (!items.length) return;
-      const at = items.indexOf(document.activeElement as HTMLElement);
-      const next = e.shiftKey ? at - 1 : at + 1;
-      e.preventDefault();
-      items[(next + items.length) % items.length]!.focus();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      before?.focus?.();
-    };
-  }, []);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -128,13 +103,10 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
   const percent = phase.kind === 'working' ? Math.min(100, Math.round(phase.progress * 100)) : 100;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" role="dialog" aria-modal="true" aria-labelledby="replay-title">
-      <div className="absolute inset-0 bg-[rgba(23,38,31,0.45)] backdrop-blur-[2px] save-fade" onClick={onClose} aria-hidden="true" />
-      <div
-        ref={panelRef}
-        className="save-panel relative flex max-h-[100dvh] w-full flex-col gap-4 overflow-y-auto rounded-t-[28px] bg-[var(--bg)] p-5 pb-[max(20px,env(safe-area-inset-bottom))] shadow-[var(--shadow-3)] sm:max-w-[460px] sm:rounded-[28px]"
-      >
-        <div className="flex items-center justify-between gap-3">
+    <Sheet open variant="sheet" labelledBy="replay-title" onClose={onClose}>
+      {/* The same height in every phase, so the panel does not jump when the movie is ready. */}
+      <div ref={panelRef} className="replay-body flex flex-col gap-4 px-5 pb-1 pt-1 sm:p-5">
+        <div className="flex items-center justify-between gap-3" data-sheet-header>
           <h2 id="replay-title" className="m-0 text-[24px] font-black">
             {phase.kind === 'done' ? 'Your movie is ready!' : phase.kind === 'error' ? 'Oh no' : 'Making your movie'}
           </h2>
@@ -205,6 +177,6 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
           </>
         )}
       </div>
-    </div>
+    </Sheet>
   );
 }

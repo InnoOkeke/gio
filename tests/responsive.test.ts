@@ -4,6 +4,7 @@ import { isKeyboardOpen, keyboardInset, nextBaseline } from '../src/ui/responsiv
 import { clampPan, clampZoom, pinchCenter, pinchDistance, renderRatio, zoomAbout } from '../src/ui/responsive/zoom';
 import { enterFullscreen, exitFullscreen, fullscreenSupported, isNativeFullscreen } from '../src/ui/responsive/fullscreen';
 import { haptic, HAPTIC_PATTERNS } from '../src/ui/haptics';
+import { dragOffset, dragVelocity, shouldDismiss } from '../src/ui/responsive/sheet-drag';
 
 describe('classifyWidth', () => {
   it.each([
@@ -215,5 +216,24 @@ describe('nextBaseline', () => {
   });
   it('starts over when the width changes (rotation)', () => {
     expect(nextBaseline({ width: 360, height: 800 }, 800, 360)).toEqual({ width: 800, height: 360 });
+  });
+});
+
+describe('sheet drag rules', () => {
+  it('follows the finger down and never above rest', () => {
+    expect(dragOffset(-30)).toBe(0);
+    expect(dragOffset(40)).toBe(40);
+  });
+  it('closes past 96 px, or on a fast fling, not on a small slow drag', () => {
+    expect(shouldDismiss({ offset: 96, velocity: 0, height: 600 })).toBe(true);
+    expect(shouldDismiss({ offset: 95, velocity: 0, height: 600 })).toBe(false);
+    expect(shouldDismiss({ offset: 30, velocity: 0.8, height: 600 })).toBe(true);
+    expect(shouldDismiss({ offset: 10, velocity: 2, height: 600 })).toBe(false);
+    expect(shouldDismiss({ offset: 60, velocity: 0.1, height: 100 })).toBe(true);
+  });
+  it('measures speed over the last 100 ms only', () => {
+    expect(dragVelocity([])).toBe(0);
+    expect(dragVelocity([{ y: 0, t: 0 }, { y: 10, t: 500 }, { y: 70, t: 600 }])).toBeCloseTo(0.6);
+    expect(dragVelocity([{ y: 0, t: 0 }, { y: 50, t: 0 }])).toBe(0);
   });
 });

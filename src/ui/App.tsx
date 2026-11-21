@@ -1,13 +1,18 @@
-import { Component, type ReactNode } from 'react';
+import { Component, lazy, Suspense, type ReactNode } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { Wordmark } from './components/GioMark';
 import { ModePicker } from './components/ModePicker';
 import { AppStatus } from './components/AppStatus';
 import { ModeProvider, useMode } from './mode';
-import Certificate from './pages/Certificate';
 import NotFound from './pages/NotFound';
-import Privacy from './pages/Privacy';
 import Studio from './pages/Studio';
+// Pages most visits never open load on demand.
+const Certificate = lazy(() => import('./pages/Certificate'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+/** A calm full-height placeholder while a page loads, so nothing jumps. */
+function PageFallback() {
+  return <div className="min-h-full" aria-busy="true" />;
+}
 import { useWindowClass } from './responsive/useWindowClass';
 
 interface ErrorBoundaryState {
@@ -57,8 +62,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<StudioGate />} />
           <Route path="/p/:slug" element={<StudioGate />} />
-          <Route path="/certificate" element={<Certificate />} />
-          <Route path="/privacy" element={<Privacy />} />
+          <Route path="/certificate" element={<Suspense fallback={<PageFallback />}><Certificate /></Suspense>} />
+          <Route path="/privacy" element={<Suspense fallback={<PageFallback />}><Privacy /></Suspense>} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <AppStatus />

@@ -1367,6 +1367,14 @@ html[data-perf='lite'] * {
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }
+/* Lite: decorative loops stop and leave the art still (the mastery confetti is also halved in JS). */
+html[data-perf='lite'] .first-win-ring,
+html[data-perf='lite'] .map-gio {
+  animation: none !important;
+}
+html[data-perf='lite'] .first-win-ring {
+  opacity: 0.5;
+}
 html[data-perf='lite'] .btn-primary,
 html[data-perf='lite'] .btn-magic,
 html[data-perf='lite'] .btn-stop {
@@ -1375,6 +1383,14 @@ html[data-perf='lite'] .btn-stop {
 
 /* Utilities come after the component styles so classes like hidden and sm:inline win. */
 @tailwind utilities;
+/* Full pages (mode picker, certificate, privacy, not found) keep clear of notches and the home bar.
+   Set the padding with --page-pad; this comes after the utilities so the safe area always wins. */
+.safe-page {
+  padding-top: max(var(--page-pad, 16px), env(safe-area-inset-top));
+  padding-bottom: max(var(--page-pad, 16px), env(safe-area-inset-bottom));
+  padding-left: max(var(--page-pad, 16px), env(safe-area-inset-left));
+  padding-right: max(var(--page-pad, 16px), env(safe-area-inset-right));
+}
 
 /* --------------------------------------------------------------------------
  * Motion preferences

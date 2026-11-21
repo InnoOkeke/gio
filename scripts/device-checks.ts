@@ -127,13 +127,14 @@ export const COLLECT_FACTS = `(() => {
   let dialog = null;
   if (modal) {
     const full = (e) => { const r = e.getBoundingClientRect(); return r.width >= w - 2 && r.height >= h - 2; };
-    let panel = modal;
-    if (full(modal)) {
+    // Sheet.tsx marks its panel; a full-screen page panel on a phone is a valid bottom-anchored sheet.
+    let panel = modal.querySelector('.sheet-panel') || modal;
+    if (panel === modal && full(modal)) {
       const kids = [...modal.querySelectorAll('*')].filter((e) => visible(e) && !full(e) && !e.closest('svg') && getComputedStyle(e).backgroundColor !== 'rgba(0, 0, 0, 0)');
       kids.sort((a, b) => { const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return rb.width * rb.height - ra.width * ra.height; });
       if (kids[0]) panel = kids[0];
     }
-    const close = [...modal.querySelectorAll('button, a[href]')].find((b) => visible(b) && /close|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop/i.test(nameOf(b)));
+    const close = [...modal.querySelectorAll('button, a[href]')].find((b) => visible(b) && /close|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop|^hi,/i.test(nameOf(b)));
     dialog = { panel: rectOf(panel), close: close ? rectOf(close) : null, closeName: close ? nameOf(close) : '' };
   }
   return { w, h, scrollWidth: document.scrollingElement ? document.scrollingElement.scrollWidth : 0,

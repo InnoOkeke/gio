@@ -299,7 +299,7 @@ async function main() {
         cards: cards.length,
         numbered,
         pips: document.querySelectorAll('[data-testid=stage-pips] [data-pip]').length,
-        worlds: document.querySelectorAll('[role=dialog] h3').length,
+        worlds: document.querySelectorAll('[role=dialog] .map-list h3').length,
         gold: document.querySelectorAll('button.isle-card[data-gold=true]').length,
         chip: [...document.querySelectorAll('[role=dialog] .sr-only')].map((e) => e.textContent ?? '').find((t) => /stages sailed/.test(t)) ?? '',
       };

@@ -64,7 +64,7 @@ export function ModePicker() {
   useEffect(() => firstRef.current?.focus(), []);
 
   return (
-    <div className="min-h-full flex flex-col items-center justify-center px-5 py-10 gap-8">
+    <div className="safe-page min-h-full flex flex-col items-center justify-center gap-8 [--page-pad:20px] short:gap-4">
       <Wordmark />
       <div className="text-center flex flex-col items-center gap-3">
         <div className="w-20 h-20 turtle is-happy" style={{ position: 'static', margin: 0 }} aria-hidden="true">
@@ -74,14 +74,14 @@ export function ModePicker() {
         <p className="m-0 text-[18px] font-semibold text-ink-2">Pick one. You can switch any time.</p>
       </div>
 
-      <div className="grid gap-5 sm:grid-cols-2 w-full max-w-[860px]">
+      <div className="grid gap-5 medium:grid-cols-2 landscape:grid-cols-2 w-full max-w-[860px]">
         {CARDS.map((c, k) => (
           <button
             key={c.id}
             ref={k === 0 ? firstRef : undefined}
             type="button"
             onClick={() => setMode(c.id)}
-            className="group text-left rounded-[32px] p-6 sm:p-7 border-0 cursor-pointer shadow-[var(--shadow-2)] hover:shadow-[var(--shadow-3)] transition-[transform,box-shadow] duration-200 hover:-translate-y-1 active:scale-[0.98] flex flex-col gap-5 min-h-[340px]"
+            className="group text-left rounded-[32px] p-6 sm:p-7 border-0 cursor-pointer shadow-[var(--shadow-2)] hover:shadow-[var(--shadow-3)] transition-[transform,box-shadow] duration-200 hover:-translate-y-1 active:scale-[0.98] flex flex-col gap-5 min-h-[340px] short:min-h-[96px] short:gap-3 short:p-5"
             style={{ background: c.tint }}
           >
             <span className="inline-flex self-start items-center rounded-full bg-white/80 px-3 py-1 text-[14px] font-black text-ink">{c.age}</span>
@@ -91,7 +91,7 @@ export function ModePicker() {
               <span className="text-[17px] font-semibold text-ink-2">{c.blurb}</span>
               <span className="flex flex-wrap gap-1.5 mt-1">
                 {c.tags.map((t) => (
-                  <span key={t} className="rounded-full bg-white/70 px-2.5 py-1 text-[13px] font-extrabold text-ink-2">
+                  <span key={t} className="rounded-full bg-white/70 px-2.5 py-1 text-[14px] font-extrabold text-ink-2">
                     {t}
                   </span>
                 ))}
@@ -100,7 +100,7 @@ export function ModePicker() {
           </button>
         ))}
       </div>
-      <Link to="/privacy" className="text-[14px] font-extrabold text-ink-3 underline underline-offset-4">
+      <Link to="/privacy" className="inline-flex min-h-[48px] items-center px-3 text-[16px] font-extrabold text-ink-3 underline underline-offset-4">
         Privacy for parents
       </Link>
     </div>

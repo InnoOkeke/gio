@@ -1,35 +1,13 @@
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import type { Friend } from '../gio/catalog';
 import { FriendPicture } from './gio/FriendArt';
-
+import { Sheet } from './Sheet';
 /** A new friend arrives. Silent on purpose: Gio's bubble already told the story once, aloud. */
 export function FriendDialog({ friend, onClose }: { friend: Friend; onClose(): void }) {
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
-
-  useEffect(() => {
-    const before = document.activeElement as HTMLElement | null;
-    buttonRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCloseRef.current();
-      // The button is the only control in the dialog, so Tab stays on it.
-      else if (e.key === 'Tab') {
-        e.preventDefault();
-        buttonRef.current?.focus();
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      before?.focus?.();
-    };
-  }, []);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="friend-title">
-      <div className="absolute inset-0 bg-[rgba(23,38,31,0.45)] backdrop-blur-[2px]" onClick={() => onClose()} aria-hidden="true" />
-      <div className="friend-card relative w-full max-w-[380px] rounded-[28px] bg-white p-6 text-center shadow-[0_24px_60px_rgba(8,40,60,0.35)]">
+    <Sheet open variant="dialog" labelledBy="friend-title" onClose={onClose} initialFocus={buttonRef} className="sheet-white sheet-narrow">
+      <div className="px-6 pb-6 pt-2 text-center sm:pt-6" data-sheet-header>
         <p className="m-0 text-[14px] font-extrabold uppercase tracking-wide text-[#08603e]">A new friend</p>
         <div className="mx-auto my-2 w-[150px]">
           <FriendPicture id={friend.id} size={150} />
@@ -44,6 +22,6 @@ export function FriendDialog({ friend, onClose }: { friend: Friend; onClose(): v
           Hi, {friend.name}!
         </button>
       </div>
-    </div>
+    </Sheet>
   );
 }

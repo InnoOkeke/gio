@@ -1,0 +1,315 @@
+/* Sheets, dialogs and drawers (Sheet.tsx). Animate transform and opacity only. */
+.sheet-root {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.sheet-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(23, 38, 31, 0.45);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+  animation: sheet-fade 220ms ease-out;
+}
+.sheet-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 92vh;
+  max-height: 92dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  background: var(--bg);
+  border-radius: 28px 28px 0 0;
+  box-shadow: var(--shadow-3);
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+  container-type: inline-size;
+  container-name: sheet;
+  animation: sheet-up 320ms var(--ease-out);
+}
+.sheet-panel[data-scroll='false'] {
+  overflow: hidden;
+}
+.sheet-grab {
+  flex: none;
+  display: flex;
+  justify-content: center;
+  padding: 10px 0 6px;
+  cursor: grab;
+}
+.sheet-handle {
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+html[data-width='compact'] .sheet-grab,
+html[data-width='compact'] [data-sheet-header] {
+  touch-action: none;
+}
+/* A destination on phones: the whole screen, no handle. */
+html[data-width='compact'] .sheet-root[data-variant='page'] .sheet-panel {
+  height: 100vh;
+  height: 100dvh;
+  max-height: none;
+  border-radius: 0;
+  padding-bottom: 0;
+}
+html[data-width='compact'] .sheet-root[data-variant='page'] > .sheet-panel > .sheet-grab {
+  display: none;
+}
+/* Medium and wider: centred dialog, or a drawer from the right. */
+@media (min-width: 600px) {
+  .sheet-root {
+    align-items: center;
+    padding: 16px;
+  }
+  .sheet-grab {
+    display: none;
+  }
+  .sheet-panel {
+    width: var(--sheet-width, min(460px, 100%));
+    max-height: min(92dvh, 900px);
+    border-radius: 28px;
+    padding-bottom: 0;
+    animation: sheet-pop 260ms var(--ease-out);
+  }
+  .sheet-root[data-variant='drawer'] {
+    align-items: stretch;
+    justify-content: flex-end;
+    padding: 0;
+  }
+  .sheet-root[data-variant='drawer'] .sheet-panel {
+    width: min(560px, 100%);
+    max-height: none;
+    height: 100vh;
+    height: 100dvh;
+    border-radius: 28px 0 0 28px;
+    animation: sheet-side 320ms var(--ease-out);
+  }
+  .sheet-root[data-variant='page'] .sheet-panel {
+    --sheet-width: min(720px, 100%);
+    height: min(860px, calc(100vh - 32px));
+    height: min(860px, calc(100dvh - 32px));
+    max-height: none;
+  }
+}
+@media (min-width: 840px) {
+  .sheet-root[data-variant='drawer'] .sheet-panel {
+    width: min(900px, 100%);
+  }
+}
+@media (min-width: 840px) and (orientation: landscape) {
+  .sheet-root[data-variant='page'] .sheet-panel {
+    --sheet-width: min(1180px, calc(100vw - 48px));
+  }
+}
+@keyframes sheet-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: none; }
+}
+@keyframes sheet-side {
+  from { transform: translateX(48px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+@keyframes sheet-pop {
+  from { transform: translateY(16px) scale(0.98); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+/* Phone sheets and the island layer inside the map. */
+.island-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: flex-end;
+}
+.island-layer-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: calc(100% - 56px);
+  background: var(--bg);
+  border-radius: 28px 28px 0 0;
+  box-shadow: var(--shadow-3);
+  /* The scroller ends above the home bar, so no quest sits under it. */
+  padding-bottom: env(safe-area-inset-bottom);
+  animation: sheet-up 320ms var(--ease-out);
+}
+/* Lite devices: no blur and only a fade. Reduced motion: nothing moves. */
+html[data-perf='lite'] .sheet-scrim {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+html[data-perf='lite'] .sheet-panel,
+html[data-perf='lite'] .island-layer-panel,
+html[data-perf='lite'] .sheet-root[data-variant='drawer'] .sheet-panel {
+  animation: sheet-fade 160ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sheet-scrim,
+  .sheet-panel,
+  .island-layer-panel,
+  .sheet-root[data-variant='drawer'] .sheet-panel {
+    animation: none !important;
+  }
+}
+/* The movie sheet keeps one height from "Making your movie" to "Your movie is ready!", so nothing jumps. */
+.replay-body {
+  min-height: min(640px, calc(92dvh - 40px));
+}
+.sheet-panel.sheet-white {
+  background: #fff;
+}
+@media (min-width: 600px) {
+  .sheet-panel.sheet-narrow {
+    --sheet-width: min(400px, 100%);
+  }
+  .sheet-root[data-variant='page'] .sheet-panel.moment-panel {
+    --sheet-width: min(420px, 100%);
+    height: auto;
+    max-height: min(92dvh, 900px);
+  }
+}
+/* The mastery moment: a full screen on phones with the card centred, a card on tablets. */
+.moment-panel {
+  justify-content: flex-start;
+  justify-content: safe center;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+html[data-width='compact'] .sheet-root[data-variant='page'] .sheet-panel.moment-panel {
+  padding-bottom: max(16px, env(safe-area-inset-bottom));
+}
+
+/* Gio's garden body: one column, two when its box is wide (the tablet drawer). */
+.garden-content {
+  container: garden / inline-size;
+}
+.garden-columns,
+.garden-col {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+@container garden (min-width: 760px) {
+  .garden-columns {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+}
+.sticker-grid,
+.friend-grid {
+  grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
+}
+
+/* Adventure map */
+.map-shell {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  height: 100%;
+}
+.map-panes {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+.map-main {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+}
+.map-list {
+  container: maplist / inline-size;
+}
+.map-garden {
+  width: min(400px, 36%);
+  flex: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-left: 1px solid var(--line);
+  padding: 16px 20px 24px;
+  background: var(--bg);
+}
+.trail-wide {
+  display: none;
+}
+@container maplist (min-width: 640px) {
+  .map-list .isle-card {
+    width: 48%;
+    max-width: 440px;
+  }
+  .map-list .isle-skip {
+    width: 48%;
+    max-width: 440px;
+  }
+  .trail-narrow {
+    display: none;
+  }
+  .trail-wide {
+    display: block;
+  }
+}
+.qtile {
+  min-height: 56px;
+}
+.island-layer-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  padding: 4px 16px 24px;
+}
+.island-layer-scrim {
+  position: absolute;
+  inset: 0;
+  background: rgba(23, 38, 31, 0.25);
+}
+@media (min-width: 600px) {
+  .island-layer-panel {
+    height: 100%;
+    border-radius: 0;
+    box-shadow: none;
+    animation: sheet-fade 200ms ease-out;
+  }
+  .island-layer-scrim,
+  .island-layer .sheet-grab {
+    display: none;
+  }
+  .island-layer-scroll {
+    padding: 16px 24px 24px;
+  }
+}
+
+/* Off-screen cards and sticker grids are not painted until they get close. */
+/* content-visibility clips paint to the box, so the row gets room for the card's ring and shadow. */
+.isle-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 340px;
+  /* Sideways only as far as the list's own 16px padding, so the row never passes the screen edge. */
+  padding: 28px 16px;
+  margin: -28px -16px;
+}
+.sticker-grid > li,
+.friend-grid > li {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 132px;
+}

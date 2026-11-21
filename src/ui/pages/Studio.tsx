@@ -27,10 +27,8 @@ import { SoundToggle } from '../components/SoundToggle';
 import { sound } from '../runtime/sound';
 import { hasDrawing, toSVG } from '../export/svg';
 import { FirstWinOffer, FirstWinYours, FIRST_WIN_TEXT, useFirstWin } from '../components/FirstWin';
-import { FriendDialog } from '../components/FriendDialog';
-import { GardenSheet } from '../components/GardenSheet';
-import { AdventureMap } from '../components/AdventureMap';
-import { MasteryMoment, type Moment } from '../components/MasteryMoment';
+import { AdventureMap, FriendDialog, GardenContent, GardenSheet, MasteryMoment, preloadMapWhenIdle } from '../components/lazy-overlays';
+import type { Moment } from '../components/MasteryMoment';
 import { QuestCard } from '../components/Quests';
 import { HintCard } from '../components/HintCard';
 import { SkillCheckBanner } from '../components/SkillCheckBanner';
@@ -196,6 +194,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const undoStack = useRef<string[]>([]);
   const tutor = useTutor();
   const stuckRef = useRef<HTMLButtonElement>(null);
+  useEffect(preloadMapWhenIdle, []);
 
   const [title, setTitle] = useState(initial.title);
   const [code, setCode] = useState(initial.code);
@@ -1188,7 +1187,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         <footer className="studio-footer pt-2 pb-6 text-center text-[14px] font-semibold text-ink-3">
           <span className="studio-footer-note">GIO brings back Logo (1967), the language Seymour Papert and friends made so kids could learn by teaching a turtle.
           {!little && ' Its turtle still lives on in Python today.'}{' '}</span>
-          <Link to="/privacy" className="underline underline-offset-4 font-extrabold">
+          <Link to="/privacy" className="inline-flex min-h-[48px] items-center px-2 underline underline-offset-4 font-extrabold">
             Privacy for parents
           </Link>
         </footer>
@@ -1208,7 +1207,8 @@ function StudioView({ initial }: { initial: Loaded }) {
           saveDisabled={saving || (!dirty && owned)}
         />
       )}
-      <AdventureMap
+      <Suspense fallback={null}>
+      {questsOpen && <AdventureMap
         open={questsOpen}
         mode={mode}
         islands={progress.islands}
@@ -1231,8 +1231,15 @@ function StudioView({ initial }: { initial: Loaded }) {
           setGardenOpen(true);
         }}
         onClose={() => setQuestsOpen(false)}
-      />
-      <GardenSheet
+        renderGarden={() => (
+          <Suspense fallback={null}>
+            <GardenContent mode={mode} rewards={rewards} quests={progress.quests} completed={progress.completed} badges={progress.badges} onWear={wear} />
+          </Suspense>
+        )}
+      />}
+      </Suspense>
+      <Suspense fallback={null}>
+      {gardenOpen && <GardenSheet
         open={gardenOpen}
         mode={mode}
         rewards={rewards}
@@ -1241,7 +1248,9 @@ function StudioView({ initial }: { initial: Loaded }) {
         badges={progress.badges}
         onWear={wear}
         onClose={() => setGardenOpen(false)}
-      />
+      />}
+      </Suspense>
+      <Suspense fallback={null}>
       {friendQueue[0] && <FriendDialog key={friendQueue[0]} friend={friendById(friendQueue[0])} onClose={() => setFriendQueue((f) => f.slice(1))} />}
       {!friendQueue[0] && masteryMoment && (
         <MasteryMoment
@@ -1264,6 +1273,7 @@ function StudioView({ initial }: { initial: Loaded }) {
           }}
         />
       )}
+      </Suspense>
       {movie && (
         <Suspense fallback={null}>
           <ReplayDialog

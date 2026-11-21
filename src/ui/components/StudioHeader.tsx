@@ -1,5 +1,7 @@
 import { useId, useRef, useState, type RefObject } from 'react';
+import { createPortal } from 'react-dom';
 import { MODE_LABEL, type AgeMode } from '../mode';
+import { useSheetDrag } from '../responsive/useSheetDrag';
 import { useDialog } from '../useDialog';
 import { Wordmark } from './GioMark';
 import { CloseIcon, LeafIcon, MapIcon, PlusIcon, SaveIcon, ShareIcon } from './icons';
@@ -61,19 +63,21 @@ function MoreMenu({ p }: { p: StudioHeaderProps }) {
           <circle cx="19" cy="12" r="2.2" />
         </svg>
       </button>
-      {open && <MoreSheet p={p} panelRef={panelRef} firstRef={firstRef} titleId={titleId} close={close} pick={pick} />}
+      {/* Portalled: the header's backdrop blur would otherwise trap the fixed sheet inside the header. */}
+      {open && createPortal(<MoreSheet p={p} panelRef={panelRef} firstRef={firstRef} titleId={titleId} close={close} pick={pick} />, document.body)}
     </>
   );
 }
 
 function MoreSheet({ p, panelRef, firstRef, titleId, close, pick }: { p: StudioHeaderProps; panelRef: RefObject<HTMLDivElement>; firstRef: RefObject<HTMLButtonElement>; titleId: string; close(): void; pick(action: () => void): () => void }) {
   useDialog(panelRef, firstRef, close);
+  useSheetDrag(panelRef, close);
   return (
     <>
       <div className="sheet-backdrop save-fade" onClick={close} aria-hidden="true" />
       <div ref={panelRef} role="dialog" aria-modal="true" aria-labelledby={titleId} className="bottom-sheet save-panel">
         <div className="bottom-sheet-grip" aria-hidden="true" />
-        <div className="flex items-center justify-between gap-3 px-3">
+        <div className="flex items-center justify-between gap-3 px-3" data-sheet-header>
           <h2 id={titleId} className="m-0 text-[18px] font-black">
             More
           </h2>
@@ -81,7 +85,7 @@ function MoreSheet({ p, panelRef, firstRef, titleId, close, pick }: { p: StudioH
             <CloseIcon />
           </button>
         </div>
-        <div className="flex flex-col gap-1 pt-1">
+        <div className="flex flex-col gap-2 pt-2">
           <button ref={firstRef} type="button" className="save-row" onClick={pick(p.onSave)} disabled={p.saveDisabled}>
             <SaveIcon /> <span className="text-[17px] font-black">{p.saveLabel}</span>
           </button>
@@ -142,10 +146,10 @@ export function StudioHeader(p: StudioHeaderProps) {
                 <button type="button" className="btn btn-ghost hidden xl:inline-flex" onClick={p.onChooseAgain} title="Switch age mode">
                   {MODE_LABEL[p.mode]}
                 </button>
-                <button type="button" className="btn btn-quiet max-sm:px-3" onClick={p.onGarden} aria-label="Gio's garden">
+                <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onGarden} aria-label="Gio's garden">
                   <LeafIcon className="text-[#12a36b]" /> <span className="hidden md:inline">Garden</span>
                 </button>
-                <button type="button" className="btn btn-quiet max-sm:px-3 relative" onClick={p.onMap} aria-label={mapLabel}>
+                <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3 relative" onClick={p.onMap} aria-label={mapLabel}>
                   <MapIcon className="text-[#0f8fa6]" /> <span className="hidden md:inline">Map</span>
                   {count}
                   {dot}
@@ -153,10 +157,10 @@ export function StudioHeader(p: StudioHeaderProps) {
                 <button type="button" className="btn btn-ghost hidden lg:inline-flex" onClick={p.onNew}>
                   <PlusIcon /> New
                 </button>
-                <button type="button" className="btn btn-quiet max-sm:px-3" onClick={p.onSave} disabled={p.saveDisabled} aria-label={p.saveLabel}>
+                <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onSave} disabled={p.saveDisabled} aria-label={p.saveLabel}>
                   <SaveIcon /> <span className="hidden sm:inline">{p.saveLabel}</span>
                 </button>
-                <button type="button" className="btn btn-primary max-sm:px-3" onClick={p.onShare} disabled={p.sharing} aria-label="Share">
+                <button type="button" className="btn btn-primary min-w-[48px] max-sm:px-3" onClick={p.onShare} disabled={p.sharing} aria-label="Share">
                   <ShareIcon /> <span className="hidden sm:inline">Share</span>
                 </button>
               </>

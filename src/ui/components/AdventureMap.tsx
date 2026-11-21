@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import type { QuestAudience } from '../../logo/quests.js';
 import type { FriendId, StickerId } from '../gio/catalog';
@@ -8,8 +8,10 @@ import { MAP_LINES, reviewInvite, say } from '../path/lines';
 import type { SkillChallenge } from '../path/skill';
 import type { IslandView, NextStop } from '../path/state';
 import { worldStartingAt } from '../path/worlds';
-import { useDialog } from '../useDialog';
+import { useTwoPane } from '../responsive/useMedia';
+import { useSheetDrag } from '../responsive/useSheetDrag';
 import { IslandArt, isGoldArt } from './IslandArt';
+import { Sheet } from './Sheet';
 import { IslandSheet } from './IslandSheet';
 import { ArrowLeftIcon, CloseIcon, LeafIcon, LockIcon, MapIcon } from './icons';
 import { TurtleSprite } from './TurtleSprite';
@@ -38,6 +40,8 @@ interface AdventureMapProps {
   onReview(islandKey: string): void;
   onGarden(): void;
   onClose(): void;
+  /** Gio's garden, shown as a live side column when a wide landscape screen has room. */
+  renderGarden?(): ReactNode;
 }
 
 /** Which island Gio stands on: where the next quest is, or else the last island sailed. */
@@ -58,11 +62,13 @@ function statusWords(view: IslandView, here: boolean, review: boolean, previousN
   return parts.join(', ');
 }
 
-function Trail({ from, to, sailed }: { from: 'left' | 'right'; to: 'left' | 'right'; sailed: boolean }) {
-  const x1 = from === 'left' ? 34 : 66;
-  const x2 = to === 'left' ? 34 : 66;
+function Trail({ from, to, sailed, wide = false }: { from: 'left' | 'right'; to: 'left' | 'right'; sailed: boolean; wide?: boolean }) {
+  // Narrow lists use 68% cards, wide lists two 48% columns: the trail joins the card centres.
+  const [l, r] = wide ? [24, 76] : [34, 66];
+  const x1 = from === 'left' ? l : r;
+  const x2 = to === 'left' ? l : r;
   return (
-    <svg viewBox="0 0 100 52" preserveAspectRatio="none" className="block h-[52px] w-full" aria-hidden="true" focusable="false">
+    <svg viewBox="0 0 100 52" preserveAspectRatio="none" className={`${wide ? 'trail-wide' : 'trail-narrow'} h-[52px] w-full`} aria-hidden="true" focusable="false">
       <path
         d={`M ${x1} 0 C ${x1} 30, ${x2} 22, ${x2} 52`}
         fill="none"
@@ -81,11 +87,13 @@ export function AdventureMap(props: AdventureMapProps) {
   return props.open ? <MapDialog {...props} /> : null;
 }
 
-function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skillPlan, certificate, onPlay, onSkip, onGo, onReview, onGarden, onClose }: AdventureMapProps) {
-  const panelRef = useRef<HTMLDivElement>(null);
+function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skillPlan, certificate, onPlay, onSkip, onGo, onReview, onGarden, onClose, renderGarden }: AdventureMapProps) {
+  const layerRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const twoPane = useTwoPane() && !!renderGarden;
   const backRef = useRef<HTMLButtonElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+  const islandScrollRef = useRef<HTMLDivElement>(null);
   const hereRef = useRef<HTMLButtonElement | null>(null);
   const cardRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const [selected, setSelected] = useState<string | null>(null);
@@ -94,7 +102,8 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
 
   const selectedRef = useRef(selected);
   selectedRef.current = selected;
-  useDialog(panelRef, closeRef, () => (selectedRef.current ? setSelected(null) : onClose()));
+  // On phones the island opens as a sheet over the map: swipe it down to go back.
+  useSheetDrag(layerRef, () => setSelected(null), selected !== null);
 
   const here = currentKey(islands, next);
   /** The first locked stage a skill check can open: the way in for a confident child or a grown-up. */
@@ -104,9 +113,11 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
 
   // Show Gio's island when the map opens, and return to the island that was open when coming back.
   useEffect(() => {
+    // The list stays mounted under an open island (so its scroll is kept) but cannot be reached.
+    bodyRef.current?.toggleAttribute('inert', !!selected);
     if (selected) {
       lastSelected.current = selected;
-      bodyRef.current?.scrollTo({ top: 0 });
+      islandScrollRef.current?.scrollTo({ top: 0 });
       backRef.current?.focus();
     } else {
       hereRef.current?.scrollIntoView({ block: 'center' });
@@ -132,13 +143,12 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
           };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-stretch justify-center sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-labelledby="map-title">
-      <div className="absolute inset-0 bg-[rgba(23,38,31,0.45)] backdrop-blur-[2px]" onClick={onClose} aria-hidden="true" />
-      <div ref={panelRef} className="map-in relative flex h-full w-full flex-col overflow-hidden bg-[var(--bg)] shadow-[var(--shadow-3)] sm:h-[min(860px,calc(100vh-48px))] sm:max-w-[720px] sm:rounded-[32px]">
-        <div className="border-b border-line bg-[rgba(245,242,234,0.92)] backdrop-blur-xl">
+    <Sheet open variant="page" labelledBy="map-title" onClose={onClose} onEscape={() => (selectedRef.current ? setSelected(null) : onClose())} initialFocus={closeRef} scroll={false}>
+      <div className="map-shell">
+        <div className="border-b border-line bg-[rgba(245,242,234,0.92)] backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="flex items-center gap-2 px-4 py-3 sm:px-6 sm:py-4">
           {selectedView && (
-            <button ref={backRef} type="button" className="btn btn-quiet btn-icon shrink-0" onClick={() => setSelected(null)} aria-label="Back to the map">
+            <button ref={backRef} type="button" className="btn btn-quiet btn-icon min-h-[48px] min-w-[48px] shrink-0" onClick={() => setSelected(null)} aria-label="Back to the map">
               <ArrowLeftIcon />
             </button>
           )}
@@ -160,9 +170,11 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
               {sailedCount} of {total} stages sailed
             </span>
           </span>
-          <button type="button" className="btn btn-quiet max-sm:px-3" onClick={onGarden} aria-label="Gio's garden">
-            <LeafIcon className="text-[#12a36b]" /> <span className="hidden sm:inline">Garden</span>
-          </button>
+          {!twoPane && (
+            <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={onGarden} aria-label="Gio's garden">
+              <LeafIcon className="text-[#12a36b]" /> <span className="hidden sm:inline">Garden</span>
+            </button>
+          )}
           <button ref={closeRef} type="button" className="btn btn-quiet btn-icon shrink-0" onClick={onClose} aria-label="Close the map">
             <CloseIcon />
           </button>
@@ -185,23 +197,36 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
         </div>
         </div>
 
+        <div className="map-panes">
+        <div className="map-main">
+          {selectedView && (
+            <div className="island-layer">
+              <div className="island-layer-scrim" onClick={() => setSelected(null)} aria-hidden="true" />
+              <div ref={layerRef} className="island-layer-panel">
+                <div className="sheet-grab" data-sheet-grab aria-hidden="true">
+                  <span className="sheet-handle" />
+                </div>
+                <div ref={islandScrollRef} className="island-layer-scroll overflow-y-auto">
+                  <IslandSheet
+                    view={selectedView}
+                    previous={selectedAt > 0 ? islands[selectedAt - 1]! : null}
+                    met={friends.includes(selectedView.island.resident)}
+                    nextQuestId={(next.kind === 'quest' || next.kind === 'retry' || next.kind === 'bonus') && next.islandKey === selected ? next.questId : null}
+                    reviewWaiting={reviewKey === selected}
+                    skill={skillPlan(selectedView.island.key)}
+                    certificate={certificate}
+                    onSkip={() => onSkip(selectedView.island.key)}
+                    onPlay={onPlay}
+                    onReview={() => onReview(selectedView.island.key)}
+                    onGoTo={setSelected}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         <div ref={bodyRef} className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-4 pb-6 pt-4 sm:px-6" style={{ background: 'linear-gradient(#d9f0fb 0, #eef9fd 220px, #f5f2ea 520px)' }}>
-          {selectedView ? (
-            <IslandSheet
-              view={selectedView}
-              previous={selectedAt > 0 ? islands[selectedAt - 1]! : null}
-              met={friends.includes(selectedView.island.resident)}
-              nextQuestId={(next.kind === 'quest' || next.kind === 'retry' || next.kind === 'bonus') && next.islandKey === selected ? next.questId : null}
-              reviewWaiting={reviewKey === selected}
-              skill={skillPlan(selectedView.island.key)}
-              certificate={certificate}
-              onSkip={() => onSkip(selectedView.island.key)}
-              onPlay={onPlay}
-              onReview={() => onReview(selectedView.island.key)}
-              onGoTo={setSelected}
-            />
-          ) : (
-            <div className="flex flex-col">
+          {(
+            <div className="map-list flex flex-col">
               {(certificate || firstSkippable) && (
                 <div className="mb-4 flex flex-wrap gap-2">
                   {firstSkippable && (
@@ -251,7 +276,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                         <span className="h-px flex-1 bg-[#b9ae96]" aria-hidden="true" />
                       </div>
                     )}
-                    <div className={`flex ${side === 'left' ? 'justify-start' : 'justify-end'}`}>
+                    <div className={`isle-row flex ${side === 'left' ? 'justify-start' : 'justify-end'}`}>
                       <button
                         ref={(el) => {
                           cardRefs.current[key] = el;
@@ -299,12 +324,17 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                     </div>
                     {locked && skillPlan(key).length > 0 && (
                       <div className={`mt-2 flex ${side === 'left' ? 'justify-start' : 'justify-end'}`}>
-                        <button type="button" className="btn btn-quiet w-[68%] max-w-[300px]" onClick={() => setSelected(key)} aria-label={`Skip ahead to ${view.island.name}: take a skill check`}>
+                        <button type="button" className="isle-skip btn btn-quiet w-[68%] max-w-[300px]" onClick={() => setSelected(key)} aria-label={`Skip ahead to ${view.island.name}: take a skill check`}>
                           Skip ahead
                         </button>
                       </div>
                     )}
-                    {i < islands.length - 1 && <Trail from={side} to={nextSide} sailed={view.sailed} />}
+                    {i < islands.length - 1 && (
+                      <>
+                        <Trail from={side} to={nextSide} sailed={view.sailed} />
+                        <Trail from={side} to={nextSide} sailed={view.sailed} wide />
+                      </>
+                    )}
                   </Fragment>
                 );
               })}
@@ -320,7 +350,17 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
             </button>
           </div>
         )}
+        </div>
+        {twoPane && renderGarden && (
+          <aside className="map-garden" aria-labelledby="map-garden-title">
+            <h2 id="map-garden-title" className="m-0 mb-4 flex items-center gap-2 text-[22px] font-black">
+              <LeafIcon size={24} className="text-[#12a36b]" /> Gio&rsquo;s garden
+            </h2>
+            {renderGarden()}
+          </aside>
+        )}
+        </div>
       </div>
-    </div>
+    </Sheet>
   );
 }

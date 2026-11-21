@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useSheetDrag } from '../responsive/useSheetDrag';
 import { DownloadIcon, MovieIcon, ShapesIcon } from './icons';
 
 interface ExportMenuProps {
@@ -31,17 +32,19 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile }:
     setOpen(false);
     buttonRef.current?.focus();
   }, []);
+  // A bottom sheet on phones (under 640 px): swipe the handle down to close it.
+  useSheetDrag(panelRef, close, open);
 
   useEffect(() => {
     if (!open) return;
-    panelRef.current?.querySelector<HTMLElement>('button')?.focus();
+    panelRef.current?.querySelector<HTMLElement>('.save-row')?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         close();
         return;
       }
-      const rows = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('button') ?? []);
+      const rows = Array.from(panelRef.current?.querySelectorAll<HTMLElement>('button') ?? []).filter((b) => b.offsetParent !== null);
       if (!rows.length) return;
       const at = rows.indexOf(document.activeElement as HTMLElement);
       if (e.key === 'Tab') {
@@ -121,11 +124,18 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile }:
               max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:rounded-t-[28px] max-sm:rounded-b-none max-sm:pb-[max(16px,env(safe-area-inset-bottom))] save-panel
               sm:absolute sm:right-0 sm:bottom-[calc(100%+10px)] sm:w-[340px] sm:rounded-[24px] "
           >
-            <div className="sm:hidden mx-auto mt-1 mb-2 h-1.5 w-10 rounded-full bg-[var(--line-strong)]" aria-hidden="true" />
-            <h2 id={titleId} className="m-0 px-3 pt-1 pb-1 text-[15px] font-black text-ink-2">
-              Save your drawing
-            </h2>
-            <div className="flex flex-col gap-1">
+            <div className="sm:hidden flex justify-center pt-1 pb-2" data-sheet-grab aria-hidden="true">
+              <span className="h-[5px] w-10 rounded-full bg-[var(--line-strong)]" />
+            </div>
+            <div className="flex items-center justify-between gap-2" data-sheet-header>
+              <h2 id={titleId} className="m-0 px-3 pt-1 pb-1 text-[15px] font-black text-ink-2">
+                Save your drawing
+              </h2>
+              <button type="button" className="btn btn-quiet min-h-[48px]" onClick={close}>
+                Close
+              </button>
+            </div>
+            <div className="flex flex-col gap-2">
               {rows.map((row) => (
                 <button
                   key={row.id}
