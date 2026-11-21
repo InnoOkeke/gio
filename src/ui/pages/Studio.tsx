@@ -158,7 +158,7 @@ export default function Studio() {
       />
     );
   }
-  if (!loaded) return <CenteredMessage title="Getting the turtle readyâ€¦" />;
+  if (!loaded) return <CenteredMessage title="Getting the turtle ready…" />;
   return <StudioView key={loaded.slug ?? 'new'} initial={loaded} />;
 }
 
@@ -771,7 +771,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       return true;
     }
     setAsking(true);
-    setBubble({ kind: 'info', text: 'Hmm, let me think about how to draw thatâ€¦' });
+    setBubble({ kind: 'info', text: 'Hmm, let me think about how to draw that…' });
     const before = code;
     try {
       const { code: aiCode } = await api.askTurtle(prompt, code.trim() ? code : undefined, style);
@@ -835,7 +835,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       if (skill.isActive(quest.id)) setHinted(true);
     }
     setExplaining(true);
-    setBubble({ kind: 'info', text: 'Let me look at your codeâ€¦' });
+    setBubble({ kind: 'info', text: 'Let me look at your code…' });
     try {
       const { text } = await api.explain(code, style);
       setBubble({ kind: 'info', text });
@@ -882,7 +882,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     const url = `${window.location.origin}/p/${slug}`;
     try {
       if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
-        await navigator.share({ title: `${title} Â· GIO`, text: 'Look what I drew with code!', url });
+        await navigator.share({ title: `${title} · GIO`, text: 'Look what I drew with code!', url });
         return;
       }
       await navigator.clipboard.writeText(url);
@@ -1147,7 +1147,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                   </button>
                 )}
                 <button type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void explain()} disabled={explaining || asking}>
-                  <BulbIcon className="text-[#f4a72c]" /> {explaining ? 'Thinkingâ€¦' : little ? 'What did I make?' : 'Explain my code'}
+                  <BulbIcon className="text-[#f4a72c]" /> {explaining ? 'Thinking…' : little ? 'What did I make?' : 'Explain my code'}
                 </button>
                 <button ref={stuckRef} type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void askForHint()} disabled={tutor.loading || asking || explaining}>
                   <HelpIcon className="text-[#e0861a]" /> I&rsquo;m stuck
