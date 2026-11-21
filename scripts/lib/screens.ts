@@ -306,16 +306,23 @@ async function reveal(c: Cdp, selector: string): Promise<Pt> {
 }
 
 async function dropInto(c: Cdp, from: string, slot: string, expect_: string, what: string): Promise<void> {
-  const start = await reveal(c, from);
-  let first = true;
-  await touchDrag(c, start, async () => {
-    if (!first) return center(await rectOf(c, slot));
-    first = false;
-    return reveal(c, slot);
-  });
+  const before = await blocksLogo(c);
+  await c.evaluate(`window.__dragTouches = 0; document.addEventListener('touchstart', () => window.__dragTouches++, true)`);
+  // Headless Edge sometimes drops the first emulated touch sequence after a page load (see the
+  // pinch check). When the program did not change at all, the drag is sent once more.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const start = await reveal(c, from);
+    let first = true;
+    await touchDrag(c, start, async () => {
+      if (!first) return center(await rectOf(c, slot));
+      first = false;
+      return reveal(c, slot);
+    });
+    if ((await blocksLogo(c)) !== before) break;
+  }
   const got = await blocksLogo(c);
   if (got !== expect_) {
-    const where = await c.evaluate<string>(`(() => { const p = document.querySelector('.blocks-program')?.getBoundingClientRect(); return 'program ' + (p ? Math.round(p.top) + '-' + Math.round(p.bottom) : '?') + ', viewport ' + innerWidth + 'x' + innerHeight; })()`);
+    const where = await c.evaluate<string>(`(() => { const p = document.querySelector('.blocks-program')?.getBoundingClientRect(); return 'program ' + (p ? Math.round(p.top) + '-' + Math.round(p.bottom) : '?') + ', viewport ' + innerWidth + 'x' + innerHeight + ', touches seen ' + (window.__dragTouches ?? '?') + ', scrollY ' + Math.round(scrollY); })()`);
     throw new Error(`${what}: expected "${expect_}", got "${got}" (${where})`);
   }
 }
@@ -323,6 +330,17 @@ async function dropInto(c: Cdp, from: string, slot: string, expect_: string, wha
 /** Drag from the palette into a Repeat, reorder with a handle, and drop into a nested Repeat. */
 async function blockDragChecks(c: Cdp): Promise<void> {
   await c.waitFor(`!!document.querySelector('.palette-tile')`, 10000);
+  // Earlier screens (pinch, double-tap) can leave the emulated touch input in a half-finished
+  // state; switch it off and on and tap an empty spot so the drags start from a clean slate.
+  const coarse = (await c.evaluate<boolean>(`matchMedia('(pointer: coarse)').matches`)) === true;
+  if (coarse) {
+    await c.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await c.send('Emulation.setTouchEmulationEnabled', { enabled: false });
+    await c.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 5 });
+    const blank = await rectOf(c, '.panel-header h2');
+    await c.tap(blank.x + 4, blank.y + 4);
+    await sleep(400);
+  }
   await c.click('button', 'See the code');
   await sleep(300);
   const start = await blocksLogo(c);
@@ -331,7 +349,8 @@ async function blockDragChecks(c: Cdp): Promise<void> {
   const tile = await reveal(c, '.palette-tile');
   await c.swipe(tile, { x: tile.x, y: tile.y - 60 });
   await sleep(300);
-  expect((await blocksLogo(c)) === start, 'a quick swipe on the palette added or moved a block');
+  const swiped = await blocksLogo(c);
+  expect(swiped === start, `a quick swipe on the palette added or moved a block: ${swiped} (tile at ${Math.round(tile.x)},${Math.round(tile.y)})`);
   // 1. Palette tile into the end of the outer Repeat.
   await c.evaluate(`[...document.querySelectorAll('.palette-tile')].find((e) => e.textContent.includes('Turn left'))?.setAttribute('data-test', 'turn-left')`);
   await dropInto(c, '[data-test="turn-left"]', '[data-slot="0:2"]', 'REPEAT 4 [ FD 50 REPEAT 3 [ RT 10 ] LT 90 ] FD 5', 'palette tile into the Repeat');

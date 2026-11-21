@@ -21,7 +21,7 @@ const base = process.env['GIO_URL'] ?? 'http://localhost:3001';
 const outDir = process.env['GIO_SHOTS_DIR'] ?? path.join(os.tmpdir(), 'gio-device-shots');
 const onlyDevice = process.env['DEVICE'];
 const onlyOrientation = process.env['ORIENTATION'] as Orientation | undefined;
-const onlyScreen = process.env['SCREEN'];
+const onlyScreens = (process.env['SCREEN'] ?? process.env['SCREENS'] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 interface Entry {
   device: string;
@@ -44,7 +44,7 @@ async function main(): Promise<void> {
         const view = await applyDevice(cdp, device, orientation);
         const ctx = { touch: device.touch, insets: view.insets };
         for (const screen of SCREENS) {
-          if (onlyScreen && screen.id !== onlyScreen) continue;
+          if (onlyScreens.length && !onlyScreens.includes(screen.id)) continue;
           const entry: Entry = { device: device.id, orientation, screen: screen.id, file: null, status: 'pass', failures: [] };
           entries.push(entry);
           if (!screen.open) {

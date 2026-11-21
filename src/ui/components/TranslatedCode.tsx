@@ -100,14 +100,14 @@ export function TranslatedCode({ language, logo, runningLine, pythonLine = null,
   return (
     <div className="h-full flex flex-col min-h-0">
       <div className="flex items-center justify-between gap-3 px-4 py-2 bg-paper-2 border-b border-line">
-        <p className="m-0 text-[13px] font-bold text-ink-2">
+        <p className="m-0 text-[14px] font-bold text-ink-2">
           {language === 'python' ? 'Runs in real Python with its turtle module.' : 'How the same program looks in JavaScript.'}
         </p>
-        <button type="button" className="btn btn-quiet min-h-[36px] px-3 text-[14px]" onClick={() => void copy()}>
+        <button type="button" className="btn btn-quiet min-h-[36px] coarse:min-h-touch px-3 text-[14px]" onClick={() => void copy()}>
           Copy
         </button>
       </div>
-      <ol className="flex-1 min-h-0 overflow-auto m-0 py-3 list-none font-mono text-[16px] leading-[1.7]" aria-label={`${name} code`}>
+      <ol className="flex-1 min-h-0 overflow-auto m-0 py-3 list-none font-mono text-[16px] leading-[1.7] coarse:flex coarse:flex-col coarse:gap-2" aria-label={`${name} code`}>
         {lines.map((l, k) => {
           const running = (runningLine !== null && l.src === runningLine) || (pythonLine !== null && k + 1 === pythonLine);
           const isPicked = picked !== null && l.src === picked;
@@ -118,7 +118,7 @@ export function TranslatedCode({ language, logo, runningLine, pythonLine = null,
                 type="button"
                 disabled={l.src === undefined}
                 onClick={() => setPicked(l.src ?? null)}
-                className={`flex-1 text-left whitespace-pre pr-4 border-0 bg-transparent font-mono text-[16px] cursor-pointer disabled:cursor-default ${
+                className={`flex-1 text-left whitespace-pre pr-4 coarse:min-h-touch border-0 bg-transparent font-mono text-[16px] cursor-pointer disabled:cursor-default ${
                   running ? 'bg-[rgba(255,201,60,0.35)] shadow-[inset_4px_0_0_#ffc93c]' : isPicked ? 'bg-[#e3f2ff] shadow-[inset_4px_0_0_#2b9bf4]' : ''
                 }`}
               >
