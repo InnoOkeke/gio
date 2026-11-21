@@ -18,9 +18,10 @@ import {
   type DragStartEvent,
   type Modifier,
 } from '@dnd-kit/core';
-import { BLOCK_COLORS, NAMED_COLORS, type Block, type BlockKind } from '../../logo/index.js';
+import { BLOCK_COLORS, NAMED_COLORS, type Block, type BlockKind, type NotePitch } from '../../logo/index.js';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { haptic } from '../haptics';
+import { NOTE_KEYS } from '../runtime/keys';
 import { useWindowClass } from '../responsive/useWindowClass';
 import { getAt, insertBlock, isDescendant, lineMap, moveBlock, removeBlock, update, type Path } from './block-tree';
 import './blocks.css';
@@ -30,7 +31,22 @@ interface Spec {
   glyph: string;
   color: string;
   make(): Block;
-  number?: { step: number; min: number; max: number; unit?: string };
+  number?: { step: number; min: number; max: number; unit?: string; format?(n: number): string; spoken?(n: number): string };
+}
+
+const PITCH_NAMES: Record<NotePitch, string> = { C: 'C', D: 'D', E: 'E', F: 'F', G: 'G', A: 'A', B: 'B', C5: 'high C', R: 'Rest' };
+
+function noteColor(pitch: NotePitch): string {
+  return NOTE_KEYS.find((k) => k.pitch === pitch)?.color ?? '#64748b';
+}
+
+function noteLabel(b: Extract<Block, { kind: 'note' }>): string {
+  const name = b.pitch === 'R' ? 'Rest' : `Note ${PITCH_NAMES[b.pitch]}`;
+  return b.beats === 2 ? `${name}, long` : name;
+}
+
+function valueText(spec: Spec, n: number): string {
+  return spec.number?.format ? spec.number.format(n) : `${n}${spec.number?.unit ?? ''}`;
 }
 
 const SPECS: Record<BlockKind, Spec> = {
@@ -43,11 +59,25 @@ const SPECS: Record<BlockKind, Spec> = {
   color: { label: 'Colour', glyph: '🎨', color: '#ec3f86', make: () => ({ kind: 'color', color: 'red' }) },
   size: { label: 'Thick pen', glyph: '●', color: '#f97316', make: () => ({ kind: 'size', n: 5 }), number: { step: 1, min: 1, max: 20 } },
   circle: { label: 'Circle', glyph: '◯', color: '#0f8fa6', make: () => ({ kind: 'circle', n: 50 }), number: { step: 10, min: 10, max: 150 } },
+  note: { label: 'Note', glyph: '♪', color: '#d9467a', make: () => ({ kind: 'note', pitch: 'C', beats: 1 }) },
+  frame: { label: 'Next picture', glyph: '🎞', color: '#8b5cf6', make: () => ({ kind: 'frame' }) },
+  wait: {
+    label: 'Wait',
+    glyph: '⏳',
+    color: '#64748b',
+    make: () => ({ kind: 'wait', n: 30 }),
+    // WAIT counts sixtieths of a second; children see seconds.
+    number: { step: 30, min: 30, max: 300, format: (n) => `${n / 60} s`, spoken: (n) => `${n / 60} seconds` },
+  },
   repeat: { label: 'Repeat', glyph: '🔁', color: '#7a4cf0', make: () => ({ kind: 'repeat', n: 4, body: [] }), number: { step: 1, min: 1, max: 36, unit: '×' } },
 };
 
 /** The palette is data driven: add a group (with kinds that exist in SPECS) and its tiles appear. */
-const PALETTE_GROUPS: { title: string; kinds: BlockKind[] }[] = [{ title: 'Blocks', kinds: ['forward', 'right', 'left', 'back', 'repeat', 'color', 'circle', 'size', 'penup', 'pendown'] }];
+const PALETTE_GROUPS: { id: string; title: string; kinds: BlockKind[] }[] = [
+  { id: 'draw', title: 'Draw', kinds: ['forward', 'right', 'left', 'back', 'repeat', 'color', 'circle', 'size', 'penup', 'pendown'] },
+  { id: 'music', title: 'Music', kinds: ['note', 'repeat'] },
+  { id: 'movie', title: 'Movie', kinds: ['frame', 'wait', 'repeat'] },
+];
 
 /* ---- drag and drop plumbing ---- */
 
@@ -141,6 +171,8 @@ interface BlocksEditorProps {
 export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProps) {
   const [selected, setSelected] = useState<Path | null>(null);
   const [dragging, setDragging] = useState<DragData | null>(null);
+  const [group, setGroup] = useState(PALETTE_GROUPS[0]!.id);
+  const palette = PALETTE_GROUPS.find((g) => g.id === group) ?? PALETTE_GROUPS[0]!;
   const win = useWindowClass();
   const lines = lineMap(blocks);
   const selectedBlock = selected ? getAt(blocks, selected) : undefined;
@@ -242,7 +274,9 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
           const isSelected = selected?.join('.') === key;
           const isRunning = runningLine !== null && lines.get(key) === runningLine;
           const n = 'n' in b ? b.n : null;
-          const name = `${spec.label}${n !== null ? ` ${n}${spec.number?.unit ?? ''}` : ''}${b.kind === 'color' ? ` ${b.color}` : ''}`;
+          const label = b.kind === 'note' ? noteLabel(b) : spec.label;
+          const spokenValue = n !== null ? ` ${spec.number?.spoken ? spec.number.spoken(n) : valueText(spec, n)}` : '';
+          const name = `${label}${spokenValue}${b.kind === 'color' ? ` ${b.color}` : ''}`;
           return (
             <li key={key} className="flex flex-col">
               <DropSlot parent={prefix} index={i} where={where} disabled={slotDisabled(prefix)} />
@@ -254,22 +288,19 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
                 onClick={() => setSelected(isSelected ? null : path)}
                 onKeyDown={(e) => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSelected(isSelected ? null : path))}
                 className={`block-pill ${isSelected ? 'is-selected' : ''} ${isRunning ? 'is-running' : ''}`}
-                style={{ background: spec.color }}
+                style={{ background: b.kind === 'note' ? noteColor(b.pitch) : spec.color }}
               >
-                <DragHandle path={path} label={spec.label} />
+                <DragHandle path={path} label={label} />
                 <span className="block-glyph" aria-hidden="true">
                   {spec.glyph}
                 </span>
-                <span className="block-label text-[19px] font-black">{spec.label}</span>
+                <span className="block-label text-[19px] font-black">{label}</span>
                 {spec.number && n !== null && (
                   <span className="block-steppers ml-auto flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                     <button type="button" className="block-step" aria-label={`Less ${spec.label}`} onClick={() => setValue(path, { n: Math.max(spec.number!.min, n - spec.number!.step) } as Partial<Block>)}>
                       <MinusIcon size={18} />
                     </button>
-                    <span className="block-value">
-                      {n}
-                      {spec.number.unit ?? ''}
-                    </span>
+                    <span className="block-value">{valueText(spec, n)}</span>
                     <button type="button" className="block-step" aria-label={`More ${spec.label}`} onClick={() => setValue(path, { n: Math.min(spec.number!.max, n + spec.number!.step) } as Partial<Block>)}>
                       <PlusIcon size={18} />
                     </button>
@@ -293,6 +324,37 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
                         onClick={() => setValue(path, { color: c } as Partial<Block>)}
                       />
                     ))}
+                  {b.kind === 'note' && (
+                    <div className="note-picker">
+                      <div className="note-picker-keys" role="group" aria-label="Pick a note">
+                        {NOTE_KEYS.map((key) => (
+                          <button
+                            key={key.pitch}
+                            type="button"
+                            className="note-pick"
+                            style={{ background: key.color }}
+                            aria-pressed={b.pitch === key.pitch}
+                            aria-label={`Note ${PITCH_NAMES[key.pitch]}`}
+                            onClick={() => setValue(path, { pitch: key.pitch } as Partial<Block>)}
+                          >
+                            {key.label}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="segmented" role="radiogroup" aria-label="Note length">
+                          {([1, 2] as const).map((beats) => (
+                            <button key={beats} type="button" role="radio" aria-checked={b.beats === beats} onClick={() => setValue(path, { beats } as Partial<Block>)}>
+                              {beats === 1 ? 'Short' : 'Long'}
+                            </button>
+                          ))}
+                        </div>
+                        <button type="button" className="btn btn-quiet" aria-pressed={b.pitch === 'R'} onClick={() => setValue(path, { pitch: 'R' } as Partial<Block>)}>
+                          Rest
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   <span className="flex gap-1.5 ml-auto">
                     <button type="button" className="btn btn-quiet btn-icon" aria-label="Move up" onClick={() => move(path, -1)} disabled={i === 0}>
                       <ArrowUpIcon />
@@ -356,16 +418,21 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
           )}
         </div>
         <div className="blocks-palette border-t border-line bg-paper-2 px-4 py-4">
-          {PALETTE_GROUPS.map((group) => (
-            <div key={group.title}>
-              <p className="m-0 mb-2 eyebrow">{selectedBlock?.kind === 'repeat' ? 'Adding inside Repeat' : group.title}</p>
-              <div className="palette-grid" data-hscroll>
-                {group.kinds.map((kind) => (
-                  <PaletteTile key={kind} kind={kind} onAdd={add} />
-                ))}
-              </div>
+          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+            <p className="m-0 eyebrow">{selectedBlock?.kind === 'repeat' ? 'Adding inside Repeat' : 'Blocks'}</p>
+            <div className="segmented" role="tablist" aria-label="Block groups">
+              {PALETTE_GROUPS.map((g) => (
+                <button key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)}>
+                  {g.title}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+          <div className="palette-grid" data-hscroll>
+            {palette.kinds.map((kind) => (
+              <PaletteTile key={kind} kind={kind} onAdd={add} />
+            ))}
+          </div>
         </div>
        </div>
       </div>
