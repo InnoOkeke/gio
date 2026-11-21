@@ -148,3 +148,14 @@ html[data-layout='split'] .studio-main {
 html:has(.key-row) .command-shelf {
   display: none;
 }
+
+/* The code box keeps 240px normally; with the keyboard up the editor takes what is left. */
+/* Taller windows: the 60vh cap would run the editor under the key row, so it ends above it. */
+@media (min-height: 400px) {
+  html[data-keyboard='open'] .editor-host .cm-editor {
+    max-height: calc(var(--vvh, 100dvh) - var(--key-row-h, 0px) - var(--safe-top, 0px) - 160px);
+  }
+}
+html[data-keyboard='open'] #panel-logo {
+  min-height: 0;
+}

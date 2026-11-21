@@ -33,13 +33,13 @@ export function QuestCard({ quest, done, feedback, star, hinted, review, nextLab
   const lines = MAP_LINES[quest.audience];
   const hidden = hiddenTestLine(quest);
   return (
-    <section className="panel px-5 py-5 sm:px-7 flex flex-col sm:flex-row sm:items-center gap-4" aria-labelledby="quest-title" style={{ borderColor: c.color, borderWidth: 2 }}>
+    <section className="quest-card panel px-5 py-5 sm:px-7 flex flex-col sm:flex-row sm:items-center gap-4" aria-labelledby="quest-title" style={{ borderColor: c.color, borderWidth: 2 }}>
       <span className="w-14 h-14 shrink-0 rounded-[18px] flex items-center justify-center text-white" style={{ background: c.color }} aria-hidden="true">
         {done ? <CheckIcon size={30} /> : <TrophyIcon size={30} />}
       </span>
       <div className="flex-1 min-w-0">
         {review && place && (
-          <p className="m-0 mb-1 inline-flex rounded-full bg-[#fff4cc] px-3 py-1 text-[13px] font-black text-[#5a3b00]">
+          <p className="m-0 mb-1 inline-flex rounded-full bg-[#fff4cc] px-3 py-1 text-[14px] font-black text-[#5a3b00]">
             Review {review.index + 1} of {review.total} · {place.island.name}
           </p>
         )}

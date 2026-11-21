@@ -19,10 +19,10 @@ export function SkillCheckBanner({ stageName, position, total, helped, onStop }:
       data-testid="skill-banner"
     >
       <div className="min-w-0 flex-1" role="status">
-        <p className="m-0 text-[13px] font-black uppercase tracking-[0.08em] text-ink-2">
+        <p className="m-0 text-[14px] font-black uppercase tracking-[0.08em] text-ink-2">
           Skill check for {stageName} · challenge {position} of {total}
         </p>
-        <p className="m-0 mt-0.5 text-[16px] font-extrabold text-ink">
+        <p className="skill-banner-note m-0 mt-0.5 text-[16px] font-extrabold text-ink">
           {helped
             ? 'You used help, so this check cannot be passed this time. Finish the quest to practise, or stop.'
             : 'No hints, no Explain and no tutor. Using any of them ends the check. No stars are won here.'}

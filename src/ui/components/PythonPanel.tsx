@@ -97,7 +97,7 @@ export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanel
             <PythonEditor ref={py.editorRef} initialCode={py.mine.code} onChange={py.editMine} onRunShortcut={() => void py.run()} />
           </Suspense>
         </div>
-        <p className="m-0 px-4 py-2 border-t border-line bg-paper-2 text-[13px] font-semibold text-ink-3">Python can&rsquo;t turn back into Logo.</p>
+        <p className="m-0 px-4 py-2 border-t border-line bg-paper-2 text-[14px] font-semibold text-ink-3">Python can&rsquo;t turn back into Logo.</p>
       </div>
     );
   }

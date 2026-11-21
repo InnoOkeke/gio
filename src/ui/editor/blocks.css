@@ -183,6 +183,10 @@
   .blocks-palette .eyebrow {
     display: none;
   }
+  /* One swipe row holds every group's tiles, so the tabs are not needed here. */
+  .palette-head {
+    display: none;
+  }
   .palette-grid {
     grid-template-columns: none;
     grid-auto-flow: column;

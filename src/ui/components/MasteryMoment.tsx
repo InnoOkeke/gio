@@ -102,7 +102,7 @@ export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose,
         <FriendPicture id={island.resident} size={92} />
         <div className="flex flex-col items-center gap-1">
           <StickerPicture id={island.concept} size={64} className="moment-star" />
-          {moment.badge && <span className="text-[13px] font-black text-ink-2">{CONCEPTS[moment.badge].badge} badge</span>}
+          {moment.badge && <span className="text-[14px] font-black text-ink-2">{CONCEPTS[moment.badge].badge} badge</span>}
         </div>
       </div>
     );

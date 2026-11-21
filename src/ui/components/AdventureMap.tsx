@@ -270,7 +270,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                     {world && (
                       <div className="mb-3 mt-1 flex items-center gap-3">
                         <span className="h-px flex-1 bg-[#b9ae96]" aria-hidden="true" />
-                        <h3 className="m-0 text-[13px] font-black uppercase tracking-[0.08em] text-ink-2">
+                        <h3 className="m-0 text-[14px] font-black uppercase tracking-[0.08em] text-ink-2">
                           {world.title} <span className="font-extrabold normal-case tracking-normal">· Stages {world.from} to {world.to}</span>
                         </h3>
                         <span className="h-px flex-1 bg-[#b9ae96]" aria-hidden="true" />
@@ -297,17 +297,17 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                             </span>
                           )}
                           {view.tested && !view.sailed && (
-                            <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[12px] font-black text-[#08603e] shadow-[0_0_0_2px_#12a36b]" aria-hidden="true">
+                            <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[14px] font-black text-[#08603e] shadow-[0_0_0_2px_#12a36b]" aria-hidden="true">
                               Tested out
                             </span>
                           )}
                           {review && <span className="absolute right-3 top-3 h-4 w-4 rounded-full bg-[#ffc93c] shadow-[0_0_0_5px_rgba(255,201,60,0.4)]" aria-hidden="true" />}
                         </span>
                         <span className="flex flex-col gap-1 px-3 pb-3 pt-2 text-left">
-                          <span className="text-[12px] font-black uppercase tracking-[0.08em] text-ink-2">Stage {stage}</span>
+                          <span className="text-[14px] font-black uppercase tracking-[0.08em] text-ink-2">Stage {stage}</span>
                           <span className="text-[18px] font-black leading-tight text-ink">{view.island.name}</span>
                           <span
-                            className="inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[13px] font-black"
+                            className="inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[14px] font-black"
                             style={
                               view.sailed
                                 ? { background: '#e1f7ec', color: '#08603e' }

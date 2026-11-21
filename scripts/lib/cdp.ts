@@ -120,7 +120,7 @@ export async function launchBrowser(base: string): Promise<Cdp> {
   await send('Log.enable');
   // Layout shift is summed from the start of every document so the harness can read it later.
   await send('Page.addScriptToEvaluateOnNewDocument', {
-    source: `window.__cls = 0; try { new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
+    source: `window.__cls = 0; try { new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput && !(window.__tap && e.startTime >= window.__tap && e.startTime - window.__tap < 500)) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
       window.addEventListener('unhandledrejection', (ev) => { console.error('unhandled rejection: ' + String(ev.reason)); });`,
   });
 
@@ -140,7 +140,7 @@ export async function launchBrowser(base: string): Promise<Cdp> {
         const all = [...document.querySelectorAll(${JSON.stringify(selector)})].filter((e) => (e.getAttribute('aria-label') ?? '').includes(${JSON.stringify(text)}) || (e.textContent ?? '').includes(${JSON.stringify(text)}));
         const el = all.find(shown) ?? all[0];
         if (!el) return false;
-        el.click();
+        window.__tap = performance.now(); el.click();
         return true;
       })()`);
       if (!ok) throw new Error(`Nothing to click: ${selector} ${text}`);

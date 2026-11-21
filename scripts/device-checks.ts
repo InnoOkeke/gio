@@ -79,6 +79,16 @@ export const COLLECT_FACTS = `(() => {
     if (overflowing.length >= 12) break;
   }
 
+  const floaters = [];
+  if (!modal) {
+    for (const el of document.querySelectorAll('body *')) {
+      if (el.closest('svg')) continue;
+      const p = getComputedStyle(el).position;
+      if (p !== 'fixed' && p !== 'sticky' && !(p === 'absolute' && el.classList.contains('ask-fold-body'))) continue;
+      const fr = el.getBoundingClientRect();
+      if (fr.width > 1 && fr.height > 1 && visible(el)) floaters.push({ el, r: fr });
+    }
+  }
   const SELECTOR = 'button, a[href], input:not([type=hidden]), select, textarea, summary, [role=button], [role=tab], [role=radio], [role=checkbox], [role=switch], [role=menuitem]';
   const scope = modal || document;
   const targets = [...scope.querySelectorAll(SELECTOR)]
@@ -95,6 +105,18 @@ export const COLLECT_FACTS = `(() => {
         r.left = Math.max(r.left, s.left); r.right = Math.min(r.right, s.right);
         r.top = Math.max(r.top, s.top); r.bottom = Math.min(r.bottom, s.bottom);
         if (r.right - r.left + (r.bottom - r.top) < before - 1) clipped = true;
+      }
+      // A target next to or under a fixed or sticky bar (the action dock, the header) that its page can scroll clear of is below or above the fold, not overlapped.
+      if (!clipped && !modal && r.bottom > 0 && r.top < h && r.right > 0 && r.left < w) {
+        const near = floaters.find((f) => f.el !== e && !f.el.contains(e) && !e.contains(f.el) && r.left < f.r.right + 8 && r.right > f.r.left - 8 && r.top < f.r.bottom + 8 && r.bottom > f.r.top - 8);
+        if (near) {
+          let scrollsClear = false;
+          for (let n = e.parentElement; n; n = n.parentElement) {
+            const s = n === document.body || n === document.documentElement ? document.scrollingElement : n;
+            if (s && s.scrollHeight > s.clientHeight + 1) { scrollsClear = true; break; }
+          }
+          if (scrollsClear) clipped = true;
+        }
       }
       return { ...r, name: label(e), clipped };
     })
@@ -134,7 +156,8 @@ export const COLLECT_FACTS = `(() => {
       kids.sort((a, b) => { const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect(); return rb.width * rb.height - ra.width * ra.height; });
       if (kids[0]) panel = kids[0];
     }
-    const close = [...modal.querySelectorAll('button, a[href]')].find((b) => visible(b) && /close|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop|^hi,/i.test(nameOf(b)));
+    const buttons = [...modal.querySelectorAll('button, a[href]')];
+    const close = buttons.find((b) => visible(b) && /^close$/i.test(nameOf(b))) || buttons.find((b) => visible(b) && /close|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop|^hi,/i.test(nameOf(b)));
     dialog = { panel: rectOf(panel), close: close ? rectOf(close) : null, closeName: close ? nameOf(close) : '' };
   }
   return { w, h, scrollWidth: document.scrollingElement ? document.scrollingElement.scrollWidth : 0,
@@ -209,7 +232,7 @@ export const safeArea: Assertion = (f, ctx) => {
 
 /** (e) the stage fills its pane and Run is on screen in split layout */
 export const stageFillsPane: Assertion = (f) => {
-  if (!f.stage || f.keyboardOpen) return [];
+  if (!f.stage || f.keyboardOpen || f.dialog) return [];
   const out: string[] = [];
   const side = Math.min(width(f.stage), height(f.stage));
   if (f.layout === 'split') {

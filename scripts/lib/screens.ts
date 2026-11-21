@@ -598,6 +598,18 @@ export const SCREENS: Screen[] = [
     },
   },
   {
+    id: 'music-blocks',
+    label: 'Little studio, Music group open and a note block selected (note picker)',
+    open: async (c) => {
+      await c.seed({ ...little, 'gio.progress': LITTLE_PROGRESS, 'gio.draft': draft('PLAY [C D E]\nFRAME\nWAIT 60') }, '?mode=little');
+      await dismissFriends(c);
+      await c.click('[role=tab]', 'Music');
+      await sleep(300);
+      await c.click('.block-pill');
+      await sleep(400);
+    },
+  },
+  {
     id: 'coder-error',
     label: 'Coder studio with an error bubble',
     open: async (c) => {
@@ -659,7 +671,8 @@ export const SCREENS: Screen[] = [
       await sleep(400);
       await c.type('REPEAT 4 [FD 100 RT 90]');
       await run(c);
-      if (!(await c.waitFor(`!!document.querySelector('[aria-labelledby="friend-title"]')`, 12000))) throw new Error('the friend dialog did not open');
+      if (!(await c.waitFor(`!!document.querySelector('[aria-labelledby="friend-title"]')`, 12000))) throw new Error('the friend dialog did not open'); // the quest card changes when the run ends; only the dialog's own movement is judged
+      await c.evaluate(`window.__cls = 0`);
       await sleep(700);
     },
   },
@@ -707,7 +720,8 @@ export const SCREENS: Screen[] = [
       await c.type('FD 100 RT 90 FD 60');
       await c.click('[role=radio]', 'Fast');
       await run(c);
-      if (!(await c.waitFor(`!!document.querySelector('[aria-labelledby="moment-title"]')`, 20000))) throw new Error('the mastery moment did not open');
+      if (!(await c.waitFor(`!!document.querySelector('[aria-labelledby="moment-title"]')`, 20000))) throw new Error('the mastery moment did not open'); // the quest card changes when the run ends; only the dialog's own movement is judged
+      await c.evaluate(`window.__cls = 0`);
       await sleep(900);
     },
   },

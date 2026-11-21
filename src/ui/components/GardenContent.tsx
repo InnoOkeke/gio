@@ -121,16 +121,16 @@ export function GardenContent({ mode, rewards, quests, completed, badges, onWear
                         className={`w-full min-h-[48px] rounded-[20px] p-3 flex flex-col items-center gap-1 text-center cursor-pointer border-2 bg-white shadow-[var(--shadow-1)] ${worn ? 'border-[#08603e]' : 'border-transparent'}`}
                       >
                         <StickerPicture id={s.id} size={52} />
-                        <span className="text-[13px] font-black leading-tight text-ink">{s.name}</span>
-                        {worn && <span className="text-[12px] font-extrabold text-[#08603e]">Wearing</span>}
+                        <span className="text-[14px] font-black leading-tight text-ink">{s.name}</span>
+                        {worn && <span className="text-[14px] font-extrabold text-[#08603e]">Wearing</span>}
                       </button>
                     ) : (
                       <div className="w-full rounded-[20px] p-3 flex flex-col items-center gap-1 text-center border-2 border-dashed border-[#b9ae96] bg-paper-3">
                         <div className="opacity-30 grayscale" aria-hidden="true">
                           <StickerPicture id={s.id} size={52} />
                         </div>
-                        <span className="text-[13px] font-black leading-tight text-ink-2">{s.name}</span>
-                        <span className="text-[12px] font-bold leading-tight text-ink-2">Learn this to earn it: {s.hint}</span>
+                        <span className="text-[14px] font-black leading-tight text-ink-2">{s.name}</span>
+                        <span className="text-[14px] font-bold leading-tight text-ink-2">Learn this to earn it: {s.hint}</span>
                       </div>
                     )}
                   </li>
@@ -153,7 +153,7 @@ export function GardenContent({ mode, rewards, quests, completed, badges, onWear
                       <>
                         <FriendPicture id={f.id} size={72} />
                         <span className="text-[15px] font-black text-ink">{f.name}</span>
-                        <span className="text-[12px] font-bold leading-tight text-ink-2">{f.species}, {f.idea.toLowerCase()}</span>
+                        <span className="text-[14px] font-bold leading-tight text-ink-2">{f.species}, {f.idea.toLowerCase()}</span>
                       </>
                     ) : (
                       <>
@@ -161,7 +161,7 @@ export function GardenContent({ mode, rewards, quests, completed, badges, onWear
                           <FriendPicture id={f.id} size={72} />
                         </div>
                         <span className="text-[15px] font-black text-ink-2">A friend is waiting</span>
-                        <span className="text-[12px] font-bold leading-tight text-ink-2">{f.hint}</span>
+                        <span className="text-[14px] font-bold leading-tight text-ink-2">{f.hint}</span>
                       </>
                     )}
                   </li>
@@ -199,7 +199,7 @@ export function GardenContent({ mode, rewards, quests, completed, badges, onWear
                   >
                     {d.learned ? '\u2713' : ''}
                   </span>
-                  <span className="text-[12px] font-bold text-ink-2" aria-hidden="true">
+                  <span className="text-[14px] font-bold text-ink-2" aria-hidden="true">
                     {d.isToday ? 'Today' : weekdayName(d.date).slice(0, 3)}
                   </span>
                   <span className="sr-only">

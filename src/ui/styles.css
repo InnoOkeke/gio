@@ -1498,7 +1498,7 @@ html[data-perf='lite'] .btn-stop {
   border-radius: 7px;
   background: var(--key);
   color: rgba(255, 255, 255, 0.9);
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 900;
   opacity: 0.45;
   transition: opacity 90ms ease, transform 90ms ease;
@@ -1548,7 +1548,7 @@ html[data-perf='lite'] .btn-stop {
 .note-picker-keys {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(48px, 1fr));
-  gap: 6px;
+  gap: 8px;
 }
 .note-pick {
   min-width: 48px;

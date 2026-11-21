@@ -37,7 +37,7 @@ export function TurtleBubble({ message, onShowLine, mood, stickers }: TurtleBubb
             </p>
           ))}
         {message.kind === 'problem' && message.line !== undefined && (
-          <button type="button" className="mt-1 text-[14px] font-extrabold underline underline-offset-4" onClick={() => onShowLine(message.line!)}>
+          <button type="button" className="mt-1 inline-flex min-h-[48px] items-center text-[14px] font-extrabold underline underline-offset-4" onClick={() => onShowLine(message.line!)}>
             Show me line {message.line}
           </button>
         )}

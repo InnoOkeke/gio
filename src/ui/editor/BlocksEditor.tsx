@@ -22,6 +22,7 @@ import { BLOCK_COLORS, NAMED_COLORS, type Block, type BlockKind, type NotePitch 
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { haptic } from '../haptics';
 import { NOTE_KEYS } from '../runtime/keys';
+import { useMedia } from '../responsive/useMedia';
 import { useWindowClass } from '../responsive/useWindowClass';
 import { getAt, insertBlock, isDescendant, lineMap, moveBlock, removeBlock, update, type Path } from './block-tree';
 import './blocks.css';
@@ -172,7 +173,9 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
   const [selected, setSelected] = useState<Path | null>(null);
   const [dragging, setDragging] = useState<DragData | null>(null);
   const [group, setGroup] = useState(PALETTE_GROUPS[0]!.id);
-  const palette = PALETTE_GROUPS.find((g) => g.id === group) ?? PALETTE_GROUPS[0]!;
+  // Phones on their side have room for one swipe row only: it carries every group, so nothing is behind a tab.
+  const shortWindow = useMedia('(max-height: 500px)');
+  const paletteKinds = shortWindow ? [...new Set(PALETTE_GROUPS.flatMap((g) => g.kinds))] : (PALETTE_GROUPS.find((g) => g.id === group) ?? PALETTE_GROUPS[0]!).kinds;
   const win = useWindowClass();
   const lines = lineMap(blocks);
   const selectedBlock = selected ? getAt(blocks, selected) : undefined;
@@ -355,7 +358,7 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
                       </div>
                     </div>
                   )}
-                  <span className="flex gap-1.5 ml-auto">
+                  <span className="flex gap-2 ml-auto">
                     <button type="button" className="btn btn-quiet btn-icon" aria-label="Move up" onClick={() => move(path, -1)} disabled={i === 0}>
                       <ArrowUpIcon />
                     </button>
@@ -418,7 +421,7 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
           )}
         </div>
         <div className="blocks-palette border-t border-line bg-paper-2 px-4 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <div className="palette-head flex flex-wrap items-center justify-between gap-2 mb-2">
             <p className="m-0 eyebrow">{selectedBlock?.kind === 'repeat' ? 'Adding inside Repeat' : 'Blocks'}</p>
             <div className="segmented" role="tablist" aria-label="Block groups">
               {PALETTE_GROUPS.map((g) => (
@@ -429,7 +432,7 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
             </div>
           </div>
           <div className="palette-grid" data-hscroll>
-            {palette.kinds.map((kind) => (
+            {paletteKinds.map((kind) => (
               <PaletteTile key={kind} kind={kind} onAdd={add} />
             ))}
           </div>

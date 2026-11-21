@@ -633,3 +633,32 @@ html[data-width='large'] .quest-preview {
     flex-direction: row;
   }
 }
+
+/* Save menu in a short landscape window: the pane scrolls and would clip a popover, so pin it to the screen. */
+@media (min-width: 600px) and (max-height: 500px) {
+  .save-panel {
+    position: fixed !important;
+    right: max(12px, var(--safe-right)) !important;
+    bottom: max(12px, var(--safe-bottom)) !important;
+    top: auto !important;
+    left: auto !important;
+    width: min(340px, calc(100vw - 24px)) !important;
+    max-height: calc(var(--vvh, 100dvh) - 24px);
+    overflow-y: auto;
+  }
+}
+
+/* Short landscape: the banner and quest card give the stage and Run back their height. */
+@media (min-width: 600px) and (max-height: 500px) {
+  .skill-banner-note {
+    display: none;
+  }
+  .quest-card {
+    padding-top: 12px;
+    padding-bottom: 12px;
+    gap: 12px;
+  }
+  .quest-card > span:first-child {
+    display: none;
+  }
+}

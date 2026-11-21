@@ -59,7 +59,7 @@ function Tile({ q, position, bonus, isNext, color, onPlay }: { q: QuestView; pos
     >
       <span className="flex h-[34px] items-center justify-center">{locked ? <LockIcon size={26} className="text-[#a79f8c]" /> : <Star star={q.star} />}</span>
       <span className="block text-[14px] font-black leading-tight text-ink">{quest?.title ?? q.id}</span>
-      <span className="block min-h-[16px] text-[12px] font-extrabold" style={{ color: q.star === 'helped' ? '#4f5e69' : isNext ? '#08603e' : '#66756d' }}>
+      <span className="block min-h-[16px] text-[14px] font-extrabold" style={{ color: q.star === 'helped' ? '#4f5e69' : isNext ? '#08603e' : '#66756d' }}>
         {caption}
       </span>
     </button>
@@ -79,10 +79,10 @@ function Unit({ unit, number, color, nextQuestId, onPlay }: { unit: UnitView; nu
               <StarIcon size={18} className={i < gold ? 'text-[#f5a700]' : 'text-[#d6cebd]'} />
             </span>
           ))}
-          {unit.mastered && <span className="rounded-full bg-[#e1f7ec] px-2.5 py-1 text-[12px] font-black text-[#08603e]">Mastered</span>}
+          {unit.mastered && <span className="rounded-full bg-[#e1f7ec] px-2.5 py-1 text-[14px] font-black text-[#08603e]">Mastered</span>}
         </div>
       </div>
-      <p className="m-0 mt-1 text-[13px] font-bold text-ink-2">
+      <p className="m-0 mt-1 text-[14px] font-bold text-ink-2">
         {lockedUnit ? `Master unit ${number - 1} to open this one.` : `${MASTER_RULE} ${UNIT_TIME}.`}
       </p>
       <div className="mt-3 grid grid-cols-3 gap-2.5">
@@ -107,7 +107,7 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, s
         <IslandArt island={island} locked={locked} sailed={view.sailed} met={met} className="block h-auto w-full" />
         <div className="flex flex-col gap-2 px-5 pb-5 pt-3">
           <p className="eyebrow m-0 flex items-center gap-2">
-            <span aria-hidden="true" className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-[12px] font-black normal-case tracking-normal text-ink" style={{ boxShadow: `inset 0 0 0 3px ${island.stamp}` }}>
+            <span aria-hidden="true" className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-[14px] font-black normal-case tracking-normal text-ink" style={{ boxShadow: `inset 0 0 0 3px ${island.stamp}` }}>
               {stageNumber(island)}
             </span>
             Stage {stageNumber(island)} of {stageCount(island.audience)} · {CONCEPTS[island.concept].name}
