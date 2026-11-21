@@ -91,6 +91,8 @@ html[data-width='compact'] .sheet-root[data-variant='page'] > .sheet-panel > .sh
     height: 100vh;
     height: 100dvh;
     border-radius: 28px 0 0 28px;
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
     animation: sheet-side 320ms var(--ease-out);
   }
   .sheet-root[data-variant='page'] .sheet-panel {
@@ -102,7 +104,8 @@ html[data-width='compact'] .sheet-root[data-variant='page'] > .sheet-panel > .sh
 }
 @media (min-width: 840px) {
   .sheet-root[data-variant='drawer'] .sheet-panel {
-    width: min(900px, 100%);
+    /* Leave a strip of scrim to tap on the left. */
+    width: min(900px, calc(100% - 64px));
   }
 }
 @media (min-width: 840px) and (orientation: landscape) {
@@ -166,8 +169,10 @@ html[data-perf='lite'] .sheet-root[data-variant='drawer'] .sheet-panel {
   }
 }
 /* The movie sheet keeps one height from "Making your movie" to "Your movie is ready!", so nothing jumps. */
-.replay-body {
-  min-height: min(640px, calc(92dvh - 40px));
+@media (max-width: 599px) {
+  .replay-body {
+    min-height: min(640px, calc(92dvh - 40px));
+  }
 }
 .sheet-panel.sheet-white {
   background: #fff;
@@ -240,7 +245,7 @@ html[data-width='compact'] .sheet-root[data-variant='page'] .sheet-panel.moment-
   container: maplist / inline-size;
 }
 .map-garden {
-  width: min(400px, 36%);
+  width: clamp(360px, 36%, 420px);
   flex: none;
   overflow-y: auto;
   overscroll-behavior: contain;

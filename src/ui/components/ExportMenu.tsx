@@ -127,7 +127,7 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile }:
             <div className="sm:hidden flex justify-center pt-1 pb-2" data-sheet-grab aria-hidden="true">
               <span className="h-[5px] w-10 rounded-full bg-[var(--line-strong)]" />
             </div>
-            <div className="flex items-center justify-between gap-2" data-sheet-header>
+            <div className="mb-2 flex items-center justify-between gap-2" data-sheet-header>
               <h2 id={titleId} className="m-0 px-3 pt-1 pb-1 text-[15px] font-black text-ink-2">
                 Save your drawing
               </h2>
