@@ -662,6 +662,13 @@
   line-height: 1.7;
 }
 
+/* Below the two-column layout the code panel has no fixed height, so cap the editor and let long programs scroll inside it. */
+@media (max-width: 1023.98px) {
+  .editor-host .cm-editor {
+    max-height: 60vh;
+  }
+}
+
 .editor-host .cm-content {
   padding: 14px 0;
   caret-color: var(--green-ink);

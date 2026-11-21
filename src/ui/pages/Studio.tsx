@@ -986,7 +986,7 @@ function StudioView({ initial }: { initial: Loaded }) {
           ))}
         </div>
       </div>
-      <div id="panel-logo" role="tabpanel" aria-labelledby="tab-logo" className="flex-1 min-h-0" hidden={codeTab !== 'logo'}>
+      <div id="panel-logo" role="tabpanel" aria-labelledby="tab-logo" className="flex-1 min-h-[240px]" hidden={codeTab !== 'logo'}>
         <LogoEditor ref={editorRef} initialCode={code} onChange={setCode} onRunShortcut={() => run(codeRef.current)} />
       </div>
       {codeTab !== 'logo' && (

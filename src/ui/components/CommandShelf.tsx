@@ -61,7 +61,7 @@ const SWATCHES = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 
 
 export function CommandShelf({ onInsert }: { onInsert(code: string): void }) {
   return (
-    <div className="flex flex-col gap-3 px-4 py-4 border-t border-line bg-paper-2 rounded-b-[28px]">
+    <div className="flex flex-col gap-3 px-4 py-4 border-t border-line bg-paper-2 rounded-b-[28px] lg:min-h-0 lg:overflow-y-auto">
       <div className="flex flex-wrap gap-x-5 gap-y-3">
         {GROUPS.map((group) => (
           <div key={group.title} className="flex flex-col gap-1.5">
