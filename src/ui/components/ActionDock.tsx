@@ -1,6 +1,6 @@
 import type { RefObject } from 'react';
 import type { PlayerStatus } from '../runtime/player';
-import { HelpIcon, PauseIcon, PlayIcon, SaveIcon, SparkleIcon, StepIcon } from './icons';
+import { HelpIcon, PauseIcon, PlayIcon, SparkleIcon, StepIcon } from './icons';
 
 interface ActionDockProps {
   status: PlayerStatus;
@@ -11,15 +11,14 @@ interface ActionDockProps {
   onStuck(): void;
   stuckRef: RefObject<HTMLButtonElement>;
   stuckDisabled: boolean;
-  onSave(): void;
-  saveDisabled: boolean;
 }
 
 /**
  * The thumb-reach action bar for phones in portrait. It calls the same handlers as the buttons in
- * the stage panel, which are not shown on a phone, so nothing is done twice.
+ * the stage panel, which are not shown on a phone, so nothing is done twice. Save is not here: the
+ * stage panel keeps its Save menu for pictures and movies, and the project Save is in the header's More sheet.
  */
-export function ActionDock({ status, onRun, onStep, onAsk, askOpen, onStuck, stuckRef, stuckDisabled, onSave, saveDisabled }: ActionDockProps) {
+export function ActionDock({ status, onRun, onStep, onAsk, askOpen, onStuck, stuckRef, stuckDisabled }: ActionDockProps) {
   const playing = status === 'playing';
   return (
     <nav className="action-dock" aria-label="Actions">
@@ -38,10 +37,6 @@ export function ActionDock({ status, onRun, onStep, onAsk, askOpen, onStuck, stu
       <button ref={stuckRef} type="button" className="btn btn-quiet dock-btn" onClick={onStuck} disabled={stuckDisabled} aria-label="I'm stuck">
         <HelpIcon size={22} className="text-[#e0861a]" />
         <span>Stuck</span>
-      </button>
-      <button type="button" className="btn btn-quiet dock-btn" onClick={onSave} disabled={saveDisabled} aria-label="Save">
-        <SaveIcon size={22} />
-        <span>Save</span>
       </button>
     </nav>
   );

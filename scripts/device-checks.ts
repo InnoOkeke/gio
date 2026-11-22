@@ -80,6 +80,15 @@ export const COLLECT_FACTS = `(() => {
     if (r.right > w + 1 && !contained(e)) overflowing.push({ ...rectOf(e), name: label(e) });
     if (overflowing.length >= 12) break;
   }
+  // A pane that scrolls sideways inside itself is still a sideways scroll for a child. Code (CodeMirror and the Python and JavaScript listings) and marked scrollers are allowed: long lines scroll inside the code box.
+  for (const e of document.querySelectorAll('body *')) {
+    if (overflowing.length >= 12) break;
+    if (e.closest('svg') || e.closest('.cm-editor') || e.closest('pre, code, [aria-label$=" code"]') || e.closest('[data-hscroll]') || !visible(e)) continue;
+    const cs = getComputedStyle(e);
+    if (!['auto', 'scroll'].includes(cs.overflowX) || e.scrollWidth <= e.clientWidth + 1) continue;
+    const r = e.getBoundingClientRect();
+    overflowing.push({ ...rectOf(e), right: r.left + e.scrollWidth, name: label(e) + ' (scrolls sideways inside itself)' });
+  }
 
   const floaters = [];
   if (!modal) {
@@ -252,7 +261,8 @@ export const stageFillsPane: Assertion = (f) => {
     if (!run) out.push('no Run button found');
     else if (run.left < -0.5 || run.top < -0.5 || run.right > f.w + 0.5 || run.bottom > f.h + 0.5) out.push(`Run button is not fully on screen (${r(run.top)}-${r(run.bottom)} of ${f.h})`);
   } else {
-    const want = Math.min(f.stage.paneInner, 720) - 4;
+    // Tablets upright put the controls beside the stage (56 % of the pane, at most 45 % of the screen height) so the blocks show on the first screen; phones fill the width.
+    const want = (f.w >= 600 && !f.keyboardOpen ? Math.max(320, Math.min(f.stage.paneInner * 0.56, f.h * 0.45)) : Math.min(f.stage.paneInner, 720)) - 4;
     if (width(f.stage) < want) out.push(`stage is ${r(width(f.stage))}px wide, wanted at least ${r(want)}px in stack layout`);
   }
   return out;

@@ -675,6 +675,7 @@ export const SCREENS: Screen[] = [
       await c.type('REPEAT 4 [FD 100 RT 90]');
       await run(c);
       if (!(await c.waitFor(`!!document.querySelector('[aria-labelledby="friend-title"]')`, 12000))) throw new Error('the friend dialog did not open'); // the quest card changes when the run ends; only the dialog's own movement is judged
+      await sleep(900); // let the quest card and stage finish settling behind the dialog before the shift counter is reset
       await c.evaluate(`window.__cls = 0`);
       await sleep(700);
     },
@@ -724,6 +725,7 @@ export const SCREENS: Screen[] = [
       await c.click('[role=radio]', 'Fast');
       await run(c);
       if (!(await c.waitFor(`!!document.querySelector('[aria-labelledby="moment-title"]')`, 20000))) throw new Error('the mastery moment did not open'); // the quest card changes when the run ends; only the dialog's own movement is judged
+      await sleep(900); // let the quest card and stage finish settling behind the dialog before the shift counter is reset
       await c.evaluate(`window.__cls = 0`);
       await sleep(900);
     },

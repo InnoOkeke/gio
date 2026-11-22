@@ -1203,8 +1203,6 @@ function StudioView({ initial }: { initial: Loaded }) {
           onStuck={() => void askForHint()}
           stuckRef={stuckRef}
           stuckDisabled={tutor.loading || asking || explaining}
-          onSave={() => void save()}
-          saveDisabled={saving || (!dirty && owned)}
         />
       )}
       <Suspense fallback={null}>

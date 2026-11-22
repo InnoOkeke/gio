@@ -71,6 +71,32 @@ html[data-width='compact'] .studio-root {
 .studio-stage-box {
   width: min(100cqw, 720px);
 }
+/* Tablets held upright: the stage and its controls sit side by side, so the blocks or code show on the first screen. */
+html[data-layout='stack']:not([data-width='compact']):not([data-keyboard='open']) .studio-stage-pane:not([data-focus='true']) {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  column-gap: 16px;
+  row-gap: 0;
+  align-content: start;
+}
+html[data-layout='stack']:not([data-width='compact']):not([data-keyboard='open']) .studio-stage-pane:not([data-focus='true']) .studio-stage-slot {
+  grid-column: 1;
+  grid-row: 1 / span 12;
+  align-self: start;
+  width: auto;
+}
+html[data-layout='stack']:not([data-width='compact']):not([data-keyboard='open']) .studio-stage-pane:not([data-focus='true']) > :not(.studio-stage-slot) {
+  grid-column: 2;
+  min-width: 0;
+  margin-bottom: 12px;
+}
+html[data-layout='stack']:not([data-width='compact']):not([data-keyboard='open']) .studio-stage-pane:not([data-focus='true']) .studio-stage-box {
+  width: max(320px, min(56cqw, 45dvh));
+}
+html[data-layout='stack']:not([data-width='compact']):not([data-keyboard='open']) .studio-stage-pane:not([data-focus='true']) .studio-controls .btn-lg {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 html[data-width='compact'] .studio-main {
   padding: 12px 12px 0;
   gap: 12px;
@@ -446,7 +472,7 @@ html[data-layout='stack'][data-width='medium'] .studio-root[data-game='true'] {
   bottom: 0;
   z-index: 35;
   display: grid;
-  grid-template-columns: minmax(0, 1.7fr) repeat(4, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1.7fr) repeat(3, minmax(0, 1fr));
   gap: 8px;
   padding: 8px max(8px, var(--safe-right)) calc(8px + var(--safe-bottom)) max(8px, var(--safe-left));
   background: #fff;
@@ -676,6 +702,63 @@ html[data-width='large'] .quest-preview {
 
 /* The first-drawing offer never spills over the controls when the stage is short: it scrolls inside the stage. */
 .first-win-offer {
+  overflow-x: hidden;
   overflow-y: auto;
   justify-content: safe center;
+}
+
+/* Phone landscape, round two: nothing scrolls sideways, and the blocks get the height. The header drops its
+   words (every button keeps its aria-label), the Ask bar becomes a small button beside them, and the
+   controls column wraps instead of running past the pane. */
+@media (min-width: 600px) and (max-height: 500px) {
+  .studio-header-bar .btn > span.hidden {
+    display: none !important;
+  }
+  .studio-header-bar input#title {
+    max-width: 130px;
+  }
+  .ask-fold {
+    position: fixed;
+    z-index: 31;
+    top: calc(var(--safe-top) + 4px);
+    right: calc(var(--safe-right) + 338px);
+    width: auto;
+  }
+  .ask-fold .ask-bar {
+    width: auto;
+    min-height: 40px;
+    padding: 0 4px;
+    gap: 6px;
+  }
+  .ask-fold .ask-bar-text,
+  .ask-fold .ask-bar > svg {
+    display: none;
+  }
+  .ask-fold[data-mode='popover'] .ask-fold-body:not([hidden]) {
+    left: auto;
+    right: 0;
+    width: min(440px, calc(100vw - 24px));
+    max-height: calc(100dvh - 64px);
+  }
+  html[data-layout='split'] .studio-stage-pane {
+    overflow-x: hidden;
+  }
+  html[data-layout='split'] .studio-stage-pane > :not(.studio-stage-slot) {
+    min-width: 0;
+  }
+  html[data-layout='split'] .studio-speed {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: 100%;
+    border-radius: 24px;
+  }
+  html[data-layout='split'] .studio-speed button {
+    flex: 1 1 auto;
+    padding: 0 8px;
+  }
+  html[data-layout='split'] .studio-controls .studio-secondary {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
