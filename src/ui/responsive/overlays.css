@@ -169,9 +169,15 @@ html[data-perf='lite'] .sheet-root[data-variant='drawer'] .sheet-panel {
   }
 }
 /* The movie sheet keeps one height from "Making your movie" to "Your movie is ready!", so nothing jumps. */
-@media (max-width: 599px) {
-  .replay-body {
-    min-height: min(640px, calc(92dvh - 40px));
+.replay-body {
+  min-height: min(640px, calc(92dvh - 40px));
+}
+/* Short landscape phones: the preview shrinks so the Close button and Save movie fit on one screen. */
+@media (max-height: 500px) {
+  .replay-body .replay-preview {
+    width: auto;
+    height: auto;
+    max-height: max(112px, calc(100dvh - 300px));
   }
 }
 .sheet-panel.sheet-white {

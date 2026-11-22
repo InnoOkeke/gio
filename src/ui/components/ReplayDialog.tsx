@@ -143,7 +143,7 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
               alt="Your drawing being drawn, as a moving picture"
               width={SIZE}
               height={SIZE}
-              className="mx-auto aspect-square w-full max-w-[400px] rounded-[20px] border border-line bg-white"
+              className="replay-preview mx-auto aspect-square w-full max-w-[400px] rounded-[20px] border border-line bg-white"
             />
             <p className="m-0 text-center text-[15px] font-bold text-ink-2">
               {readableSize(phase.blob.size)}. It plays again and again.
