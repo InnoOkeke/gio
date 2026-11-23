@@ -18,6 +18,8 @@ export interface AdventureSceneProps {
   seconds?: number;
   /** The cell where something just happened (a bump, a gem), outlined for a moment. */
   highlight?: { col: number; row: number } | null;
+  /** Cells to mark with a dotted trail (the path hint). */
+  trail?: readonly (readonly [number, number])[];
 }
 
 /**
@@ -25,7 +27,7 @@ export interface AdventureSceneProps {
  * so a 9 by 9 map is 81 small elements. Gio is the studio's TurtleSprite on a layer above, moved with a
  * CSS transform. There is no canvas. The picture is described by the `aria-label` (see `describeScene`).
  */
-export function AdventureScene({ level, scene, mood = 'idle', tween = false, seconds = 0.2, highlight = null }: AdventureSceneProps): ReactElement {
+export function AdventureScene({ level, scene, mood = 'idle', tween = false, seconds = 0.2, highlight = null, trail = [] }: AdventureSceneProps): ReactElement {
   const uid = useId().replace(/:/g, '');
   const palette = REALM_PALETTES[level.realm];
   const { cols, rows } = scene;
@@ -82,6 +84,9 @@ export function AdventureScene({ level, scene, mood = 'idle', tween = false, sec
           <g key={e.id} data-enemy={e.id} style={{ transform: `translate(${e.col * TILE}px, ${e.row * TILE}px)`, transition: tween ? `transform ${seconds}s linear` : 'none' }}>
             <GrumbleArt color={palette.grumble} />
           </g>
+        ))}
+        {trail.map(([c, r]) => (
+          <circle key={`trail${c},${r}`} cx={c * TILE + TILE / 2} cy={r * TILE + TILE / 2} r={6} fill="#17261f" fillOpacity="0.55" stroke="#fff" strokeWidth="2" data-trail="true" />
         ))}
         {highlight && (
           <rect x={highlight.col * TILE + 2} y={highlight.row * TILE + 2} width={TILE - 4} height={TILE - 4} rx="10" fill="none" stroke="#17261f" strokeOpacity="0.55" strokeWidth="3" strokeDasharray="6 5" data-highlight="true" />

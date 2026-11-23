@@ -4,6 +4,7 @@ import { StateEffect, StateField, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, type DecorationSet } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
 import { NAMED_COLORS, PRIMITIVES } from '../../logo/index.js';
+import type { PrimitiveSpec } from '../../logo/primitives.js';
 
 const COMMAND_WORDS = new Set(PRIMITIVES.flatMap((p) => [p.name, ...p.aliases]));
 const CONTROL_WORDS = new Set(['REPEAT', 'IF', 'IFELSE', 'TO', 'END', 'MAKE', 'STOP', 'WHEN']);
@@ -13,7 +14,9 @@ interface LogoState {
   tune: 'none' | 'after-play' | 'inside';
 }
 
-const logoParser: StreamParser<LogoState> = {
+/** The Logo stream parser. `extra` adds words that exist only in one place (Gio's Adventure), so the studio's list stays as it was. */
+function makeParser(extra: ReadonlySet<string>): StreamParser<LogoState> {
+  return {
   name: 'logo',
   startState: () => ({ tune: 'none' }),
   copyState: (s) => ({ ...s }),
@@ -44,14 +47,15 @@ const logoParser: StreamParser<LogoState> = {
       const upper = word[0].toUpperCase();
       if (upper === 'PLAY') state.tune = 'after-play';
       if (CONTROL_WORDS.has(upper)) return 'keyword';
-      if (COMMAND_WORDS.has(upper)) return 'atom';
+      if (COMMAND_WORDS.has(upper) || extra.has(upper)) return 'atom';
       return 'def';
     }
     stream.next();
     return null;
   },
   languageData: { commentTokens: { line: ';' } },
-};
+  };
+}
 
 export const logoHighlight = HighlightStyle.define([
   { tag: t.keyword, color: '#7a4cf0', fontWeight: '800' },
@@ -65,7 +69,10 @@ export const logoHighlight = HighlightStyle.define([
   { tag: t.operator, color: '#44554c' },
 ]);
 
-function logoCompletions(context: CompletionContext): CompletionResult | null {
+function logoCompletions(extra: readonly PrimitiveSpec[]) {
+  return (context: CompletionContext): CompletionResult | null => completeLogo(context, extra);
+}
+function completeLogo(context: CompletionContext, extra: readonly PrimitiveSpec[]): CompletionResult | null {
   const color = context.matchBefore(/"[A-Za-z]*/);
   if (color) {
     return {
@@ -76,7 +83,7 @@ function logoCompletions(context: CompletionContext): CompletionResult | null {
   const word = context.matchBefore(/[A-Za-z]+/);
   if (!word || (word.from === word.to && !context.explicit)) return null;
   const options = [
-    ...PRIMITIVES.map((p) => ({
+    ...[...PRIMITIVES, ...extra].map((p) => ({
       label: p.name.toLowerCase(),
       type: p.kind === 'reporter' ? 'variable' : 'function',
       detail: p.aliases.length ? p.aliases.join(', ').toLowerCase() : undefined,
@@ -128,11 +135,17 @@ function lineField(effect: typeof setRunningLine, deco: Decoration) {
 export function lineHighlights(): Extension {
   return [lineField(setRunningLine, runningDeco), lineField(setProblemLine, problemDeco)];
 }
-export function logoLanguage(): Extension {
+export interface LogoLanguageOptions {
+  /** Words that exist only in this editor (Gio's Adventure words), highlighted and completed like commands. */
+  words?: readonly PrimitiveSpec[];
+}
+export function logoLanguage(options: LogoLanguageOptions = {}): Extension {
+  const words = options.words ?? [];
+  const extra = new Set(words.flatMap((p) => [p.name, ...p.aliases]));
   return [
-    StreamLanguage.define(logoParser),
+    StreamLanguage.define(makeParser(extra)),
     syntaxHighlighting(logoHighlight),
-    autocompletion({ override: [logoCompletions], icons: false }),
+    autocompletion({ override: [logoCompletions(words)], icons: false }),
     lineHighlights(),
   ];
 }

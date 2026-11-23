@@ -327,8 +327,8 @@ async function main() {
   console.log('quests');
   await go(`${base}/`);
   await clear();
-  await click('button', 'Adventure map');
-  expect(await waitFor(`!!document.querySelector('#map-title')`, 8000), 'the adventure map opens offline');
+  await click('button', 'Quest map');
+  expect(await waitFor(`!!document.querySelector('#map-title')`, 8000), 'the quest map opens offline');
   await click('button.isle-card', '');
   await sleep(500);
   await click('button', 'Hello, turtle');

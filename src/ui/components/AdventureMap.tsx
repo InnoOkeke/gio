@@ -157,7 +157,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
               <span className="truncate">{selectedView.island.name}</span>
             ) : (
               <>
-                <MapIcon size={28} className="hidden shrink-0 text-[#0f8fa6] sm:block" /> <span className="truncate">Adventure map</span>
+                <MapIcon size={28} className="hidden shrink-0 text-[#0f8fa6] sm:block" /> <span className="truncate">Quest map</span>
               </>
             )}
           </h2>

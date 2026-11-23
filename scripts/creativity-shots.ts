@@ -190,7 +190,7 @@ async function main() {
         `runner.html carries the plan's Content-Security-Policy (${csp})`,
       );
       console.log('python in a quest');
-      await click('button', 'Adventure map');
+      await click('button', 'Quest map');
       await waitFor(`!!document.querySelector('#map-title')`, 10000);
       await sleep(700);
       await click('button', 'Go!');

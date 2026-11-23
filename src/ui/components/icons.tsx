@@ -261,3 +261,11 @@ export const HelpIcon = (p: IconProps) => (
     <path d="m6 6 3.4 3.4M18 6l-3.4 3.4M6 18l3.4-3.4M18 18l-3.4-3.4" />
   </Icon>
 );
+export const GamepadIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 7.5h10a4.5 4.5 0 0 1 4.4 5.4l-.7 3.2a2.4 2.4 0 0 1-4.1 1.1L15 15.5H9l-1.6 1.7a2.4 2.4 0 0 1-4.1-1.1l-.7-3.2A4.5 4.5 0 0 1 7 7.5Z" fill="currentColor" fillOpacity={0.2} />
+    <path d="M8 10.5v3M6.5 12h3" />
+    <circle cx="15.5" cy="11" r="0.9" fill="currentColor" stroke="none" />
+    <circle cx="17.5" cy="13" r="0.9" fill="currentColor" stroke="none" />
+  </Icon>
+);

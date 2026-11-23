@@ -1042,6 +1042,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         onChooseAgain={chooseAgain}
         onGarden={() => setGardenOpen(true)}
         onMap={() => setQuestsOpen(true)}
+        onPlay={() => navigate('/adventure')}
         sailed={sailedCount}
         islands={progress.islands.length}
         reviewDue={Boolean(progress.reviewDue)}

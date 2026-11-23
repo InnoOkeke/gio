@@ -2,7 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import { closeBrackets, closeBracketsKeymap, completionKeymap } from '@codemirror/autocomplete';
 import { defaultKeymap, history, historyKeymap, indentWithTab, undo } from '@codemirror/commands';
 import { bracketMatching, indentOnInput } from '@codemirror/language';
-import { EditorState } from '@codemirror/state';
+import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder } from '@codemirror/view';
 import { logoLanguage, setProblemLine, setRunningLine } from './logo-language';
 import { inlineInsertion } from './key-row';
@@ -30,10 +30,14 @@ interface LogoEditorProps {
   onChange(code: string): void;
   onRunShortcut(): void;
   onFocusChange?(focused: boolean): void;
+  /** Gio's Adventure gives the editor its own words. The studio leaves this out. */
+  language?: Extension;
+  /** Text shown in an empty editor. */
+  hint?: string;
 }
 
 export const LogoEditor = forwardRef<LogoEditorHandle, LogoEditorProps>(function LogoEditor(
-  { initialCode, onChange, onRunShortcut, onFocusChange },
+  { initialCode, onChange, onRunShortcut, onFocusChange, language, hint },
   ref,
 ) {
   const hostRef = useRef<HTMLDivElement>(null);
@@ -59,7 +63,7 @@ export const LogoEditor = forwardRef<LogoEditorHandle, LogoEditorProps>(function
           indentOnInput(),
           bracketMatching(),
           closeBrackets(),
-          placeholder('Type Logo here, like  FD 100  RT 90 …'),
+          placeholder(hint ?? 'Type Logo here, like  FD 100  RT 90 …'),
           keymap.of([
             { key: 'Mod-Enter', run: () => (onRunRef.current(), true) },
             { key: 'Escape', run: (v) => (v.contentDOM.blur(), true) },
@@ -69,7 +73,7 @@ export const LogoEditor = forwardRef<LogoEditorHandle, LogoEditorProps>(function
             ...completionKeymap,
             indentWithTab,
           ]),
-          logoLanguage(),
+          language ?? logoLanguage(),
           EditorView.lineWrapping,
           EditorView.contentAttributes.of({ 'aria-label': 'Logo code', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off', enterkeyhint: 'enter', inputmode: 'text' }),
           EditorView.scrollMargins.of(() => ({ bottom: keyRowHeight() + 16 })),

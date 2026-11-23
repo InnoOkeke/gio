@@ -48,9 +48,9 @@ const run = (c: Cdp) => c.click('button', 'Run');
 const coder = { 'gio.mode': 'coder' };
 const little = { 'gio.mode': 'little' };
 
-/** Open the adventure map from the studio header. */
+/** Open the quest map from the studio header. */
 async function openMap(c: Cdp): Promise<void> {
-  await c.click('button', 'Adventure map');
+  await c.click('button', 'Quest map');
   await c.waitFor(`!!document.querySelector('#map-title')`);
   await sleep(500);
 }

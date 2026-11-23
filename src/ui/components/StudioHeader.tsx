@@ -4,7 +4,7 @@ import { MODE_LABEL, type AgeMode } from '../mode';
 import { useSheetDrag } from '../responsive/useSheetDrag';
 import { useDialog } from '../useDialog';
 import { Wordmark } from './GioMark';
-import { CloseIcon, LeafIcon, MapIcon, PlusIcon, SaveIcon, ShareIcon } from './icons';
+import { CloseIcon, GamepadIcon, LeafIcon, MapIcon, PlusIcon, SaveIcon, ShareIcon } from './icons';
 
 export interface StudioHeaderProps {
   /** Phones in portrait: icon buttons, a More menu, and the drawing name on its own row. */
@@ -17,6 +17,8 @@ export interface StudioHeaderProps {
   onChooseAgain(): void;
   onGarden(): void;
   onMap(): void;
+  /** Open Gio's Adventure. */
+  onPlay(): void;
   sailed: number;
   islands: number;
   reviewDue: boolean;
@@ -112,7 +114,7 @@ export function StudioHeader(p: StudioHeaderProps) {
     </span>
   );
   const dot = p.reviewDue && <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-[#ffc93c] ring-2 ring-white" aria-hidden="true" />;
-  const mapLabel = `Adventure map, ${p.sailed} of ${p.islands} islands sailed${p.reviewDue ? ', a review is waiting' : ''}`;
+  const mapLabel = `Quest map, ${p.sailed} of ${p.islands} islands sailed${p.reviewDue ? ', a review is waiting' : ''}`;
   return (
     <>
       <header className="studio-header sticky top-0 z-30 backdrop-blur-xl bg-[rgba(245,242,234,0.82)] border-b border-line">
@@ -139,6 +141,9 @@ export function StudioHeader(p: StudioHeaderProps) {
                   <MapIcon className="text-[#0f8fa6]" /> {count}
                   {dot}
                 </button>
+                <button type="button" className="btn btn-quiet px-3 studio-icon-btn" onClick={p.onPlay} aria-label="Play Gio's Adventure">
+                  <GamepadIcon className="text-[#7a4cf0]" />
+                </button>
                 <MoreMenu p={p} />
               </>
             ) : (
@@ -153,6 +158,9 @@ export function StudioHeader(p: StudioHeaderProps) {
                   <MapIcon className="text-[#0f8fa6]" /> <span className="hidden md:inline">Map</span>
                   {count}
                   {dot}
+                </button>
+                <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onPlay} aria-label="Play Gio's Adventure">
+                  <GamepadIcon className="text-[#7a4cf0]" /> <span className="hidden sm:inline">Play</span>
                 </button>
                 <button type="button" className="btn btn-ghost hidden lg:inline-flex" onClick={p.onNew}>
                   <PlusIcon /> New

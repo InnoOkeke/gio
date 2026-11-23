@@ -9,6 +9,9 @@ import Studio from './pages/Studio';
 // Pages most visits never open load on demand.
 const Certificate = lazy(() => import('./pages/Certificate'));
 const Privacy = lazy(() => import('./pages/Privacy'));
+// Gio's Adventure (engine, art and levels) is its own file, so the studio opens without it.
+const Adventure = lazy(() => import('./pages/Adventure'));
+const AdventureLevel = lazy(() => import('./pages/AdventureLevel'));
 /** A calm full-height placeholder while a page loads, so nothing jumps. */
 function PageFallback() {
   return <div className="min-h-full" aria-busy="true" />;
@@ -54,6 +57,11 @@ function StudioGate() {
   return mode ? <Studio /> : <ModePicker />;
 }
 
+/** The adventure needs an age mode too: the picker shows until one is chosen. */
+function AdventureGate({ children }: { children: ReactNode }) {
+  const { mode } = useMode();
+  return mode ? <Suspense fallback={<PageFallback />}>{children}</Suspense> : <ModePicker />;
+}
 export default function App() {
   useWindowClass();
   return (
@@ -62,6 +70,8 @@ export default function App() {
         <Routes>
           <Route path="/" element={<StudioGate />} />
           <Route path="/p/:slug" element={<StudioGate />} />
+          <Route path="/adventure" element={<AdventureGate><Adventure /></AdventureGate>} />
+          <Route path="/adventure/:levelId" element={<AdventureGate><AdventureLevel /></AdventureGate>} />
           <Route path="/certificate" element={<Suspense fallback={<PageFallback />}><Certificate /></Suspense>} />
           <Route path="/privacy" element={<Suspense fallback={<PageFallback />}><Privacy /></Suspense>} />
           <Route path="*" element={<NotFound />} />

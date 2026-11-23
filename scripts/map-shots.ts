@@ -351,7 +351,7 @@ async function main() {
   const settle = () => waitFor(`(() => { const p = document.querySelector('[role=dialog] > div:nth-child(2)'); return !p || getComputedStyle(p).opacity === '1'; })()`, 4000);
 
   const openMap = async () => {
-    await click('button', 'Adventure map');
+    await click('button', 'Quest map');
     await waitFor(`!!document.querySelector('#map-title')`);
     await settle();
     await sleep(500);

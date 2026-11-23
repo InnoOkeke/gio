@@ -127,8 +127,8 @@ async function main() {
         const here = islandQuestIds(island);
         const before = [...ISLANDS.coder.slice(0, ISLANDS.coder.indexOf(island)).flatMap((i) => islandQuestIds(i)), ...here.slice(0, here.indexOf('c-bug-square'))];
         await seed({ 'gio.mode': 'coder', 'gio.progress': before }, '?mode=coder');
-        await click('button', 'Adventure map');
-        expect(await waitFor(`!!document.querySelector('#map-title')`, 8000), 'the adventure map opens');
+        await click('button', 'Quest map');
+        expect(await waitFor(`!!document.querySelector('#map-title')`, 8000), 'the quest map opens');
         await click('button.isle-card', island.name);
         await sleep(500);
         await click('button', quest.title.replace(/^Bug hunt: /, ''));
