@@ -60,6 +60,7 @@ export default function Adventure() {
           </span>
         </div>
       </header>
+      <div className="adv-map-scroll">
       <main className="adv-map-main">
         <div className="adv-map-trail">
           <section className="adv-hero" aria-label="Continue">
@@ -134,6 +135,7 @@ export default function Adventure() {
           </section>
         )}
       </main>
+      </div>
       {!twoPane && sheet && (
         <Sheet open variant="page" labelledBy="adv-realm-title" onClose={() => setSheet(null)} initialFocus={closeRef} className="adv-sheet">
           <div className="adv-sheet-head" data-sheet-header>

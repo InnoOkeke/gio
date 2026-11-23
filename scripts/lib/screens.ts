@@ -61,6 +61,22 @@ async function runAndWait(c: Cdp, selector: string): Promise<void> {
   await sleep(500);
 }
 
+/** Gio's Adventure progress for a child who has already won some Maze Meadow levels. */
+function adventureSeed(mode: 'coder' | 'little', won: string[], intros: string[] = ['maze']): Record<string, unknown> {
+  const levels: Record<string, { stars: number; best: number; d: string }> = {};
+  for (const id of won) levels[`${mode}:${id}`] = { stars: 3, best: 1, d: day(-2) };
+  return { ...(mode === 'coder' ? coder : little), 'gio.adventure': { v: 1, levels, intros, bosses: [], critters: 0 } };
+}
+const MAZE_WON = ['maze-01', 'maze-02', 'maze-03', 'maze-04', 'maze-05', 'maze-06', 'maze-07'];
+/** Press Go on an adventure level (the dock's Go on phones, the big Go button elsewhere). */
+const adventureGo = (c: Cdp) => c.click('.adv-go, .dock-run', 'Go');
+/** Type a plan and run it, then wait for the result card and let its stars finish popping. */
+async function adventureRun(c: Cdp, plan: string): Promise<void> {
+  await c.type(plan);
+  await adventureGo(c);
+  if (!(await c.waitFor(`!!document.querySelector('.adv-result')`, 20000))) throw new Error('the result card did not open');
+  await sleep(1300);
+}
 const GAME = 'WHEN "up [FD 20]\nWHEN "right [RT 90]\nWHEN "space [FD 5]';
 
 /** A first run can bring a new friend to say hello: send them off so the stage is what is on screen. */
@@ -828,6 +844,64 @@ export const SCREENS: Screen[] = [
       await c.evaluate(`window.__cls = 0`);
     },
   },
-  { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },
+  // Gio's Adventure (FEAT-4). The world map, a level before and after Go, and the cards over it.
+  { id: 'adventure-map', label: "Gio's Adventure: the world map", ready: '.adv-hero', open: (c) => c.seed(adventureSeed('coder', ['maze-01', 'maze-02', 'maze-03']), 'adventure', '.adv-hero') },
+  {
+    id: 'adventure-realm',
+    label: 'Adventure map: the levels of a world (a sheet on phones, beside the trail on wide screens)',
+    ready: '.adv-hero',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', ['maze-01', 'maze-02', 'maze-03']), 'adventure', '.adv-hero');
+      await c.click('button.adv-realm', 'Maze Meadow');
+      if (!(await c.waitFor(`!!document.querySelector('.adv-tile')`, 6000))) throw new Error('no level tiles');
+      await sleep(600);
+    },
+  },
+  { id: 'adventure-level', label: 'Adventure level before Go (Turtle Coders)', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('coder', ['maze-01']), 'adventure/maze-02', '.adv-scene-box') },
+  { id: 'adventure-intro', label: "Adventure: the first visit to a world", ready: '.adv-intro', open: (c) => c.seed(adventureSeed('coder', [], []), 'adventure/maze-01', '.adv-intro') },
+  {
+    id: 'adventure-win',
+    label: 'Adventure: result card after a win',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', ['maze-01']), 'adventure/maze-02', '.adv-scene-box');
+      await c.click('[role=radio], button[aria-label^="Speed"]', 'Speed');
+      await adventureRun(c, 'FD 100\nRT 90\nFD 200');
+    },
+  },
+  {
+    id: 'adventure-lose',
+    label: 'Adventure: result card after a plan that walks off the map',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', ['maze-01']), 'adventure/maze-02', '.adv-scene-box');
+      await adventureRun(c, 'FD 100\nLT 90\nFD 200');
+    },
+  },
+  {
+    id: 'adventure-hint',
+    label: 'Adventure: the hint ladder with its dotted trail',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', ['maze-01', 'maze-02']), 'adventure/maze-03', '.adv-scene-box');
+      await c.click('button', 'Hint');
+      await c.waitFor(`!!document.querySelector('#adv-hint-title')`, 6000);
+      await c.click('[role=dialog] button', 'Another hint');
+      await sleep(600);
+    },
+  },
+  {
+    id: 'adventure-describe',
+    label: 'Adventure: the map described in words',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', ['maze-01']), 'adventure/maze-02', '.adv-scene-box');
+      await c.click('button', 'Describe the map');
+      await c.waitFor(`!!document.querySelector('#adv-describe-title')`, 6000);
+      await sleep(500);
+    },
+  },
+  { id: 'adventure-boss', label: 'Adventure: a boss level with the Hedge Giant (Turtle Coders)', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('coder', MAZE_WON), 'adventure/maze-08', '.adv-scene-box') },
+  { id: 'adventure-little', label: 'Adventure: a level for Little Turtles', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('little', ['maze-01', 'maze-02']), 'adventure/maze-03', '.adv-scene-box') },  { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },
   { id: 'hardware-keys', label: 'Hardware keyboard on tablets: arrows, Tab and Escape in the editor', open: hardwareKeyChecks },
 ];

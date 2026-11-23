@@ -54,9 +54,8 @@ export function adventureKeys(level: Level, mode: AgeModeId): AdventureKey[] {
   const allowed = new Set(level.allow[mode]);
   const keys = ALL.filter((k) => (Array.isArray(k.needs) ? k.needs.some((n) => allowed.has(n)) : allowed.has(k.needs))).map((k) => k.key);
   if (!allowed.has('AHEAD')) return keys;
-  const at = keys.findIndex((k) => k.id === 'GEMS');
-  const senses = senseKeys(level);
-  return at < 0 ? [...keys, ...senses] : [...keys.slice(0, at + 1), ...senses, ...keys.slice(at + 1)];
+  const at = Math.max(keys.findIndex((k) => k.id === 'AHEAD'), keys.findIndex((k) => k.id === 'GEMS'));
+  return [...keys.slice(0, at + 1), ...senseKeys(level), ...keys.slice(at + 1)];
 }
 
 /** The snippet a word key hands to `LogoEditor.insert`. */

@@ -16,6 +16,8 @@ describe('route', () => {
     ['home navigation is the shell', { url: `${ORIGIN}/`, mode: 'navigate', method: 'GET' }, 'shell'],
     ['a shared drawing navigation is the shell', { url: `${ORIGIN}/p/abc?x=1`, mode: 'navigate', method: 'GET' }, 'shell'],
     ['privacy navigation is the shell', { url: `${ORIGIN}/privacy`, mode: 'navigate', method: 'GET' }, 'shell'],
+    ['the adventure map navigation is the shell', { url: `${ORIGIN}/adventure`, mode: 'navigate', method: 'GET' }, 'shell'],
+    ['an adventure level navigation is the shell', { url: `${ORIGIN}/adventure/maze-01`, mode: 'navigate', method: 'GET' }, 'shell'],
     ['sw.js is not touched', { url: `${ORIGIN}/sw.js`, mode: 'same-origin', method: 'GET' }, 'pass-through'],
     ['a file navigation is not the shell', { url: `${ORIGIN}/something.txt`, mode: 'navigate', method: 'GET' }, 'pass-through'],
     ['a listed asset is precached', { url: `${ORIGIN}/assets/main-aaa.js`, mode: 'cors', method: 'GET' }, 'precached'],

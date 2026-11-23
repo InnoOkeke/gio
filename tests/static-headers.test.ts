@@ -84,7 +84,7 @@ describe('static headers and the SPA fallback', () => {
   });
 
   it('serves index.html for app routes', async () => {
-    for (const url of ['/p/abc', '/privacy', '/certificate']) {
+    for (const url of ['/p/abc', '/privacy', '/certificate', '/adventure', '/adventure/maze-01']) {
       const res = await fetch(`${base}${url}`);
       expect(res.status, url).toBe(200);
       expect(res.headers.get('content-type'), url).toContain('text/html');

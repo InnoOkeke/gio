@@ -346,6 +346,20 @@ async function main() {
   await go(`${base}/p/${slug}`);
   expect((await body()).includes('This drawing needs the internet'), 'a saved drawing that was never opened here says it needs the internet');
 
+  console.log('adventure');
+  await go(`${base}/adventure`);
+  expect(await waitFor(`!!document.querySelector('.adv-hero') && document.body.innerText.includes('Maze Meadow')`, 15000), '/adventure opens offline with its worlds');
+  await go(`${base}/adventure/maze-01`);
+  expect(await waitFor(`!!document.querySelector('.adv-scene-box')`, 15000), '/adventure/maze-01 opens offline');
+  if (await evaluate(`!!document.querySelector('.adv-intro')`)) {
+    await click('.adv-intro button', "Let's go");
+    await sleep(400);
+  }
+  await type('FD 200', true);
+  await click('.adv-go, button.dock-run', 'Go');
+  expect(await waitFor(`!!document.querySelector('.adv-result') && document.querySelector('.adv-result').innerText.includes('You did it')`, 20000), 'a level is won offline');
+  expect(((await evaluate(`localStorage.getItem('gio.adventure') ?? ''`)) as string).includes('maze-01'), 'the win is remembered in gio.adventure');
+  expect(apiCalls() === apiBefore, 'the adventure made no request to /api');
   console.log('python');
   await go(`${base}/`);
   await clear();
