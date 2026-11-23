@@ -21,7 +21,7 @@ interface Row {
   run(): void;
 }
 
-/** One "Save" button that opens the three ways to keep a drawing: picture, movie and drawing file. */
+/** One "Picture" button that opens the three ways to keep a drawing: picture, movie and drawing file. */
 export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile }: ExportMenuProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -106,7 +106,7 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile }:
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <DownloadIcon /> Save
+        <DownloadIcon /> <span className="export-label">Picture</span>
       </button>
       {open && (
         <>

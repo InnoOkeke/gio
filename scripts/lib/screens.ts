@@ -627,6 +627,8 @@ export const SCREENS: Screen[] = [
       await sleep(400);
       await c.click('button', 'Quest ');
       await sleep(900);
+      await c.evaluate(`window.__cls = 0`);
+      await sleep(700);
     },
   },
   {
@@ -658,7 +660,7 @@ export const SCREENS: Screen[] = [
     open: async (c) => {
       await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 100 RT 90]') }, '?mode=coder');
       await runAndWait(c, '.bubble-success');
-      await c.click('button[aria-haspopup=dialog]', 'Save');
+      await c.click('button[aria-haspopup=dialog]', 'Picture');
       await sleep(600);
     },
   },
@@ -749,10 +751,12 @@ export const SCREENS: Screen[] = [
     open: async (c) => {
       await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 100 RT 90]') }, '?mode=coder');
       await runAndWait(c, '.bubble-success');
-      await c.click('button[aria-haspopup=dialog]', 'Save');
+      await c.click('button[aria-haspopup=dialog]', 'Picture');
       await sleep(500);
       await c.click('[role=dialog] button', 'Movie');
       if (!(await c.waitFor(`!!document.querySelector('#replay-title')`, 10000))) throw new Error('the replay dialog did not open');
+      // The dialog stacks its phases in one panel: judge the finished movie, not the progress bar that precedes it.
+      await c.waitFor(`!!document.querySelector('#replay-title') && /ready|Oh no/.test(document.querySelector('#replay-title').textContent)`, 20000);
       await sleep(900);
     },
   },
@@ -763,7 +767,7 @@ export const SCREENS: Screen[] = [
       await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 100 RT 90]') }, '?mode=coder');
       const hasMore = await c.evaluate<boolean>(`!!document.querySelector('button[aria-label="More"]')`);
       if (hasMore) await c.click('button[aria-label="More"]');
-      else await c.click('button[aria-haspopup=dialog]', 'Save');
+      else await c.click('button[aria-haspopup=dialog]', 'Picture');
       if (!(await c.waitFor(`!!document.querySelector('[role=dialog][aria-modal=true]')`, 4000))) throw new Error('the menu did not open');
       await sleep(600);
     },

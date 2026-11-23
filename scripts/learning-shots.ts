@@ -168,7 +168,7 @@ async function main() {
       await waitFor(`!!document.querySelector('.bubble-success')`, 15000);
       await sleep(600);
       await closeDialogs();
-      await click('button[aria-haspopup="dialog"]', 'Save');
+      await click('button[aria-haspopup="dialog"]', 'Picture');
       await sleep(500);
       const rows = (await evaluate(`document.querySelectorAll('.save-row').length`)) as number;
       expect(rows === 3, `the Save menu offers three ways to keep a drawing (${rows})`);
@@ -185,7 +185,7 @@ async function main() {
         expect(bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) && bytes.length > 1000, `PNG signature and size (${bytes.length} bytes)`);
       }
 
-      await click('button[aria-haspopup="dialog"]', 'Save');
+      await click('button[aria-haspopup="dialog"]', 'Picture');
       await sleep(400);
       await click('.save-row', 'Drawing file');
       const svgFile = await wait('svg');
@@ -205,7 +205,7 @@ async function main() {
         expect(r.lines > 0, `SVG draws something (${r.lines} shapes)`);
       }
 
-      await click('button[aria-haspopup="dialog"]', 'Save');
+      await click('button[aria-haspopup="dialog"]', 'Picture');
       await sleep(400);
       await click('.save-row', 'Movie');
       const movieReady = await waitFor(`(document.getElementById('replay-title')?.textContent ?? document.querySelector('[aria-labelledby="replay-title"] h2')?.textContent ?? '').includes('ready')`, 90000);

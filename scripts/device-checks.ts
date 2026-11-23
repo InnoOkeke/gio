@@ -178,9 +178,20 @@ export const COLLECT_FACTS = `(() => {
     const close = buttons.find((b) => visible(b) && /^close$/i.test(nameOf(b))) || buttons.find((b) => visible(b) && /close|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop|^hi,/i.test(nameOf(b)));
     dialog = { panel: rectOf(panel), close: close ? rectOf(close) : null, closeName: close ? nameOf(close) : '' };
   }
+  let header = null;
+  const hdrEl = document.querySelector('header.studio-header');
+  if (hdrEl && visible(hdrEl)) {
+    const hb = rectOf(hdrEl);
+    const found = [...hdrEl.querySelectorAll('button, a[href]')].filter(visible);
+    const ask = document.querySelector('.ask-fold .ask-bar');
+    // In short landscape the Ask bar is pinned into the header row; elsewhere it lives in the page.
+    if (ask && visible(ask) && getComputedStyle(ask.closest('.ask-fold')).position === 'fixed') found.push(ask);
+    const titleEl = hdrEl.querySelector('input#title');
+    header = { box: hb, controls: found.map((e) => ({ ...rectOf(e), name: label(e) })), title: titleEl && visible(titleEl) ? rectOf(titleEl) : null };
+  }
   return { w, h, scrollWidth: document.scrollingElement ? document.scrollingElement.scrollWidth : 0,
     layout: document.documentElement.dataset.layout || '', widthClass: document.documentElement.dataset.width || '',
-    keyboardOpen: document.documentElement.dataset.keyboard === 'open', overflowing, targets, texts, stage, runButton: runEl ? rectOf(runEl) : null, dialog, cls: window.__cls || 0 };
+    keyboardOpen: document.documentElement.dataset.keyboard === 'open', overflowing, targets, texts, stage, runButton: runEl ? rectOf(runEl) : null, dialog, header, cls: window.__cls || 0 };
 })()`;
 
 const width = (b: Box) => b.right - b.left;
@@ -262,7 +273,7 @@ export const stageFillsPane: Assertion = (f) => {
     else if (run.left < -0.5 || run.top < -0.5 || run.right > f.w + 0.5 || run.bottom > f.h + 0.5) out.push(`Run button is not fully on screen (${r(run.top)}-${r(run.bottom)} of ${f.h})`);
   } else {
     // Tablets upright put the controls beside the stage (56 % of the pane, at most 45 % of the screen height) so the blocks show on the first screen; phones fill the width.
-    const want = (f.w >= 600 && !f.keyboardOpen ? Math.max(320, Math.min(f.stage.paneInner * 0.56, f.h * 0.45)) : Math.min(f.stage.paneInner, 720)) - 4;
+    const want = (f.w >= 600 && !f.keyboardOpen ? Math.max(320, Math.min(f.stage.paneInner * 0.56, f.h * 0.45)) : Math.min(f.stage.paneInner, 720, f.widthClass === 'compact' && f.h > f.w ? Math.max(220, f.h * 0.36) : 720)) - 4;
     if (width(f.stage) < want) out.push(`stage is ${r(width(f.stage))}px wide, wanted at least ${r(want)}px in stack layout`);
   }
   return out;
@@ -284,6 +295,23 @@ export const dialogsFit: Assertion = (f, ctx) => {
   return out;
 };
 
+/** (h) every header control sits inside the header bar, and the drawing name keeps clear of the buttons */
+export const headerFits: Assertion = (f) => {
+  const hd = f.header;
+  if (!hd) return [];
+  const out: string[] = [];
+  for (const c of hd.controls) {
+    if (c.top < -0.5 || c.top < hd.box.top - 0.5 || c.bottom > hd.box.bottom + 0.5) out.push(`header control ${c.name} (y ${r(c.top)}-${r(c.bottom)}) is not inside the header (y ${r(hd.box.top)}-${r(hd.box.bottom)})`);
+  }
+  const t = hd.title;
+  if (t) {
+    for (const c of hd.controls) {
+      const sameRow = c.top < t.bottom && c.bottom > t.top;
+      if (sameRow && c.left < t.right + 4 && c.right > t.left) out.push(`the drawing name touches header control ${c.name} (x ${r(t.left)}-${r(t.right)} against ${r(c.left)}-${r(c.right)})`);
+    }
+  }
+  return out.slice(0, 4);
+};
 /** (g) a quiet console and a steady layout */
 export const calmPage = (facts: Facts, errors: string[]): string[] => {
   const out = errors.slice(0, 4).map((e) => `console: ${e}`);
@@ -299,4 +327,5 @@ export const ASSERTIONS: Record<string, Assertion> = {
   'd-safe-area': safeArea,
   'e-stage': stageFillsPane,
   'f-dialog': dialogsFit,
+  'h-header': headerFits,
 };

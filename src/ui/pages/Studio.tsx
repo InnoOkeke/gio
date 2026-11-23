@@ -627,7 +627,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       // A finished key press in a game is not the end of the program.
       if (s === 'done' && pressingRef.current) return;
       if (s === 'done' && lastRunRef.current && stageRef.current?.events().some((e) => e.type === 'frame')) {
-        toast.show({ text: 'Your movie is ready! Use Save, then Movie, to keep it.' }, 6000);
+        toast.show({ text: 'Your movie is ready! Use Picture, then Movie, to keep it.' }, 6000);
       }
       if (s === 'done') {
         const { earned, run } = creditRun();
@@ -1103,7 +1103,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                 {playing ? 'Pause' : status === 'paused' ? 'Keep going' : 'Run'}
               </button>
               <button type="button" className="btn btn-quiet btn-lg" onClick={onStep} disabled={playing}>
-                <StepIcon /> Step
+                <StepIcon /> <span className="step-label">Step</span>
               </button>
               </>
               )}
@@ -1111,7 +1111,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                 {SPEEDS.map((s) => (
                   <button key={s.id} type="button" role="radio" aria-checked={speed === s.id} onClick={() => setSpeed(s.id)}>
                     <span className="inline-flex items-center gap-1.5">
-                      <s.Icon size={18} /> {s.label}
+                      <s.Icon size={18} /> <span className="speed-label">{s.label}</span>
                     </span>
                   </button>
                 ))}

@@ -111,6 +111,12 @@ html[data-width='compact'] .studio-stage-pane {
 html[data-width='compact'] .studio-stage-box {
   width: 100cqw;
 }
+/* Phones upright: the stage takes about a third of the screen so the first blocks show under its controls. */
+@media (orientation: portrait) {
+  html[data-width='compact'] .studio-stage-box {
+    width: min(100cqw, max(220px, 36dvh));
+  }
+}
 html[data-keyboard='open'] .studio-root {
   padding-bottom: 12px;
 }
@@ -760,5 +766,148 @@ html[data-width='large'] .quest-preview {
   html[data-layout='split'] .studio-controls .studio-secondary {
     flex-wrap: wrap;
     justify-content: center;
+  }
+}
+
+/* Phone landscape, round three: the header row is 56px so its 48px buttons sit fully inside it (no flat
+   shadow hanging below, nothing above the top edge), the drawing name is short and ends well before
+   Ask Gio, and the stage controls are compact so Run, Step, speed, clear, sound and Picture all show
+   without scrolling. Run keeps its word; Step, the speeds and Picture keep theirs for screen readers. */
+@media (min-width: 600px) and (max-height: 500px) {
+  .studio-root {
+    --hdr: 56px;
+  }
+  .studio-header-bar {
+    align-items: center;
+    gap: 8px;
+  }
+  .studio-header-bar .btn {
+    box-shadow: none;
+    transform: none;
+  }
+  .studio-header-bar > div.flex-1 {
+    justify-content: flex-start;
+    margin-left: 8px;
+  }
+  .studio-header-bar input#title {
+    width: 100%;
+    max-width: 112px;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    padding: 0 12px;
+  }
+  .ask-fold {
+    top: calc(var(--safe-top) + 4px);
+    right: calc(var(--safe-right) + 350px);
+  }
+  .ask-fold .ask-bar {
+    min-height: 48px;
+    padding: 0 6px;
+    box-shadow: none;
+  }
+  .speed-label,
+  .step-label,
+  .export-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  html[data-layout='split'] .studio-controls {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+  html[data-layout='split'] .studio-controls .btn-lg {
+    width: auto;
+    min-height: 48px;
+    padding: 0 12px;
+    font-size: 17px;
+  }
+  html[data-layout='split'] .studio-controls .btn-primary.btn-lg {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  html[data-layout='split'] .studio-controls .btn-quiet.btn-lg {
+    flex: none;
+    width: 48px;
+    padding: 0;
+  }
+  html[data-layout='split'] .studio-speed {
+    flex-wrap: nowrap;
+    flex: 1 0 100%;
+    padding: 4px;
+    gap: 8px;
+  }
+  html[data-layout='split'] .studio-speed button {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  html[data-layout='split'] .studio-controls .studio-secondary {
+    flex: 1 0 100%;
+    flex-wrap: nowrap;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  html[data-layout='split'] .studio-stage-box {
+    width: max(140px, min(100cqh, 50cqw));
+  }
+  /* Gio's message sits under the controls: no face, tighter padding, so it rarely needs a scroll. */
+  html[data-layout='split'] .studio-extras [role='status'] > [aria-hidden='true'] {
+    display: none;
+  }
+  html[data-layout='split'] .studio-extras .bubble {
+    padding: 8px 12px;
+    font-size: 15px;
+  }
+  .studio-secondary .btn {
+    min-width: 48px;
+    padding: 0 10px;
+  }
+  /* The blocks pane: a slimmer title row, a tighter Repeat block and a taller palette tile row. */
+  html[data-layout='split'] .studio-code > .panel-header {
+    padding: 4px 12px;
+  }
+  html[data-layout='split'] .studio-code > .panel-header h2 {
+    font-size: 18px;
+  }
+  .blocks-program {
+    padding: 6px 10px !important;
+  }
+  .blocks-palette {
+    padding: 8px 10px !important;
+  }
+  .palette-grid {
+    grid-auto-columns: 80px;
+    gap: 6px;
+  }
+  .block-pill {
+    padding-top: 4px;
+    padding-bottom: 4px;
+    row-gap: 4px;
+  }
+  html[data-layout='split'] .studio-shell {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 460px) !important;
+  }
+}
+
+/* A small stage cannot hold the full-screen offer and the zoom buttons together: while the offer shows, it gets the stage. */
+@media (min-width: 600px) and (max-height: 500px) {
+  .studio-stage-box:has(.focus-offer) .zoom-control,
+  .studio-stage-box:has(.focus-offer) .focus-btn {
+    display: none;
+  }
+  .focus-offer {
+    max-width: calc(100% - 16px);
+    max-height: calc(100% - 16px);
+    overflow-y: auto;
   }
 }

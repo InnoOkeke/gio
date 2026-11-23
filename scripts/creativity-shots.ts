@@ -117,7 +117,7 @@ async function main() {
       await idle();
       await shot(n('flipbook'));
       const wait = await downloads(n('movie'));
-      await click('button[aria-haspopup="dialog"]', 'Save');
+      await click('button[aria-haspopup="dialog"]', 'Picture');
       await sleep(400);
       await click('.save-row', 'Movie');
       expect(await waitFor(`(document.getElementById('replay-title')?.textContent ?? '').includes('ready')`, 90000), 'the movie dialog finishes encoding');
