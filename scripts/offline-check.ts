@@ -138,7 +138,7 @@ async function main() {
   };
   const stageHasInk = async () =>
     (await evaluate(`(() => { for (const c of document.querySelectorAll('.stage canvas')) { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; for (let i = 4; i < d.length; i += 4) { if (d[i] !== d[0] || d[i + 1] !== d[1] || d[i + 2] !== d[2] || d[i + 3] !== d[3]) return true; } } return false; })()`)) === true;
-  const idle = (ms = 20000) => waitFor(`[...document.querySelectorAll('button.btn-lg')].some((b) => b.textContent.trim() === 'Run')`, ms);
+  const idle = (ms = 20000) => waitFor(`[...document.querySelectorAll('button.btn-lg, button.dock-run')].some((b) => b.textContent.trim() === 'Run')`, ms);
   /** Leaves the first-drawing offer and the friend dialogs out of the way. */
   const clear = async () => {
     await closeDialogs();
@@ -298,13 +298,18 @@ async function main() {
   console.log('drawing');
   await type('REPEAT 4 [FD 100 RT 90]', true);
   expect(!(await stageHasInk()), 'the stage is empty before Run');
-  await click('button.btn-lg', 'Run');
+  await click('button.btn-lg, button.dock-run', 'Run');
   expect(await waitFor(`(() => { for (const c of document.querySelectorAll('.stage canvas')) { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; for (let i = 4; i < d.length; i += 4) { if (d[i] !== d[0] || d[i + 1] !== d[1] || d[i + 2] !== d[2] || d[i + 3] !== d[3]) return true; } } return false; })()`, 20000), 'Run draws on the stage offline');
   expect(await idle(), 'Run returns to idle');
 
   console.log('the AI needs a connection');
   const codeBefore = await editorText();
   const bubble = async () => ((await evaluate(`document.querySelector('.bubble')?.textContent ?? ''`)) as string) ?? '';
+  // On small and short screens the Ask box is folded behind an 'Ask Gio' button; open it first.
+  if (!(await evaluate(`(() => { const i = document.getElementById('ask-input'); return !!i && i.getClientRects().length > 0; })()`))) {
+    await click('button', 'Ask Gio');
+    await waitFor(`(() => { const i = document.getElementById('ask-input'); return !!i && i.getClientRects().length > 0; })()`, 4000);
+  }
   await evaluate(`document.getElementById('ask-input')?.focus()`);
   await send('Input.insertText', { text: 'a big star' });
   await click('form button[type=submit]', '');
@@ -329,7 +334,7 @@ async function main() {
   await click('button', 'Hello, turtle');
   await sleep(500);
   await type('FD 100', true);
-  await click('button.btn-lg', 'Run');
+  await click('button.btn-lg, button.dock-run', 'Run');
   expect(await waitFor(`(localStorage.getItem('gio.progress') ?? '').includes('c-line')`, 20000), 'the first quest is finished offline and remembered');
   await idle();
 

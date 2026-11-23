@@ -58,7 +58,7 @@ async function main() {
       window.__litObserver.observe(document.body, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
     })()`);
   const lit = async () => ((await evaluate('window.__lit ?? []')) as number[]) ?? [];
-  const idle = (ms = 20000) => waitFor(`[...document.querySelectorAll('button.btn-lg')].some((b) => b.textContent.trim() === 'Run')`, ms);
+  const idle = (ms = 20000) => waitFor(`[...document.querySelectorAll('button.btn-lg, button.dock-run')].some((b) => b.textContent.trim() === 'Run')`, ms);
   const bubble = async () => ((await evaluate(`document.querySelector('.bubble')?.textContent ?? ''`)) as string) ?? '';
 
   /** Replaces the text of the Python editor (the last editor in the Python panel). */
@@ -91,7 +91,7 @@ async function main() {
       await closeDialogs();
       await type('SETTEMPO 240\nPLAY [C D E]', true);
       await watchKeys();
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       const three = await waitFor(`(window.__lit ?? []).length >= 3`, 15000);
       const keys = await lit();
       expect(three, `three piano keys lit in turn (${keys.join(', ')})`);
@@ -104,7 +104,7 @@ async function main() {
       const after = await evaluate(`document.querySelector('${toggle}')?.getAttribute('aria-pressed')`);
       expect(before !== null && before !== after, `the sound toggle flips aria-pressed (${before} to ${after})`);
       await watchKeys();
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       expect(await waitFor(`(window.__lit ?? []).length >= 3`, 15000), 'keys still light with the sound off');
       await idle();
 
@@ -112,7 +112,7 @@ async function main() {
       await seed({ 'gio.mode': 'coder', 'gio.progress': CODER_PROGRESS }, '?mode=coder');
       await closeDialogs();
       await type('REPEAT 5 [CLEAN FD 10 * REPCOUNT FRAME RT 20]', true);
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       expect(await waitFor(`(document.querySelector('.picture-chip')?.textContent ?? '').includes('Picture 5')`, 30000), "the picture chip reaches 'Picture 5'");
       await idle();
       await shot(n('flipbook'));
@@ -154,14 +154,14 @@ async function main() {
       const snapshot = async () => JSON.stringify(await Promise.all(GUARDED.map((k) => stored(k))));
       const rewardsBefore = await snapshot();
       await typePython('import turtle\nfor i in range(4):\n    turtle.forward(100)\n    turtle.right(90)\n');
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       expect(await waitFor(`!!document.querySelector('.bubble-success')`, 30000), 'a Python turtle program runs to the end');
       expect(await stageHasInk(), 'the stage has non-blank pixels after the Python run');
       expect((await snapshot()) === rewardsBefore, 'a Python run that draws the open square awards nothing and completes no quest');
       await shot(n('python-run'));
 
       await typePython('import turtle\nturtle.forward(50)\nturtle.forward(oops)\n');
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       expect(await waitFor(`!!document.querySelector('.bubble-problem')`, 30000), 'a NameError gives a plain message');
       const msg = await bubble();
       expect(/line 3/.test(msg) && /oops/.test(msg), `the message names the line and the word (${msg.slice(0, 90)})`);
@@ -171,12 +171,12 @@ async function main() {
 
       console.log('python has no network');
       await typePython(PY_NETWORK_TRIES);
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       expect(await waitFor(`!!document.querySelector('.bubble-success')`, 30000), 'fetch, the prototype route, XMLHttpRequest and WebSocket all fail inside kid Python');
       await idle(30000);
       await typePython('while True:\n    pass\n');
       const started = Date.now();
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       const stopped = await waitFor(`(document.querySelector('.bubble')?.textContent ?? '').includes('ran for 10 seconds')`, 25000);
       const took = (Date.now() - started) / 1000;
       expect(stopped && took >= 8 && took <= 20, `an endless loop is stopped in about 10 seconds with a plain message (${took.toFixed(1)} s)`);
@@ -221,14 +221,14 @@ async function main() {
       expect(await waitFor(`!!document.querySelector('[role=button][aria-label^="Note E"]')`, 5000), "picking E changes the block to 'Note E'");
       await shot(n('note-picker'));
       await watchKeys();
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       expect(await waitFor(`(window.__lit ?? []).length >= 1`, 15000), `Run lights a key (${(await lit()).join(', ')})`);
       await idle();
 
       await click('[role=tab]', 'Movie');
       await sleep(300);
       await click('button.palette-tile', 'Next picture');
-      await click('button.btn-lg', 'Run');
+      await click('button.btn-lg, button.dock-run', 'Run');
       expect(await waitFor(`(document.querySelector('.picture-chip')?.textContent ?? '').includes('Picture')`, 20000), 'the Next picture block shows the picture chip');
       await idle();
       await shot(n('movie'));

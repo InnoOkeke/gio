@@ -81,7 +81,10 @@ async function respond(kind: 'shell' | 'precached' | 'runtime-font', request: Re
   if (kind === 'shell') {
     return (await caches.match('/', { cacheName: CACHE })) ?? fetch(request);
   }
-  const hit = await caches.match(request, { cacheName: CACHE, ignoreSearch: true });
+  // ignoreVary: the server answers with "Vary: Origin", and a lazily imported chunk is requested with an Origin header
+  // while the precache stored it without one, so a Vary-aware match would miss it offline. Precached files are
+  // content-hashed or revisioned, so the same URL always has the same body.
+  const hit = await caches.match(request, { cacheName: CACHE, ignoreSearch: true, ignoreVary: true });
   if (hit) return hit;
   const response = await fetch(request);
   if (kind === 'runtime-font' && isCacheableResponse(response, 'asset')) {
