@@ -116,8 +116,11 @@ export async function launchBrowser(base: string, outDir: string): Promise<Brows
 
   /** Click the first element matching a selector whose label or text contains the given text. */
   const click = async (selector: string, text = '') => {
+    const find = `[...document.querySelectorAll(${JSON.stringify(selector)})].find((e) => (e.getAttribute('aria-label') ?? '').includes(${JSON.stringify(text)}) || (e.textContent ?? '').includes(${JSON.stringify(text)}))`;
+    // Parts of the page (editors, sheets) load on demand, so give the target a moment to appear.
+    await waitFor(`!!${find}`, 8000);
     const ok = await evaluate(`(() => {
-      const el = [...document.querySelectorAll(${JSON.stringify(selector)})].find((e) => (e.getAttribute('aria-label') ?? '').includes(${JSON.stringify(text)}) || (e.textContent ?? '').includes(${JSON.stringify(text)}));
+      const el = ${find};
       if (!el) return false;
       el.click();
       return true;
@@ -141,6 +144,8 @@ export async function launchBrowser(base: string, outDir: string): Promise<Brows
   };
 
   const type = async (code: string, replace = false) => {
+    // The code editor is loaded on demand, so on a real network it can appear a moment after the page.
+    if (!(await waitFor(`!!document.querySelector('.cm-content')`, 15000))) throw new Error('The code editor did not appear');
     await evaluate(`document.querySelector('.cm-content')?.focus()`);
     if (replace) {
       // CodeMirror owns its selection, so select everything with its own Ctrl+A key binding.
