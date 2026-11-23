@@ -18,8 +18,20 @@ export type Block =
   | { kind: 'note'; pitch: NotePitch; beats: 1 | 2 }
   | { kind: 'frame' }
   | { kind: 'wait'; n: number }
-  | { kind: 'repeat'; n: number; body: Block[] };
+  | { kind: 'repeat'; n: number; body: Block[] }
+  /* The adventure's own blocks. They only appear in the adventure palette (src/ui/adventure/little-palette.ts). */
+  | { kind: 'swim' }
+  | { kind: 'jump' }
+  | { kind: 'free' }
+  | { kind: 'rest' }
+  | { kind: 'if'; sense: IfSense; is: string; not: boolean; body: Block[] };
 
+export type IfSense = 'AHEAD' | 'HERE';
+/** A block that holds a list of blocks: Repeat and If. */
+export type BodyBlock = Extract<Block, { body: Block[] }>;
+export function hasBody(b: Block | undefined): b is BodyBlock {
+  return b !== undefined && (b.kind === 'repeat' || b.kind === 'if');
+}
 export type BlockKind = Block['kind'];
 
 /** The notes Little Turtles can play (R is a rest). */
@@ -79,7 +91,18 @@ export function toBlocks(program: Program): ToBlocksResult {
         out.push({ kind: 'repeat', n, body });
         continue;
       }
-      if (s.kind !== 'command') return `it uses ${s.kind === 'make' ? 'MAKE' : s.kind === 'if' ? 'IF' : s.kind === 'stop' ? 'STOP' : s.kind === 'when' ? 'WHEN (that makes it a game)' : 'its own commands'}`;
+      if (s.kind === 'if') {
+        const cond = s.cond;
+        if (cond.kind !== 'bin' || (cond.op !== '=' && cond.op !== '<>') || cond.left.kind !== 'reporter' || cond.right.kind !== 'word') return 'it uses IF';
+        const sense = cond.left.name;
+        if (sense !== 'AHEAD' && sense !== 'HERE') return 'it uses IF';
+        if (s.otherwise) return 'it uses IFELSE, and blocks have IF only';
+        const body = convert(s.then);
+        if (typeof body === 'string') return body;
+        out.push({ kind: 'if', sense, is: cond.right.value.toLowerCase(), not: cond.op === '<>', body });
+        continue;
+      }
+      if (s.kind !== 'command') return `it uses ${s.kind === 'make' ? 'MAKE' : s.kind === 'stop' ? 'STOP' : s.kind === 'when' ? 'WHEN (that makes it a game)' : 'its own commands'}`;
       if (s.name === 'PLAY') {
         const notes = noteBlocks(s.args[0]!);
         if (!notes) return 'it plays notes blocks cannot show';
@@ -99,6 +122,10 @@ export function toBlocks(program: Program): ToBlocksResult {
         case 'CIRCLE': block = needNumber('circle'); break;
         case 'WAIT': block = needNumber('wait'); break;
         case 'FRAME': block = { kind: 'frame' }; break;
+        case 'SWIM': block = { kind: 'swim' }; break;
+        case 'JUMP': block = { kind: 'jump' }; break;
+        case 'FREE': block = { kind: 'free' }; break;
+        case 'REST': block = { kind: 'rest' }; break;
         case 'SETTEMPO': block = 'it changes the tempo'; break;
         case 'PENUP': block = { kind: 'penup' }; break;
         case 'PENDOWN': block = { kind: 'pendown' }; break;
@@ -138,6 +165,15 @@ export function blocksToLogo(blocks: Block[], depth = 0): string {
         case 'note': return `${pad}PLAY [${b.pitch}${b.beats === 2 ? ' 2' : ''}]`;
         case 'frame': return `${pad}FRAME`;
         case 'wait': return `${pad}WAIT ${b.n}`;
+        case 'swim': return `${pad}SWIM`;
+        case 'jump': return `${pad}JUMP`;
+        case 'free': return `${pad}FREE`;
+        case 'rest': return `${pad}REST`;
+        case 'if': {
+          const head = `IF ${b.sense} ${b.not ? '<>' : '='} "${b.is}`;
+          if (!b.body.length) return `${pad}${head} [ ]`;
+          return `${pad}${head} [\n${blocksToLogo(b.body, depth + 1)}\n${pad}]`;
+        }
         case 'repeat': {
           if (!b.body.length) return `${pad}REPEAT ${b.n} [ ]`;
           return `${pad}REPEAT ${b.n} [\n${blocksToLogo(b.body, depth + 1)}\n${pad}]`;

@@ -18,7 +18,7 @@ import {
   type DragStartEvent,
   type Modifier,
 } from '@dnd-kit/core';
-import { BLOCK_COLORS, NAMED_COLORS, type Block, type BlockKind, type NotePitch } from '../../logo/index.js';
+import { BLOCK_COLORS, hasBody, NAMED_COLORS, type Block, type BlockKind, type NotePitch } from '../../logo/index.js';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { haptic } from '../haptics';
 import { NOTE_KEYS } from '../runtime/keys';
@@ -71,14 +71,50 @@ const SPECS: Record<BlockKind, Spec> = {
     number: { step: 30, min: 30, max: 300, format: (n) => `${n / 60} s`, spoken: (n) => `${n / 60} seconds` },
   },
   repeat: { label: 'Repeat', glyph: '🔁', color: '#7a4cf0', make: () => ({ kind: 'repeat', n: 4, body: [] }), number: { step: 1, min: 1, max: 36, unit: '×' } },
+  // The adventure's blocks. They are in the palette only when a PaletteConfig lists them.
+  swim: { label: 'Swim', glyph: '🌊', color: '#0f8fa6', make: () => ({ kind: 'swim' }) },
+  jump: { label: 'Jump', glyph: '🦘', color: '#f97316', make: () => ({ kind: 'jump' }) },
+  free: { label: 'Free friend', glyph: '🔓', color: '#d9467a', make: () => ({ kind: 'free' }) },
+  rest: { label: 'Rest', glyph: '💤', color: '#64748b', make: () => ({ kind: 'rest' }) },
+  if: { label: 'If', glyph: '🔎', color: '#c2410c', make: () => ({ kind: 'if', sense: 'AHEAD', is: 'water', not: false, body: [] }) },
 };
-
+interface SpecOverride extends Partial<Omit<Spec, 'number'>> {
+  /** `null` takes the number (and its stepper) away. */
+  number?: Spec['number'] | null;
+}
 /** The palette is data driven: add a group (with kinds that exist in SPECS) and its tiles appear. */
-const PALETTE_GROUPS: { id: string; title: string; kinds: BlockKind[] }[] = [
+export interface PaletteConfig {
+  groups: { id: string; title: string; kinds: BlockKind[] }[];
+  /** Per-kind changes: another label, number range or starting block. */
+  specs?: Partial<Record<BlockKind, SpecOverride>>;
+  /** What an If block can look for, per sense. Without it the If block has no choices. */
+  ifWords?: Record<'AHEAD' | 'HERE', readonly string[]>;
+  /** The tiles wrap onto more rows instead of swiping sideways, also on a phone on its side. */
+  wrap?: boolean;
+  /** The name of the run button in the first-time hint. Defaults to Run. */
+  runLabel?: string;
+}
+const PALETTE_GROUPS: PaletteConfig['groups'] = [
   { id: 'draw', title: 'Draw', kinds: ['forward', 'right', 'left', 'back', 'repeat', 'color', 'circle', 'size', 'penup', 'pendown'] },
   { id: 'music', title: 'Music', kinds: ['note', 'repeat'] },
   { id: 'movie', title: 'Movie', kinds: ['frame', 'wait', 'repeat'] },
 ];
+/** Studio's palette, and the default. */
+export const STUDIO_PALETTE: PaletteConfig = { groups: PALETTE_GROUPS };
+function specFor(palette: PaletteConfig, kind: BlockKind): Spec {
+  const o = palette.specs?.[kind];
+  if (!o) return SPECS[kind];
+  const { number, ...rest } = o;
+  const merged: Spec = { ...SPECS[kind], ...rest };
+  if (number === null) delete merged.number;
+  else if (number) merged.number = number;
+  return merged;
+}
+const SENSE_NAMES = { AHEAD: 'ahead', HERE: 'here' } as const;
+/** The words on an If block's pill, for example "If ahead is not water". */
+function ifLabel(b: Extract<Block, { kind: 'if' }>): string {
+  return `If ${SENSE_NAMES[b.sense]} ${b.not ? 'is not' : 'is'} ${b.is}`;
+}
 
 /* ---- drag and drop plumbing ---- */
 
@@ -122,8 +158,7 @@ function DropSlot({ parent, index, where, disabled, empty }: { parent: Path; ind
   );
 }
 
-function PaletteTile({ kind, onAdd }: { kind: BlockKind; onAdd(kind: BlockKind): void }) {
-  const spec = SPECS[kind];
+function PaletteTile({ kind, spec, onAdd }: { kind: BlockKind; spec: Spec; onAdd(kind: BlockKind): void }) {
   const data: DragData = { type: 'palette', kind, label: spec.label };
   const { setNodeRef, listeners, attributes, isDragging } = useDraggable({ id: `palette:${kind}`, data });
   return (
@@ -166,16 +201,21 @@ function DragHandle({ path, label }: { path: Path; label: string }) {
 interface BlocksEditorProps {
   blocks: Block[];
   runningLine: number | null;
+  /** The Logo line a run stopped on, shown on its block. */
+  problemLine?: number | null;
+  /** Which blocks the palette offers. Defaults to Studio's. */
+  palette?: PaletteConfig;
   onChange(blocks: Block[]): void;
 }
 
-export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProps) {
+export function BlocksEditor({ blocks, runningLine, problemLine = null, palette = STUDIO_PALETTE, onChange }: BlocksEditorProps) {
+  const specOf = (kind: BlockKind) => specFor(palette, kind);
   const [selected, setSelected] = useState<Path | null>(null);
   const [dragging, setDragging] = useState<DragData | null>(null);
-  const [group, setGroup] = useState(PALETTE_GROUPS[0]!.id);
+  const [group, setGroup] = useState(palette.groups[0]!.id);
   // Phones on their side have room for one swipe row only: it carries every group, so nothing is behind a tab.
   const shortWindow = useMedia('(max-height: 500px)');
-  const paletteKinds = shortWindow ? [...new Set(PALETTE_GROUPS.flatMap((g) => g.kinds))] : (PALETTE_GROUPS.find((g) => g.id === group) ?? PALETTE_GROUPS[0]!).kinds;
+  const paletteKinds = shortWindow ? [...new Set(palette.groups.flatMap((g) => g.kinds))] : (palette.groups.find((g) => g.id === group) ?? palette.groups[0]!).kinds;
   const win = useWindowClass();
   const lines = lineMap(blocks);
   const selectedBlock = selected ? getAt(blocks, selected) : undefined;
@@ -187,10 +227,10 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
   );
 
   const add = (kind: BlockKind) => {
-    const block = SPECS[kind].make();
+    const block = specOf(kind).make();
     let next: Block[];
     let newPath: Path;
-    if (selected && selectedBlock?.kind === 'repeat') {
+    if (selected && hasBody(selectedBlock)) {
       next = insertBlock(blocks, selected, selectedBlock.body.length, block);
       newPath = [...selected, selectedBlock.body.length];
     } else if (selected) {
@@ -203,8 +243,8 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
       newPath = [blocks.length];
     }
     onChange(next);
-    // Keep adding inside a Repeat until the child picks something else.
-    if (!(selected && selectedBlock?.kind === 'repeat')) setSelected(newPath);
+    // Keep adding inside a Repeat or If until the child picks something else.
+    if (!(selected && hasBody(selectedBlock))) setSelected(newPath);
   };
 
   const remove = (path: Path) => {
@@ -236,7 +276,7 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
     const to = e.over?.data.current as SlotData | undefined;
     if (!from || !to || to.type !== 'slot') return;
     if (from.type === 'palette') {
-      onChange(insertBlock(blocks, to.parent, to.index, SPECS[from.kind].make()));
+      onChange(insertBlock(blocks, to.parent, to.index, specOf(from.kind).make()));
       setSelected([...to.parent, to.index]);
       haptic('snap');
       return;
@@ -273,11 +313,12 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
         {list.map((b, i) => {
           const path = [...prefix, i];
           const key = path.join('.');
-          const spec = SPECS[b.kind];
+          const spec = specOf(b.kind);
           const isSelected = selected?.join('.') === key;
           const isRunning = runningLine !== null && lines.get(key) === runningLine;
+          const isProblem = problemLine !== null && lines.get(key) === problemLine;
           const n = 'n' in b ? b.n : null;
-          const label = b.kind === 'note' ? noteLabel(b) : spec.label;
+          const label = b.kind === 'note' ? noteLabel(b) : b.kind === 'if' ? ifLabel(b) : spec.label;
           const spokenValue = n !== null ? ` ${spec.number?.spoken ? spec.number.spoken(n) : valueText(spec, n)}` : '';
           const name = `${label}${spokenValue}${b.kind === 'color' ? ` ${b.color}` : ''}`;
           return (
@@ -290,7 +331,7 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
                 aria-label={name}
                 onClick={() => setSelected(isSelected ? null : path)}
                 onKeyDown={(e) => e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), setSelected(isSelected ? null : path))}
-                className={`block-pill ${isSelected ? 'is-selected' : ''} ${isRunning ? 'is-running' : ''}`}
+                className={`block-pill ${isSelected ? 'is-selected' : ''} ${isRunning ? 'is-running' : ''} ${isProblem ? 'is-problem' : ''}`}
                 style={{ background: b.kind === 'note' ? noteColor(b.pitch) : spec.color }}
               >
                 <DragHandle path={path} label={label} />
@@ -327,6 +368,42 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
                         onClick={() => setValue(path, { color: c } as Partial<Block>)}
                       />
                     ))}
+                  {b.kind === 'if' && palette.ifWords && (
+                    <div className="if-picker">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="segmented" role="radiogroup" aria-label="What Gio looks at">
+                          {(['AHEAD', 'HERE'] as const).map((sense) => (
+                            <button
+                              key={sense}
+                              type="button"
+                              role="radio"
+                              aria-checked={b.sense === sense}
+                              onClick={() => {
+                                const words = palette.ifWords![sense];
+                                setValue(path, { sense, is: words.includes(b.is) ? b.is : (words[0] ?? b.is) } as Partial<Block>);
+                              }}
+                            >
+                              {sense === 'AHEAD' ? 'Ahead' : 'Here'}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="segmented" role="radiogroup" aria-label="Is or is not">
+                          {([false, true] as const).map((not) => (
+                            <button key={String(not)} type="button" role="radio" aria-checked={b.not === not} onClick={() => setValue(path, { not } as Partial<Block>)}>
+                              {not ? 'is not' : 'is'}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="if-words" role="group" aria-label="Look for">
+                        {palette.ifWords[b.sense].map((word) => (
+                          <button key={word} type="button" className="if-word" aria-pressed={b.is === word} onClick={() => setValue(path, { is: word } as Partial<Block>)}>
+                            {word}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   {b.kind === 'note' && (
                     <div className="note-picker">
                       <div className="note-picker-keys" role="group" aria-label="Pick a note">
@@ -372,14 +449,14 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
                 </div>
               )}
 
-              {b.kind === 'repeat' && (
+              {hasBody(b) && (
                 <div className="repeat-body" style={{ borderColor: spec.color }}>
                   {b.body.length ? (
                     renderList(b.body, path)
                   ) : (
                     <>
                       <DropSlot parent={path} index={0} where={whereLabel(blocks, path)} disabled={slotDisabled(path)} empty />
-                      <p className="m-0 text-[15px] font-bold text-ink-3">{isSelected ? 'Now tap blocks to put them inside.' : 'Tap Repeat, then tap blocks to put inside.'}</p>
+                      <p className="m-0 text-[15px] font-bold text-ink-3">{isSelected ? 'Now tap blocks to put them inside.' : `Tap ${b.kind === 'if' ? 'If' : 'Repeat'}, then tap blocks to put inside.`}</p>
                     </>
                   )}
                 </div>
@@ -394,7 +471,7 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
     );
   };
 
-  const overlaySpec = dragging ? SPECS[dragging.type === 'palette' ? dragging.kind : (getAt(blocks, dragging.path)?.kind ?? 'forward')] : null;
+  const overlaySpec = dragging ? specOf(dragging.type === 'palette' ? dragging.kind : (getAt(blocks, dragging.path)?.kind ?? 'forward')) : null;
 
   return (
     <DndContext
@@ -407,7 +484,7 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
       onDragEnd={onDragEnd}
       onDragCancel={() => setDragging(null)}
     >
-      <div className="blocks-editor h-full min-h-0" data-dragging={dragging ? 'true' : 'false'}>
+      <div className="blocks-editor h-full min-h-0" data-dragging={dragging ? 'true' : 'false'} data-palette={palette.wrap ? 'wrap' : undefined}>
        <div className="blocks-inner">
         <div className="blocks-program px-4 py-4" onClick={(e) => e.target === e.currentTarget && setSelected(null)}>
           {blocks.length ? (
@@ -415,25 +492,27 @@ export function BlocksEditor({ blocks, runningLine, onChange }: BlocksEditorProp
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center gap-2 py-10">
               <p className="m-0 text-[22px] font-black">{win.coarse ? 'Drag a block here, or tap one' : 'Tap a block to start!'}</p>
-              <p className="m-0 text-[16px] font-semibold text-ink-2">Try Forward, then press Run.</p>
+              <p className="m-0 text-[16px] font-semibold text-ink-2">Try Forward, then press {palette.runLabel ?? 'Run'}.</p>
               <DropSlot parent={[]} index={0} where="in your blocks" disabled={false} empty />
             </div>
           )}
         </div>
         <div className="blocks-palette border-t border-line bg-paper-2 px-4 py-4">
           <div className="palette-head flex flex-wrap items-center justify-between gap-2 mb-2">
-            <p className="m-0 eyebrow">{selectedBlock?.kind === 'repeat' ? 'Adding inside Repeat' : 'Blocks'}</p>
-            <div className="segmented" role="tablist" aria-label="Block groups">
-              {PALETTE_GROUPS.map((g) => (
-                <button key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)}>
-                  {g.title}
-                </button>
-              ))}
-            </div>
+            <p className="m-0 eyebrow">{hasBody(selectedBlock) ? `Adding inside ${SPECS[selectedBlock.kind].label}` : 'Blocks'}</p>
+            {palette.groups.length > 1 && (
+              <div className="segmented" role="tablist" aria-label="Block groups">
+                {palette.groups.map((g) => (
+                  <button key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)}>
+                    {g.title}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
           <div className="palette-grid" data-hscroll>
             {paletteKinds.map((kind) => (
-              <PaletteTile key={kind} kind={kind} onAdd={add} />
+              <PaletteTile key={kind} kind={kind} spec={specOf(kind)} onAdd={add} />
             ))}
           </div>
         </div>

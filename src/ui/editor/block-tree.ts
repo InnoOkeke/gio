@@ -1,6 +1,6 @@
-import type { Block } from '../../logo/index.js';
+import { hasBody, type Block } from '../../logo/index.js';
 
-/** A block's place in the tree: indexes from the top list down through Repeat bodies. */
+/** A block's place in the tree: indexes from the top list down through Repeat and If bodies. */
 export type Path = number[];
 
 export function getAt(blocks: Block[], path: Path): Block | undefined {
@@ -9,7 +9,7 @@ export function getAt(blocks: Block[], path: Path): Block | undefined {
   for (const i of path) {
     node = list[i];
     if (!node) return undefined;
-    list = node.kind === 'repeat' ? node.body : [];
+    list = hasBody(node) ? node.body : [];
   }
   return node;
 }
@@ -17,13 +17,13 @@ export function getAt(blocks: Block[], path: Path): Block | undefined {
 export function update(blocks: Block[], path: Path, fn: (list: Block[], index: number) => Block[]): Block[] {
   if (path.length === 1) return fn(blocks, path[0]!);
   const [head, ...rest] = path;
-  return blocks.map((b, i) => (i === head && b.kind === 'repeat' ? { ...b, body: update(b.body, rest, fn) } : b));
+  return blocks.map((b, i) => (i === head && hasBody(b) ? { ...b, body: update(b.body, rest, fn) } : b));
 }
 
 export function insertInto(blocks: Block[], parent: Path, index: number, block: Block): Block[] {
   if (!parent.length) return [...blocks.slice(0, index), block, ...blocks.slice(index)];
   return update(blocks, parent, (list, i) =>
-    list.map((b, k) => (k === i && b.kind === 'repeat' ? { ...b, body: [...b.body.slice(0, index), block, ...b.body.slice(index)] } : b)),
+    list.map((b, k) => (k === i && hasBody(b) ? { ...b, body: [...b.body.slice(0, index), block, ...b.body.slice(index)] } : b)),
   );
 }
 
@@ -35,7 +35,7 @@ export function lineMap(blocks: Block[]): Map<string, number> {
     list.forEach((b, i) => {
       const path = [...prefix, i];
       map.set(path.join('.'), line++);
-      if (b.kind === 'repeat' && b.body.length) {
+      if (hasBody(b) && b.body.length) {
         visit(b.body, path);
         line++; // closing ]
       }
@@ -79,7 +79,7 @@ export function moveBlock(blocks: Block[], from: Path, toParent: Path, toIndex: 
 
   const without = removeBlock(blocks, from);
   const list = parent.length ? getAt(without, parent) : undefined;
-  const length = parent.length ? (list?.kind === 'repeat' ? list.body.length : -1) : without.length;
+  const length = parent.length ? (hasBody(list) ? list.body.length : -1) : without.length;
   if (length < 0) return null;
   const at = Math.max(0, Math.min(index, length));
   return { blocks: insertInto(without, parent, at, block), path: [...parent, at] };

@@ -49,7 +49,7 @@ export function Wordmark() {
   return (
     <span className="flex items-center gap-2.5">
       <GioMark size={40} />
-      <span className="text-[26px] font-black tracking-tight text-ink leading-none">GIO</span>
+      <span className="wordmark-text text-[26px] font-black tracking-tight text-ink leading-none">GIO</span>
     </span>
   );
 }

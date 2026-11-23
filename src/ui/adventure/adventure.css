@@ -1049,3 +1049,24 @@ html[data-perf='lite'] .adv-result-gio,
 html[data-perf='lite'] .adv-intro-friend {
   animation: none;
 }
+
+/* Little Turtles' blocks need room for the list and the palette together. The plan scrolls up and down, never sideways. */
+.adv-editor[data-plan='blocks'] {
+  min-height: 360px;
+  background: var(--paper, #fff);
+}
+html[data-width='medium'][data-layout='stack'] .adv-editor[data-plan='blocks'] {
+  min-height: 420px;
+}
+html[data-layout='split'] .adv-editor[data-plan='blocks'] {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (min-width: 600px) and (max-height: 500px) {
+  .adv-editor[data-plan='blocks'] {
+    min-height: 300px;
+  }
+  .adv-editor[data-plan='blocks'] > * {
+    min-height: 300px;
+  }
+}

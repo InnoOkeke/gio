@@ -30,6 +30,7 @@ import type { Speed } from '../runtime/player';
 import { useReadAloud } from '../speech';
 
 const AdventureEditor = lazy(() => import('../adventure/AdventureEditor').then((m) => ({ default: m.AdventureEditor })));
+const AdventureBlocks = lazy(() => import('../adventure/AdventureBlocks').then((m) => ({ default: m.AdventureBlocks })));
 
 const SPEEDS: { id: Speed; label: string; Icon: typeof RabbitSpeedIcon }[] = [
   { id: 'turtle', label: 'Slow', Icon: TurtleSpeedIcon },
@@ -108,6 +109,7 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
 
   const steps = useMemo(() => hintLadder(level, mode), [level, mode]);
   const keys = useMemo(() => adventureKeys(level, mode), [level, mode]);
+  const blocksPlan = mode === 'little';
   const palette = REALM_PALETTES[level.realm];
 
   const onProblem = useCallback((outcome: LevelOutcome) => {
@@ -210,7 +212,8 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
     speech.speak(steps[hintShown - 1]?.text ?? '');
   };
   const insertReveal = (reveal: string) => {
-    if (codeRef.current.trim() === '') editorRef.current?.replaceAll(reveal);
+    if (blocksPlan) setCode(codeRef.current.trim() === '' ? reveal : `${codeRef.current.trimEnd()}\n${reveal}`);
+    else if (codeRef.current.trim() === '') editorRef.current?.replaceAll(reveal);
     else editorRef.current?.insert(reveal);
     setHintOpen(false);
     setHintOffered(true);
@@ -323,13 +326,17 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
             <h2 className="adv-plan-title">Your plan</h2>
             <span className="adv-plan-note">1 step = 50</span>
           </div>
-          <div className="adv-editor">
+          <div className="adv-editor" data-plan={blocksPlan ? 'blocks' : 'code'}>
             <Suspense fallback={<div className="adv-editor-wait" aria-busy="true" />}>
-              <AdventureEditor ref={editorRef} initialCode={code} onChange={onChange} onRunShortcut={go} />
+              {blocksPlan ? (
+                <AdventureBlocks level={level} code={code} runningLine={play.frame?.line ?? null} problemLine={problem?.line ?? null} onChange={onChange} />
+              ) : (
+                <AdventureEditor ref={editorRef} initialCode={code} onChange={onChange} onRunShortcut={go} />
+              )}
             </Suspense>
           </div>
           {own && <p className="adv-own">Your {own.toUpperCase()} replaces Gio&apos;s {own.toUpperCase()}.</p>}
-          <AdventureKeys keys={keys} onKey={pressKey} onGo={go} />
+          {!blocksPlan && <AdventureKeys keys={keys} onKey={pressKey} onGo={go} />}
         </section>
       </main>
       {introOpen && (

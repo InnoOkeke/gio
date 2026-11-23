@@ -160,7 +160,7 @@ export function StudioHeader(p: StudioHeaderProps) {
                   {dot}
                 </button>
                 <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onPlay} aria-label="Play Gio's Adventure">
-                  <GamepadIcon className="text-[#7a4cf0]" /> <span className="hidden sm:inline">Play</span>
+                  <GamepadIcon className="text-[#7a4cf0]" /> <span className="hidden lg:inline">Play</span>
                 </button>
                 <button type="button" className="btn btn-ghost hidden lg:inline-flex" onClick={p.onNew}>
                   <PlusIcon /> New

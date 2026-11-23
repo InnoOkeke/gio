@@ -902,6 +902,23 @@ export const SCREENS: Screen[] = [
     },
   },
   { id: 'adventure-boss', label: 'Adventure: a boss level with the Hedge Giant (Turtle Coders)', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('coder', MAZE_WON), 'adventure/maze-08', '.adv-scene-box') },
-  { id: 'adventure-little', label: 'Adventure: a level for Little Turtles', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('little', ['maze-01', 'maze-02']), 'adventure/maze-03', '.adv-scene-box') },  { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },
+  { id: 'adventure-little', label: 'Adventure: a level for Little Turtles', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('little', ['maze-01', 'maze-02']), 'adventure/maze-03', '.adv-scene-box') },  {
+    id: 'adventure-little-win',
+    label: 'Adventure: Little Turtles build a plan from blocks and win',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('little', ['maze-01']), 'adventure/maze-02', '.adv-scene-box');
+      const bump = `(() => { const b = [...document.querySelectorAll('button[aria-label="More Forward"]')].pop(); b && b.click(); })()`;
+      await c.click('.palette-tile', 'Forward');
+      await c.click('button[aria-label="More Forward"]');
+      await c.click('.palette-tile', 'Turn right');
+      await c.click('.palette-tile', 'Forward');
+      for (let k = 0; k < 3; k++) await c.evaluate(bump);
+      await adventureGo(c);
+      if (!(await c.waitFor(`!!document.querySelector('.adv-result')`, 20000))) throw new Error('the result card did not open');
+      await sleep(1300);
+    },
+  },
+  { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },
   { id: 'hardware-keys', label: 'Hardware keyboard on tablets: arrows, Tab and Escape in the editor', open: hardwareKeyChecks },
 ];

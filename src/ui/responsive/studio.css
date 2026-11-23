@@ -40,6 +40,12 @@ html[data-width='compact'] .studio-root {
 .studio-icon-btn {
   min-width: var(--touch);
 }
+/* Narrow phones: the logo tile alone, so Garden, Map, Play and More fit on one row. */
+@media (max-width: 429px) {
+  .studio-logo .wordmark-text {
+    display: none;
+  }
+}
 .studio-title-row {
   padding: 8px 12px 0;
 }

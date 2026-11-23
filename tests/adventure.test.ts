@@ -133,8 +133,7 @@ describe('Maze references, naive plans and stars', () => {
   it('little turtle references are plain block commands that play the same way', () => {
     for (const level of LEVELS.filter((l) => l.modes.includes('little'))) {
       const ref = ADVENTURE_REFERENCE[level.id]!.little!;
-      if (/FREE/.test(ref)) continue; // the Free block arrives with the Little blocks work (FEAT-5)
-      const blocks = toBlocks(parse(ref));
+      const blocks = toBlocks(parse(ref, { words: ADVENTURE_LOOKUP }));
       expect(blocks.ok, level.id).toBe(true);
       if (!blocks.ok) continue;
       const again = blocksToLogo(blocks.blocks);
