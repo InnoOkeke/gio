@@ -189,7 +189,7 @@ describe('Whispering Woods and Rolling River', () => {
   });
 
   it('river levels with variants beat a plan that remembers one river', () => {
-    const withVariants = LEVELS.filter((l) => (l.variants?.length ?? 0) > 0);
+    const withVariants = LEVELS.filter((l) => l.realm === 'river' && (l.variants?.length ?? 0) > 0);
     expect(withVariants.map((l) => l.id)).toEqual(['river-02', 'river-03', 'river-05', 'river-06', 'river-07']);
     for (const level of withVariants) {
       const naive = ADVENTURE_NAIVE[level.id]!.code;

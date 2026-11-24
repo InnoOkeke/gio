@@ -199,7 +199,7 @@ describe('unlocking on the real Maze levels', () => {
       s = recordLevel(s, 'coder', level, out, TODAY).state;
     }
     expect(nextLevel(s, 'coder')).toBeNull();
-    expect(totalStars(s, 'coder')).toEqual({ stars: 60, max: 60 });
+    expect(totalStars(s, 'coder')).toEqual({ stars: 132, max: 132 });
     expect(realmStatus(s, 'coder', 'maze')).toMatchObject({ open: true, won: 8, total: 8, stars: 24, maxStars: 24, cleared: true });
     expect(followingLevel('coder', LEVELS[0]!)?.id).toBe('maze-02');
     expect(followingLevel('coder', LEVELS[LEVELS.length - 1]!)).toBeNull();
@@ -412,14 +412,16 @@ describe('a full playthrough leaves quest progress alone', () => {
     expect(store.data['gio.path']).toBe(before['gio.path']);
     expect(Object.keys(store.data).sort()).toEqual(['gio.adventure', 'gio.adventure.code', 'gio.path', 'gio.progress', 'gio.rewards']);
     const state = readAdventure(store);
-    expect(totalStars(state, 'coder')).toEqual({ stars: 60, max: 60 });
-    expect(totalStars(state, 'little')).toEqual({ stars: 54, max: 54 });
-    expect(Object.keys(readPlans(store))).toHaveLength(38);
+    expect(totalStars(state, 'coder')).toEqual({ stars: 132, max: 132 });
+    expect(totalStars(state, 'little')).toEqual({ stars: 108, max: 108 });
+    expect(Object.keys(readPlans(store))).toHaveLength(80);
     const rewards = parseRewards(JSON.parse(store.data['gio.rewards']!));
     expect(rewards.stickers).toEqual(expect.arrayContaining(['adventurer', 'bug-fixer']));
-    // Coders free Dot, Olly (with REPEAT) and Hoot (with IF); Little Turtles meet Olly too but never Hoot.
-    expect(rewards.friends).toEqual(['dot', 'olly', 'hoot']);
-    expect(state.critters).toBe(1);
+    // Coders free Dot, Olly (REPEAT), Hoot (IF), Bree (TO), Nutmeg (MAKE) and Spindle (a command that calls itself).
+    // Little Turtles meet Dot and Olly too, and free critters where coders meet the coder-only friends.
+    expect(rewards.friends).toEqual(['dot', 'olly', 'hoot', 'bree', 'nutmeg', 'spindle']);
+    // river-06, cave-08 and castle-07 for Little Turtles, hills-03 for coders.
+    expect(state.critters).toBe(4);
   });
 
   it('survives storage that throws or holds garbage', () => {
