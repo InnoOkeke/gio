@@ -6,7 +6,7 @@ import { AdventureWorld, MAX_BEATS } from '../src/logo/adventure/world.js';
 import { ADVENTURE_LOOKUP, ADVENTURE_WORDS } from '../src/logo/adventure/words.js';
 import { LEVELS } from '../src/logo/adventure/levels/index.js';
 import { PRIMITIVES, SPECIAL_FORMS, GAME_KEYS } from '../src/logo/primitives.js';
-import { commandCount } from '../src/logo/quests.js';
+import { commandCount, features } from '../src/logo/quests.js';
 import { mulberry32 } from '../src/logo/seeded.js';
 import { ADVENTURE_NAIVE, ADVENTURE_NO_GEM, ADVENTURE_REFERENCE, ADVENTURE_WASTEFUL } from './solutions/adventure.js';
 import { solve } from './helpers/adventure-solver.js';
@@ -137,7 +137,9 @@ describe('Maze references, naive plans and stars', () => {
       expect(blocks.ok, level.id).toBe(true);
       if (!blocks.ok) continue;
       const again = blocksToLogo(blocks.blocks);
-      expect(JSON.stringify(playLevel(level, 'little', again).trace)).toBe(JSON.stringify(playLevel(level, 'little', ref).trace));
+      // Blocks put each command on its own line, so compare what Gio does, not the line numbers.
+      const moves = (code: string) => JSON.stringify(playLevel(level, 'little', code).trace.map(({ line: _line, ...ev }) => ev));
+      expect(moves(again), level.id).toBe(moves(ref));
     }
   });
 
@@ -152,6 +154,62 @@ describe('Maze references, naive plans and stars', () => {
     const out = playLevel(LEVELS[0]!, 'coder', 'REPEAT 4 [FD 50]');
     expect(out.status).toBe('error');
     expect(out.message).toMatch(/REPEAT isn't part of this level/);
+  });
+});
+
+describe('Whispering Woods and Rolling River', () => {
+  const realm = (r: string, mode: AgeModeId) => LEVELS.filter((l) => l.realm === r && l.modes.includes(mode)).map((l) => l.id);
+  const uses = (id: string, mode: AgeModeId) => {
+    const level = LEVELS.find((l) => l.id === id)!;
+    const res = checkAdventure(level, mode, ADVENTURE_REFERENCE[id]![mode]!);
+    if (!res.ok) throw new Error(res.problem.message);
+    return res.program;
+  };
+
+  it('gives each mode six levels per world, ending in the boss', () => {
+    expect(realm('woods', 'coder')).toEqual(['woods-01', 'woods-02', 'woods-03', 'woods-04', 'woods-06', 'woods-07']);
+    expect(realm('woods', 'little')).toEqual(['woods-01', 'woods-02', 'woods-03', 'woods-05', 'woods-06', 'woods-07']);
+    expect(realm('river', 'coder')).toEqual(['river-01', 'river-02', 'river-03', 'river-04', 'river-05', 'river-07']);
+    expect(realm('river', 'little')).toEqual(['river-01', 'river-02', 'river-03', 'river-04', 'river-06', 'river-07']);
+    for (const id of ['woods-07', 'river-07']) expect(LEVELS.find((l) => l.id === id)!.kind).toBe('boss');
+  });
+
+  it('every Woods reference uses REPEAT, and the Snake uses a REPEAT inside a REPEAT', () => {
+    for (const level of LEVELS.filter((l) => l.realm === 'woods')) {
+      for (const mode of level.modes) expect(features(uses(level.id, mode)).has('REPEAT'), `${level.id} ${mode}`).toBe(true);
+    }
+    expect(features(uses('woods-04', 'coder')).has('NEST')).toBe(true);
+  });
+
+  it('from level 2 every River reference decides with IF, and Little Turtles never need IFELSE', () => {
+    for (const level of LEVELS.filter((l) => l.realm === 'river' && l.n > 1)) {
+      for (const mode of level.modes) expect(features(uses(level.id, mode)).has('IF'), `${level.id} ${mode}`).toBe(true);
+      expect(level.allow.little.includes('IFELSE')).toBe(false);
+    }
+  });
+
+  it('river levels with variants beat a plan that remembers one river', () => {
+    const withVariants = LEVELS.filter((l) => (l.variants?.length ?? 0) > 0);
+    expect(withVariants.map((l) => l.id)).toEqual(['river-02', 'river-03', 'river-05', 'river-06', 'river-07']);
+    for (const level of withVariants) {
+      const naive = ADVENTURE_NAIVE[level.id]!.code;
+      for (const mode of level.modes) {
+        const out = playLevel(level, mode, naive);
+        // The hard-coded plan wins the first river and fails on another map.
+        expect(playLevel({ ...level, variants: [] }, mode, naive).status, level.id).toBe('won');
+        expect(out.status).toBe('lost');
+        expect(out.message.startsWith('On another map: ')).toBe(true);
+        expect(out.variants).toHaveLength(2);
+      }
+    }
+  });
+
+  it('the Big Stump Grumble catches a plan that leaves the stairs early, and the reference slips past it', () => {
+    const boss = LEVELS.find((l) => l.id === 'woods-07')!;
+    expect(playLevel(boss, 'coder', ADVENTURE_NAIVE['woods-07']!.code).reason).toBe('enemy');
+    const out = playLevel(boss, 'coder', ADVENTURE_REFERENCE['woods-07']!.coder!);
+    expect(out.trace.some((e) => e.type === 'hit')).toBe(false);
+    expect(out).toMatchObject({ status: 'won', gems: 3 });
   });
 });
 
@@ -188,8 +246,10 @@ describe('Determinism', () => {
 
   it('gives equal outcomes for 300 random plans per level', () => {
     const rand = mulberry32(2026);
+    const ACTIONS = new Set(['FORWARD', 'BACK', 'RIGHT', 'LEFT', 'SWIM', 'JUMP', 'FREE', 'REST']);
     for (const level of LEVELS) {
-      const words = level.allow.coder;
+      const mode = level.modes.includes('coder') ? 'coder' : 'little';
+      const words = level.allow[mode].filter((w) => ACTIONS.has(w));
       for (let k = 0; k < 300; k++) {
         const lines: string[] = [];
         const count = 1 + Math.floor(rand() * 8);
@@ -202,8 +262,8 @@ describe('Determinism', () => {
           else lines.push(w);
         }
         const code = lines.join('\n');
-        const a = playLevel(level, 'coder', code);
-        expect(JSON.stringify(a), code).toBe(JSON.stringify(playLevel(level, 'coder', code)));
+        const a = playLevel(level, mode, code);
+        expect(JSON.stringify(a), code).toBe(JSON.stringify(playLevel(level, mode, code)));
         expect(['won', 'lost', 'unfinished']).toContain(a.status);
       }
     }

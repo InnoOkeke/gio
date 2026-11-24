@@ -9,7 +9,7 @@ import { useTwoPane } from '../responsive/useMedia';
 import { RealmBanner } from '../adventure/art/banner';
 import { LevelTiles } from '../adventure/LevelTiles';
 import { lockedText, REALMS } from '../adventure/realms';
-import { levelsFor, nextLevel, realmLevels, realmsFor, realmStatus, totalStars } from '../adventure/state';
+import { levelNumber, levelsFor, nextLevel, realmLevels, realmsFor, realmStatus, totalStars } from '../adventure/state';
 import { useAdventure } from '../adventure/useAdventure';
 import '../adventure/adventure.css';
 
@@ -71,7 +71,7 @@ export default function Adventure() {
               {next ? (
                 <>
                   <p className="adv-hero-line">
-                    Level {next.n}: {next.title}
+                    Level {levelNumber(next, m)}: {next.title}
                   </p>
                   <p className="adv-hero-sub">{REALMS[next.realm].name}</p>
                 </>

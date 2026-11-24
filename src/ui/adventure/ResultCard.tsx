@@ -12,6 +12,8 @@ import { StarRow } from './StarRow';
 
 export interface ResultCardProps {
   level: Level;
+  /** The level's number as this child's mode counts it. Defaults to `level.n`. */
+  number?: number;
   outcome: LevelOutcome;
   /** The best stars so far, after this run. */
   stars: number;
@@ -32,7 +34,7 @@ export interface ResultCardProps {
 }
 
 /** What a finished run says: stars and the rule for the next one after a win, one kind sentence after a miss. */
-export function ResultCard({ level, outcome, stars, par, next, opened, friendLine, stickers, offerHint, onHint, onTryAgain, onClose }: ResultCardProps) {
+export function ResultCard({ level, number, outcome, stars, par, next, opened, friendLine, stickers, offerHint, onHint, onTryAgain, onClose }: ResultCardProps) {
   const won = outcome.status === 'won';
   const primary = useRef<HTMLAnchorElement & HTMLButtonElement>(null);
   const nextRule = won ? nextStarRule(stars, outcome.commands, par) : null;
@@ -49,7 +51,7 @@ export function ResultCard({ level, outcome, stars, par, next, opened, friendLin
           <TurtleSprite mood={won ? 'cheer' : 'curious'} />
         </div>
         <p className="eyebrow m-0">
-          Level {level.n}: {level.title}
+          Level {number ?? level.n}: {level.title}
         </p>
         <h2 id="adv-result-title" className="adv-result-title">
           {title}

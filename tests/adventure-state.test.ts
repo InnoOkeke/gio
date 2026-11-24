@@ -184,13 +184,13 @@ describe('unlocking on the real Maze levels', () => {
   });
 
   it('gives Little Turtles six levels and makes maze-06 their gate', () => {
-    expect(levelsFor('little').map((l) => l.id)).toEqual(['maze-01', 'maze-02', 'maze-03', 'maze-04', 'maze-05', 'maze-06']);
+    expect(levelsFor('little').filter((l) => l.realm === 'maze').map((l) => l.id)).toEqual(['maze-01', 'maze-02', 'maze-03', 'maze-04', 'maze-05', 'maze-06']);
     expect(gateLevel('maze', 'little')?.id).toBe('maze-06');
     expect(gateLevel('maze', 'coder')?.id).toBe('maze-08');
     expect(levelStatus(emptyAdventure(), 'little', LEVELS.find((l) => l.id === 'maze-07')!).open).toBe(false);
   });
 
-  it('wins the whole Maze with the references and reports totals', () => {
+  it('wins every level with the references and reports totals', () => {
     let s = emptyAdventure();
     for (const level of levelsFor('coder')) {
       expect(levelStatus(s, 'coder', level).open).toBe(true);
@@ -199,7 +199,7 @@ describe('unlocking on the real Maze levels', () => {
       s = recordLevel(s, 'coder', level, out, TODAY).state;
     }
     expect(nextLevel(s, 'coder')).toBeNull();
-    expect(totalStars(s, 'coder')).toEqual({ stars: 24, max: 24 });
+    expect(totalStars(s, 'coder')).toEqual({ stars: 60, max: 60 });
     expect(realmStatus(s, 'coder', 'maze')).toMatchObject({ open: true, won: 8, total: 8, stars: 24, maxStars: 24, cleared: true });
     expect(followingLevel('coder', LEVELS[0]!)?.id).toBe('maze-02');
     expect(followingLevel('coder', LEVELS[LEVELS.length - 1]!)).toBeNull();
@@ -333,6 +333,35 @@ describe('rewardFor', () => {
     expect(rewardFor(level, 'coder', 'FD 50\nREST\nFREE', out)?.fixedBug).toBe(true);
   });
 
+  it('frees Olly in the real Woods only for a plan with REPEAT, in both modes', () => {
+    const level = LEVELS.find((l) => l.id === 'woods-06')!;
+    const plain = 'FD 150\nRT 90\nFD 150\nRT 90\nFD 150\nRT 90\nFREE';
+    for (const mode of ['coder', 'little'] as AgeModeId[]) {
+      const looped = ADVENTURE_REFERENCE['woods-06']![mode]!;
+      const withLoop = applyEvent(emptyRewards(), rewardFor(level, mode, looped, playLevel(level, mode, looped))!, TODAY);
+      expect(withLoop.newFriends).toEqual(['olly']);
+      const out = playLevel(level, mode, plain);
+      expect(out).toMatchObject({ status: 'won', friendsFreed: 1 });
+      expect(applyEvent(emptyRewards(), rewardFor(level, mode, plain, out)!, TODAY).newFriends).toEqual([]);
+    }
+  });
+
+  it('frees Hoot in the real River only for a Turtle Coder plan with IF; the Little tree frees a critter', () => {
+    const hoot = LEVELS.find((l) => l.id === 'river-05')!;
+    expect(hoot.modes).toEqual(['coder']);
+    const code = ADVENTURE_REFERENCE['river-05']!.coder!;
+    const event = rewardFor(hoot, 'coder', code, playLevel(hoot, 'coder', code))!;
+    expect(event.features).toEqual(['IF']);
+    expect(applyEvent(emptyRewards(), event, TODAY).newFriends).toEqual(['hoot']);
+    // The same IF plan from a Little Turtle would never add the coder-only Hoot.
+    expect(applyEvent(emptyRewards(), { ...event, mode: 'little' }, TODAY).newFriends).toEqual([]);
+    const tree = LEVELS.find((l) => l.id === 'river-06')!;
+    const little = ADVENTURE_REFERENCE['river-06']!.little!;
+    const out = playLevel(tree, 'little', little);
+    expect(applyEvent(emptyRewards(), rewardFor(tree, 'little', little, out)!, TODAY).newFriends).toEqual([]);
+    expect(recordLevel(emptyAdventure(), 'little', tree, out, TODAY).state.critters).toBe(1);
+  });
+
   it('flags the real maze-05 fix once it is solved', () => {
     const level = LEVELS.find((l) => l.id === 'maze-05')!;
     const code = ADVENTURE_REFERENCE['maze-05']!.coder!;
@@ -383,12 +412,14 @@ describe('a full playthrough leaves quest progress alone', () => {
     expect(store.data['gio.path']).toBe(before['gio.path']);
     expect(Object.keys(store.data).sort()).toEqual(['gio.adventure', 'gio.adventure.code', 'gio.path', 'gio.progress', 'gio.rewards']);
     const state = readAdventure(store);
-    expect(totalStars(state, 'coder')).toEqual({ stars: 24, max: 24 });
-    expect(totalStars(state, 'little')).toEqual({ stars: 18, max: 18 });
-    expect(Object.keys(readPlans(store))).toHaveLength(14);
+    expect(totalStars(state, 'coder')).toEqual({ stars: 60, max: 60 });
+    expect(totalStars(state, 'little')).toEqual({ stars: 54, max: 54 });
+    expect(Object.keys(readPlans(store))).toHaveLength(38);
     const rewards = parseRewards(JSON.parse(store.data['gio.rewards']!));
     expect(rewards.stickers).toEqual(expect.arrayContaining(['adventurer', 'bug-fixer']));
-    expect(rewards.friends).toEqual(['dot']);
+    // Coders free Dot, Olly (with REPEAT) and Hoot (with IF); Little Turtles meet Olly too but never Hoot.
+    expect(rewards.friends).toEqual(['dot', 'olly', 'hoot']);
+    expect(state.critters).toBe(1);
   });
 
   it('survives storage that throws or holds garbage', () => {

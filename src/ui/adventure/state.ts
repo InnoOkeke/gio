@@ -50,6 +50,12 @@ export function realmLevels(realm: RealmId, mode: AgeModeId, levels: readonly Le
   return levels.filter((l) => l.realm === realm && l.modes.includes(mode)).sort((a, b) => a.n - b.n);
 }
 
+/** The number a child sees on a level: its place among the levels their mode plays in that realm (1, 2, 3 with no gaps). */
+export function levelNumber(level: Level, mode: AgeModeId, levels: readonly Level[] = LEVELS): number {
+  const at = realmLevels(level.realm, mode, levels).findIndex((l) => l.id === level.id);
+  return at >= 0 ? at + 1 : level.n;
+}
+
 /** Realms a mode plays at all, in order. Coder-only realms are skipped for Little Turtles. */
 export function realmsFor(mode: AgeModeId, levels: readonly Level[] = LEVELS): RealmId[] {
   return REALM_ORDER.filter((r) => realmLevels(r, mode, levels).length > 0);

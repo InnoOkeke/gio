@@ -14,7 +14,7 @@ import { realmName } from '../adventure/realms';
 import { ResultCard } from '../adventure/ResultCard';
 import { cellAhead } from '../adventure/scene-state';
 import { StarRow } from '../adventure/StarRow';
-import { followingLevel, levelKey, levelStatus } from '../adventure/state';
+import { followingLevel, levelKey, levelNumber, levelStatus } from '../adventure/state';
 import { usePlay } from '../adventure/usePlay';
 import { useAdventure, type FinishResult } from '../adventure/useAdventure';
 import '../adventure/adventure.css';
@@ -279,7 +279,7 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
           </Link>
           <div className="adv-title-block">
             <p className="adv-eyebrow">
-              {realmName(level.realm)} <span aria-hidden="true">&middot;</span> Level {level.n}
+              {realmName(level.realm)} <span aria-hidden="true">&middot;</span> Level {levelNumber(level, mode)}
             </p>
             <h1 className="adv-title">{level.title}</h1>
           </div>
@@ -361,6 +361,7 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
       {resultOpen && finished && (
         <ResultCard
           level={level}
+          number={levelNumber(level, mode)}
           outcome={finished.outcome}
           stars={record?.stars ?? finished.outcome.stars}
           par={par}

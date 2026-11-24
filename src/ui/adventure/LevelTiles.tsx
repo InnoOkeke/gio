@@ -3,7 +3,7 @@ import { LEVELS, type AgeModeId, type Level, type RealmId } from '../../logo/adv
 import { LockIcon } from '../components/icons';
 import { realmName } from './realms';
 import { StarRow } from './StarRow';
-import { levelStatus, realmLevels, type AdventureState } from './state';
+import { levelNumber, levelStatus, realmLevels, type AdventureState } from './state';
 
 const KIND_WORD: Record<Level['kind'], string | null> = { play: null, fix: 'Fix it', boss: 'Boss' };
 
@@ -24,10 +24,11 @@ export function LevelTiles({ realm, mode, state, levels = LEVELS, current = null
       {list.map((level) => {
         const status = levelStatus(state, mode, level, levels);
         const kind = KIND_WORD[level.kind];
+        const n = levelNumber(level, mode, levels);
         const inner = (
           <>
             <span className="adv-tile-n" aria-hidden="true">
-              {level.n}
+              {n}
             </span>
             <span className="adv-tile-body">
               <span className="adv-tile-title">{level.title}</span>
@@ -39,11 +40,11 @@ export function LevelTiles({ realm, mode, state, levels = LEVELS, current = null
         return (
           <li key={level.id}>
             {status.open ? (
-              <Link to={`/adventure/${level.id}`} className="adv-tile" data-current={current === level.id} aria-label={`Level ${level.n}, ${level.title}${kind ? `, ${kind}` : ''}, ${status.stars} of 3 stars`}>
+              <Link to={`/adventure/${level.id}`} className="adv-tile" data-current={current === level.id} aria-label={`Level ${n}, ${level.title}${kind ? `, ${kind}` : ''}, ${status.stars} of 3 stars`}>
                 {inner}
               </Link>
             ) : (
-              <div className="adv-tile" data-locked="true" role="group" aria-label={`Level ${level.n}, ${level.title}, locked`}>
+              <div className="adv-tile" data-locked="true" role="group" aria-label={`Level ${n}, ${level.title}, locked`}>
                 {inner}
               </div>
             )}

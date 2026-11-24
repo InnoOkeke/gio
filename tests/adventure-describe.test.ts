@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { levelById } from '../src/logo/adventure/levels/index.js';
 import { buildActions } from '../src/ui/adventure/actions';
 import { cellWord, describeRows, describeScene, whereWords } from '../src/ui/adventure/describe';
+import { pickPlayback } from '../src/ui/adventure/playback';
 import { initialScene, sceneAt } from '../src/ui/adventure/scene-state';
 import { ADVENTURE_NAIVE, ADVENTURE_REFERENCE } from './solutions/adventure.js';
 import { lab, play } from './helpers/adventure-lab';
@@ -91,9 +92,9 @@ describe('narration', () => {
     expect(texts('maze-01', 'FD 200')).toEqual(['Gio walks 2 steps. Gio picks up a gem', null, 'Gio walks 2 steps', null, 'Gio did it!']);
   });
 
-  it('reads every Maze reference without a missing line', () => {
+  it('reads every reference without a missing line', () => {
     for (const [id, modes] of Object.entries(ADVENTURE_REFERENCE)) {
-      const lines = texts(id, modes.coder!);
+      const lines = texts(id, (modes.coder ?? modes.little)!);
       expect(lines[lines.length - 1]).toBe('Gio did it!');
       expect(lines.filter((t) => t !== null).every((t) => t!.length > 0)).toBe(true);
       expect(lines[0]).not.toBeNull();
@@ -115,9 +116,10 @@ describe('narration', () => {
     for (const [id, naive] of Object.entries(ADVENTURE_NAIVE)) {
       if (naive.status !== 'lost') continue;
       const l = level(id);
-      const outcome = play(l, naive.code);
-      const lines = buildActions(l, outcome.trace, outcome.message).map((a) => a.text);
-      expect(lines[lines.length - 1]).toBe(outcome.message);
+      // A plan that wins the first river and fails on another is shown on the map where it failed.
+      const shown = pickPlayback(l, play(l, naive.code));
+      const lines = buildActions(l, shown.trace, shown.loseMessage).map((a) => a.text);
+      expect(lines[lines.length - 1], id).toBe(shown.loseMessage);
     }
     expect(texts('maze-03', ADVENTURE_NAIVE['maze-03']!.code).at(-1)).toBe('Oof, a rock!');
   });

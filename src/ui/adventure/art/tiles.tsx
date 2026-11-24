@@ -35,7 +35,7 @@ export const REALM_PALETTES: Record<RealmId, RealmPalette> = {
 };
 
 /** Symbol ids used by the scene. `uid` keeps them apart when several scenes share a page. */
-export type TileSymbol = 'groundA' | 'groundB' | 'rock' | 'water' | 'bridge' | 'gem' | 'flag' | 'bars' | 'gate' | 'boots' | 'shield' | 'fire';
+export type TileSymbol = 'groundA' | 'groundB' | 'rock' | 'water' | 'bridge' | 'gem' | 'flag' | 'bars' | 'gate' | 'boots' | 'shield' | 'fire' | 'tree';
 
 export const symbolId = (uid: string, name: TileSymbol): string => `${uid}-${name}`;
 
@@ -63,6 +63,13 @@ export function TileDefs({ uid, palette }: { uid: string; palette: RealmPalette 
         <path d="M 7 40 Q 4 26 13 17 Q 20 7 31 10 Q 44 12 45 27 Q 47 38 40 43 Q 24 47 7 40 Z" fill={palette.rock} {...EDGE} strokeWidth={2.4} />
         <path d="M 14 24 Q 17 15 27 14" fill="none" stroke={palette.rockHigh} strokeWidth="3.4" strokeLinecap="round" />
         <path d="M 29 30 L 36 36 M 22 36 L 27 40" fill="none" stroke={INK} strokeOpacity="0.3" strokeWidth="1.6" strokeLinecap="round" />
+      </symbol>
+      <symbol id={id('tree')} viewBox={view}>
+        <ellipse cx="25" cy="45" rx="14" ry="3.6" fill={INK} fillOpacity="0.18" />
+        <path d="M 21 46 L 22 33 L 28 33 L 29 46 Z" fill={palette.wood} {...EDGE} strokeWidth={1.8} />
+        <path d="M 25 4 Q 34 4 37 12 Q 45 15 43 24 Q 45 33 36 35 Q 30 40 24 36 Q 15 39 11 32 Q 4 28 8 20 Q 7 10 16 9 Q 19 4 25 4 Z" fill={palette.tuft} {...EDGE} strokeWidth={2.2} />
+        <path d="M 15 17 Q 18 11 25 11" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" />
+        <path d="M 30 22 q 3 -3 6 0 M 18 27 q 3 -3 6 0" fill="none" stroke={INK} strokeOpacity="0.3" strokeWidth="1.6" strokeLinecap="round" />
       </symbol>
       <symbol id={id('water')} viewBox={view}>
         <rect width={TILE} height={TILE} fill={palette.water} />
@@ -128,10 +135,10 @@ export function groundFor(col: number, row: number): TileSymbol {
 }
 
 /** The tile under a map character, and the overlay on top of it (if any). `S` and `.` are plain ground. */
-export function tileFor(ch: string, col: number, row: number): { base: TileSymbol; over: TileSymbol | null } {
+export function tileFor(ch: string, col: number, row: number, realm?: RealmId): { base: TileSymbol; over: TileSymbol | null } {
   switch (ch) {
     case '#':
-      return { base: groundFor(col, row), over: 'rock' };
+      return { base: groundFor(col, row), over: realm === 'woods' ? 'tree' : 'rock' };
     case '~':
       return { base: 'water', over: null };
     case '=':

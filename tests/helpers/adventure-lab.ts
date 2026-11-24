@@ -25,6 +25,7 @@ export function lab(map: string[], over: Partial<Level> = {}): Level {
   };
 }
 
+/** Play as a Turtle Coder, or as a Little Turtle on a level only they play. */
 export function play(level: Level, code: string): LevelOutcome {
-  return playLevel(level, 'coder', code);
+  return playLevel(level, level.modes.includes('coder') ? 'coder' : level.modes[0]!, code);
 }

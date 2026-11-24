@@ -31,7 +31,7 @@ describe('AdventureScene', () => {
   it('draws every tile as a use of a shared symbol, so a 9 by 9 map stays light', () => {
     const html = render('maze-08');
     expect(count(html, '<use ')).toBeGreaterThanOrEqual(81);
-    expect(count(html, '<symbol ')).toBe(12);
+    expect(count(html, '<symbol ')).toBe(13);
     expect(count(html, '<path d="M 7 40')).toBe(1);
     expect(html).toContain('viewBox="0 0 450 450"');
   });
@@ -114,8 +114,8 @@ describe('AdventureScene', () => {
     const l = level('maze-01');
     const html = renderToStaticMarkup(createElement('div', null, createElement(AdventureScene, { level: l, scene: initialScene(l) }), createElement(AdventureScene, { level: l, scene: initialScene(l) })));
     const ids = [...html.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1]);
-    expect(ids).toHaveLength(24);
-    expect(new Set(ids).size).toBe(24);
+    expect(ids).toHaveLength(26);
+    expect(new Set(ids).size).toBe(26);
   });
 });
 

@@ -55,7 +55,9 @@ describe('adventure blocks and Logo', () => {
       const blocks = blocksOf(ref);
       const offered = new Set(littlePalette(level).groups.flatMap((g) => g.kinds));
       for (const k of kindsIn(blocks)) expect(offered.has(k as never), `${level.id} ${k}`).toBe(true);
-      expect(JSON.stringify(playLevel(level, 'little', blocksToLogo(blocks)).trace), level.id).toBe(JSON.stringify(playLevel(level, 'little', ref).trace));
+      // Blocks put each command on its own line, so compare what Gio does, not the line numbers.
+      const moves = (code: string) => JSON.stringify(playLevel(level, 'little', code).trace.map(({ line: _line, ...ev }) => ev));
+      expect(moves(blocksToLogo(blocks)), level.id).toBe(moves(ref));
       expect(planBlocks(blocksToLogo(blocks)), level.id).toEqual(blocks);
     }
   });

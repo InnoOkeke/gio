@@ -301,7 +301,7 @@ describe('AdventurePlayer frames, narration and sound', () => {
   it('every action is covered by exactly one action range, with no gaps', () => {
     for (const [id, modes] of Object.entries(ADVENTURE_REFERENCE)) {
       const l = levelById(id)!;
-      const outcome = play(l, modes.coder!);
+      const outcome = play(l, (modes.coder ?? modes.little)!);
       const actions = buildActions(l, outcome.trace);
       let next = 0;
       for (const a of actions) {

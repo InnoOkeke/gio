@@ -68,6 +68,13 @@ function adventureSeed(mode: 'coder' | 'little', won: string[], intros: string[]
   return { ...(mode === 'coder' ? coder : little), 'gio.adventure': { v: 1, levels, intros, bosses: [], critters: 0 } };
 }
 const MAZE_WON = ['maze-01', 'maze-02', 'maze-03', 'maze-04', 'maze-05', 'maze-06', 'maze-07'];
+/** Every Maze level a mode plays is won, so the Woods and the River are open. */
+const WAVE_A = ['maze', 'woods', 'river'];
+const CODER_MAZE = [...MAZE_WON, 'maze-08'];
+const LITTLE_MAZE = MAZE_WON.slice(0, 6);
+const CODER_WOODS = [...CODER_MAZE, 'woods-01', 'woods-02', 'woods-03', 'woods-04', 'woods-06'];
+const LITTLE_WOODS = [...LITTLE_MAZE, 'woods-01', 'woods-02', 'woods-03', 'woods-05', 'woods-06', 'woods-07'];
+const RIVER_LOOK = 'REPEAT 6 [IFELSE AHEAD = "water [SWIM] [FD 50]]';
 /** Press Go on an adventure level (the dock's Go on phones, the big Go button elsewhere). */
 const adventureGo = (c: Cdp) => c.click('.adv-go, .dock-run', 'Go');
 /** Type a plan and run it, then wait for the result card and let its stars finish popping. */
@@ -923,6 +930,51 @@ export const SCREENS: Screen[] = [
       if (!(await c.waitFor(`!!document.querySelector('.adv-result')`, 20000))) throw new Error('the result card did not open');
       await sleep(1300);
     },
+  },
+  // Content wave A (FEAT-7): Whispering Woods and Rolling River.
+  {
+    id: 'adventure-woods-run',
+    label: 'Adventure: a Whispering Woods level while Gio climbs the stairs',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', CODER_MAZE, WAVE_A), 'adventure/woods-01', '.adv-scene-box');
+      await c.type('REPEAT 5 [FD 50 RT 90 FD 50 LT 90]');
+      await adventureGo(c);
+      // Mid-run: Gio is on the stairs and the result card has not opened yet.
+      await sleep(1500);
+    },
+  },
+  { id: 'adventure-woods-boss', label: 'Adventure: Big Stump, the Woods boss, with a patrolling Grumble', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('coder', CODER_WOODS, WAVE_A), 'adventure/woods-07', '.adv-scene-box') },
+  {
+    id: 'adventure-river-variants',
+    label: 'Adventure: a River plan that looks ahead wins on every map (variant thumbnails)',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', [...CODER_WOODS, 'woods-07', 'river-01'], WAVE_A), 'adventure/river-02', '.adv-scene-box');
+      await c.click('[role=radio], button[aria-label^="Speed"]', 'Speed');
+      await adventureRun(c, RIVER_LOOK);
+    },
+  },
+  {
+    id: 'adventure-river-other-map',
+    label: 'Adventure: a plan that remembers one river fails on another map',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', [...CODER_WOODS, 'woods-07', 'river-01'], WAVE_A), 'adventure/river-02', '.adv-scene-box');
+      await c.click('[role=radio], button[aria-label^="Speed"]', 'Speed');
+      await adventureRun(c, 'FD 100\nSWIM\nFD 150');
+    },
+  },
+  {
+    id: 'adventure-little-river',
+    label: 'Adventure: Little Turtles on the River with If blocks',
+    ready: '.adv-scene-box',
+    open: (c) =>
+      c.seed(
+        { ...adventureSeed('little', [...LITTLE_WOODS, 'river-01'], WAVE_A), 'gio.adventure.code': { 'little:river-02': 'REPEAT 6 [IF AHEAD = "water [SWIM] IF AHEAD <> "water [FD 50]]' } },
+        'adventure/river-02',
+        '.adv-scene-box',
+      ),
   },
   { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },
   { id: 'hardware-keys', label: 'Hardware keyboard on tablets: arrows, Tab and Escape in the editor', open: hardwareKeyChecks },

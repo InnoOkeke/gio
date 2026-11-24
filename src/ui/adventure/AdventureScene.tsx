@@ -61,7 +61,7 @@ export function AdventureScene({ level, scene, mood = 'idle', tween = false, sec
         <TileDefs uid={uid} palette={palette} />
         {scene.cells.map((row, r) =>
           row.map((ch, c) => {
-            const { base, over } = tileFor(ch, c, r);
+            const { base, over } = tileFor(ch, c, r, level.realm);
             return (
               <g key={`${c},${r}`} transform={`translate(${c * TILE} ${r * TILE})`} data-cell={ch}>
                 <use href={`#${symbolId(uid, base)}`} width={TILE} height={TILE} />
