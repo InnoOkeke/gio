@@ -16,6 +16,8 @@
 .blocks-program {
   flex: 1;
   min-height: 0;
+  /* Blocks wrap, so the list scrolls up and down only; a drag's last few pixels never make it swipe sideways. */
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
