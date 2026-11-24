@@ -21,6 +21,7 @@ import '../adventure/adventure.css';
 import { FriendDialog } from '../components/lazy-overlays';
 import { ArrowLeftIcon, BulbIcon, PauseIcon, PlayIcon, ResetIcon, RabbitSpeedIcon, RocketSpeedIcon, StepIcon, TurtleSpeedIcon, SpeakerIcon } from '../components/icons';
 import { SoundToggle } from '../components/SoundToggle';
+import { WatchIcon } from '../adventure/WatchIcon';
 import { friendById, stickerById, type FriendId, type StickerId } from '../gio/catalog';
 import type { LogoEditorHandle } from '../editor/LogoEditor';
 import { useMode } from '../mode';
@@ -28,6 +29,8 @@ import { useRewards } from '../rewards';
 import { useIsCompact, useMedia } from '../responsive/useMedia';
 import type { Speed } from '../runtime/player';
 import { useReadAloud } from '../speech';
+import { useKeyboardInset } from '../responsive/useKeyboardInset';
+import { useWatchMode } from '../adventure/useWatchMode';
 
 const AdventureEditor = lazy(() => import('../adventure/AdventureEditor').then((m) => ({ default: m.AdventureEditor })));
 const AdventureBlocks = lazy(() => import('../adventure/AdventureBlocks').then((m) => ({ default: m.AdventureBlocks })));
@@ -88,6 +91,9 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
   const reduced = useMedia('(prefers-reduced-motion: reduce)');
   const speech = useReadAloud(mode === 'little');
   const editorRef = useRef<LogoEditorHandle>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const watch = useWatchMode(rootRef);
+  useKeyboardInset();
   const key = levelKey(mode, level.id);
 
   const [code, setCode] = useState(() => adventure.plans[key] ?? level.starter?.[mode] ?? '');
@@ -265,7 +271,7 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
   );
 
   return (
-    <div className="adv-root" data-status={play.status} data-realm={level.realm}>
+    <div className="adv-root" ref={rootRef} data-status={play.status} data-realm={level.realm} data-watch={watch.active ? 'true' : undefined}>
       <header className="adv-header">
         <div className="adv-header-bar">
           <Link to="/adventure" className="btn btn-quiet adv-back" aria-label="Back to the map">
@@ -312,6 +318,9 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
           <div className="adv-tools">
             <button type="button" className="btn btn-quiet adv-tool" onClick={() => setDescribeOpen(true)} aria-haspopup="dialog" aria-label="Describe the map">
               <SpeakerIcon size={22} />
+            </button>
+            <button ref={watch.buttonRef} type="button" className="btn btn-quiet adv-tool adv-watch" onClick={watch.toggle} aria-pressed={watch.active} aria-label={watch.active ? 'Leave watch mode' : 'Watch full screen'}>
+              <WatchIcon size={22} />
             </button>
             <button type="button" className="btn btn-quiet adv-tool" onClick={cycleSpeed} aria-label={`Speed: ${speedNow.label}. Tap to change`}>
               <speedNow.Icon size={24} />

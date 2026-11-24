@@ -1070,3 +1070,52 @@ html[data-layout='split'] .adv-editor[data-plan='blocks'] {
     min-height: 300px;
   }
 }
+/* Watch mode: the scene fills the screen with Go, Step, Reset and Hint under it. The plan is hidden, not unmounted, so the run and the plan carry on. */
+.adv-root[data-watch='true'] .adv-header,
+.adv-root[data-watch='true'] .adv-plan {
+  display: none !important;
+}
+.adv-root[data-watch='true'] {
+  --hdr: 0px;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+}
+html .adv-root[data-watch='true'] .adv-main {
+  min-height: 0;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: 'goal' 'scene' 'say' 'dock';
+  padding-top: max(10px, var(--safe-top));
+}
+.adv-root[data-watch='true'] .adv-scene-cell {
+  container-type: size;
+  min-height: 0;
+  align-items: center;
+}
+.adv-root[data-watch='true'] .adv-scene-box {
+  width: max(160px, min(100cqw, 100cqh)) !important;
+}
+@media (min-width: 600px) and (max-height: 500px) {
+  .adv-root[data-watch='true'] .adv-main {
+    grid-template-columns: var(--scene-w) minmax(0, 1fr) 72px !important;
+    grid-template-rows: auto minmax(0, 1fr) !important;
+    grid-template-areas: 'scene goal dock' 'scene say dock' !important;
+    padding-top: max(8px, var(--safe-top)) !important;
+  }
+  .adv-root[data-watch='true'] .adv-scene-box {
+    width: min(100cqw, 100cqh) !important;
+  }
+  /* The scene already fills the height here, so the Watch button only shows to leave watch mode. */
+  .adv-watch[aria-pressed='false'] {
+    display: none;
+  }
+  .adv-root[data-watch='true'] .adv-say {
+    flex-wrap: wrap;
+    align-content: flex-start;
+  }
+  .adv-root[data-watch='true'] .adv-bubble {
+    flex-basis: 100%;
+  }
+}

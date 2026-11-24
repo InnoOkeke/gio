@@ -902,6 +902,11 @@ export const SCREENS: Screen[] = [
     },
   },
   { id: 'adventure-boss', label: 'Adventure: a boss level with the Hedge Giant (Turtle Coders)', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('coder', MAZE_WON), 'adventure/maze-08', '.adv-scene-box') },
+  { id: 'adventure-watch', label: 'Adventure: watch mode (the scene fills the screen)', ready: '.adv-scene-box', open: async (c) => {
+    await c.seed(adventureSeed('coder', ['maze-01']), 'adventure/maze-02', '.adv-scene-box');
+    await c.click('.adv-watch');
+    if (!(await c.waitFor(`!!document.querySelector('.adv-root[data-watch=true]')`, 5000))) throw new Error('watch mode did not open');
+  } },
   { id: 'adventure-little', label: 'Adventure: a level for Little Turtles', ready: '.adv-scene-box', open: (c) => c.seed(adventureSeed('little', ['maze-01', 'maze-02']), 'adventure/maze-03', '.adv-scene-box') },  {
     id: 'adventure-little-win',
     label: 'Adventure: Little Turtles build a plan from blocks and win',
