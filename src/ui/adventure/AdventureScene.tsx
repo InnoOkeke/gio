@@ -85,7 +85,7 @@ export function AdventureScene({ level, scene, mood = 'idle', tween = false, sec
         ))}
         {scene.enemies.map((e) => (
           <g key={e.id} data-enemy={e.id} style={{ transform: `translate(${e.col * TILE}px, ${e.row * TILE}px)`, transition: tween ? `transform ${seconds}s linear` : 'none' }}>
-            <GrumbleArt color={palette.grumble} />
+            <GrumbleArt color={palette.grumble} realm={level.realm} />
           </g>
         ))}
         {trail.map(([c, r]) => (

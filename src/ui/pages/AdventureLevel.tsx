@@ -22,6 +22,7 @@ import { FriendDialog } from '../components/lazy-overlays';
 import { ArrowLeftIcon, BulbIcon, PauseIcon, PlayIcon, ResetIcon, RabbitSpeedIcon, RocketSpeedIcon, StepIcon, TurtleSpeedIcon, SpeakerIcon } from '../components/icons';
 import { SoundToggle } from '../components/SoundToggle';
 import { WatchIcon } from '../adventure/WatchIcon';
+import { rescueLine } from '../adventure/rescue';
 import { friendById, stickerById, type FriendId, type StickerId } from '../gio/catalog';
 import type { LogoEditorHandle } from '../editor/LogoEditor';
 import { useMode } from '../mode';
@@ -400,7 +401,7 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
 /** What happened to a caged friend, in a sentence: freed and welcomed, already known, or the cage opened without the friend coming home. */
 function friendStory(art: FriendId, feature: string | undefined, welcomed: boolean, owned: boolean): string {
   const name = friendById(art).name;
-  if (welcomed) return `You freed ${name}!`;
+  if (welcomed) return `You freed ${name}! ${rescueLine(art)}`.trim();
   if (owned) return `You already know ${name}!`;
   if (feature && feature !== 'bug-fixed') return `The cage is open! Next time try ${FEATURE_WORDS[feature] ?? feature} and ${name} will come home with you.`;
   return `The cage is open! Fix the bug in the plan and ${name} will come home with you.`;

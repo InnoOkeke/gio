@@ -24,6 +24,7 @@
     "check:adventure": "tsx scripts/adventure-shots.ts",
     "check:learning": "tsx scripts/learning-shots.ts",
     "report:stages": "tsx scripts/stages-report.ts",
+    "report:adventure": "tsx scripts/adventure-report.ts",
     "check:creativity": "tsx scripts/creativity-shots.ts",
     "build:icons": "tsx scripts/make-icons.ts",
     "check:offline": "tsx scripts/offline-check.ts"

@@ -3,7 +3,9 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { levelById, LEVELS } from '../src/logo/adventure/levels/index.js';
 import { AdventureScene } from '../src/ui/adventure/AdventureScene';
-import { BossArt, bossMoodStep } from '../src/ui/adventure/art/creatures';
+import type { RealmId } from '../src/logo/adventure/index.js';
+import { rescueLine } from '../src/ui/adventure/rescue';
+import { BossArt, bossMoodStep, GrumbleArt } from '../src/ui/adventure/art/creatures';
 import { REALM_PALETTES } from '../src/ui/adventure/art/tiles';
 import { describeScene } from '../src/ui/adventure/describe';
 import { cellPercent, initialScene, sceneAt } from '../src/ui/adventure/scene-state';
@@ -31,7 +33,7 @@ describe('AdventureScene', () => {
   it('draws every tile as a use of a shared symbol, so a 9 by 9 map stays light', () => {
     const html = render('maze-08');
     expect(count(html, '<use ')).toBeGreaterThanOrEqual(81);
-    expect(count(html, '<symbol ')).toBe(13);
+    expect(count(html, '<symbol ')).toBe(18);
     expect(count(html, '<path d="M 7 40')).toBe(1);
     expect(html).toContain('viewBox="0 0 450 450"');
   });
@@ -114,15 +116,15 @@ describe('AdventureScene', () => {
     const l = level('maze-01');
     const html = renderToStaticMarkup(createElement('div', null, createElement(AdventureScene, { level: l, scene: initialScene(l) }), createElement(AdventureScene, { level: l, scene: initialScene(l) })));
     const ids = [...html.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1]);
-    expect(ids).toHaveLength(32);
-    expect(new Set(ids).size).toBe(32);
+    expect(ids).toHaveLength(36);
+    expect(new Set(ids).size).toBe(36);
   });
 
   it('draws walls the way each realm builds them, and a dark fire stone under every fire cell', () => {
     const uses = (id: string, tile: string) => new RegExp(`href="#[^"]+-${tile}"`).test(render(id));
-    for (const [id, tile] of [['woods-01', 'tree'], ['cave-01', 'crystal'], ['castle-01', 'wall'], ['maze-03', 'rock']] as const) {
+    for (const [id, tile] of [['woods-01', 'tree'], ['cave-01', 'crystal'], ['castle-01', 'wall'], ['swamp-06', 'reed'], ['hills-02', 'mound'], ['maze-03', 'rock']] as const) {
       expect(uses(id, tile), `${id} ${tile}`).toBe(true);
-      for (const other of ['tree', 'crystal', 'wall', 'rock'].filter((t) => t !== tile)) expect(uses(id, other), `${id} ${other}`).toBe(false);
+      for (const other of ['tree', 'crystal', 'wall', 'reed', 'mound', 'rock'].filter((t) => t !== tile)) expect(uses(id, other), `${id} ${other}`).toBe(false);
     }
     const swamp = level('swamp-03');
     // Both fire stones show even on a beat when they are dark.
@@ -153,5 +155,26 @@ describe('boss picture', () => {
     // Strip the label and the art id: what is left is the drawing, and no two bosses share one.
     const drawings = pictures.map((html) => html.replace(/aria-label="[^"]*"|data-boss-art="[^"]*"/g, ''));
     expect(new Set(drawings).size).toBe(bosses.length);
+  });
+});
+describe('Grumbles and rescues', () => {
+  it('dresses the Grumble differently in each realm past the river, and never with a weapon', () => {
+    const at = (realm?: RealmId) => renderToStaticMarkup(createElement('svg', null, createElement(GrumbleArt, { color: '#fff', realm })));
+    const looks = (['maze', 'swamp', 'cave', 'hills', 'castle'] as const).map((r) => at(r));
+    expect(new Set(looks).size).toBe(5);
+    expect(at('woods')).toBe(at('maze'));
+    expect(at(undefined)).toBe(at('maze'));
+  });
+  it('tells a rescue story for every named friend in a cage, in words a child can read', () => {
+    const named = LEVELS.flatMap((l) => (l.friend && l.friend.art !== 'critter' ? [l.friend.art] : []));
+    expect(new Set(named)).toEqual(new Set(['dot', 'olly', 'hoot', 'bree', 'nutmeg', 'spindle']));
+    for (const id of named) {
+      const line = rescueLine(id);
+      expect(line.length, id).toBeGreaterThan(30);
+      expect(line.length, id).toBeLessThan(140);
+    }
+    expect(rescueLine('bree')).toContain('TO');
+    expect(rescueLine('nutmeg')).toContain('MAKE');
+    expect(rescueLine('spindle')).toContain('calls itself');
   });
 });

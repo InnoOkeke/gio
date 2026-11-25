@@ -51,7 +51,9 @@ export type TileSymbol =
   | 'ember'
   | 'tree'
   | 'crystal'
-  | 'wall';
+  | 'wall'
+  | 'reed'
+  | 'mound';
 
 export const symbolId = (uid: string, name: TileSymbol): string => `${uid}-${name}`;
 
@@ -101,6 +103,20 @@ export function TileDefs({ uid, palette }: { uid: string; palette: RealmPalette 
       <symbol id={id('ember')} viewBox={view}>
         <ellipse cx="25" cy="36" rx="15" ry="7" fill={palette.rock} {...EDGE} strokeWidth={2} />
         <path d="M 16 34 Q 20 30 24 34 M 27 36 Q 31 32 35 36" fill="none" stroke="#ff8a24" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" />
+      </symbol>
+      <symbol id={id('reed')} viewBox={view}>
+        <ellipse cx="25" cy="45" rx="15" ry="3.6" fill={INK} fillOpacity="0.18" />
+        <path d="M 12 46 Q 10 28 14 12 M 20 46 Q 19 24 22 6 M 28 46 Q 30 24 28 10 M 36 46 Q 40 28 37 16" fill="none" {...EDGE} strokeWidth={7} />
+        <path d="M 12 46 Q 10 28 14 12 M 20 46 Q 19 24 22 6 M 28 46 Q 30 24 28 10 M 36 46 Q 40 28 37 16" fill="none" stroke={palette.tuft} strokeWidth="4.4" strokeLinecap="round" />
+        <path d="M 12 46 Q 10 28 14 12 M 20 46 Q 19 24 22 6 M 28 46 Q 30 24 28 10 M 36 46 Q 40 28 37 16" fill="none" stroke={palette.groundA} strokeWidth="1.4" strokeLinecap="round" />
+        <ellipse cx="22" cy="10" rx="3" ry="6" fill={palette.wood} {...EDGE} strokeWidth={1.6} />
+        <ellipse cx="28" cy="13" rx="3" ry="6" fill={palette.wood} {...EDGE} strokeWidth={1.6} />
+      </symbol>
+      <symbol id={id('mound')} viewBox={view}>
+        <path d="M 3 46 Q 6 14 25 12 Q 44 14 47 46 Z" fill={palette.rock} {...EDGE} strokeWidth={2.4} />
+        <path d="M 12 30 Q 15 20 25 18" fill="none" stroke={palette.rockHigh} strokeWidth="3.4" strokeLinecap="round" />
+        <path d="M 8 36 Q 25 28 42 36 M 13 42 Q 25 36 37 42" fill="none" stroke={INK} strokeOpacity="0.3" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M 22 12 q 3 -6 6 0" fill="none" stroke={palette.tuft} strokeWidth="2.4" strokeLinecap="round" />
       </symbol>
       <symbol id={id('water')} viewBox={view}>
         <rect width={TILE} height={TILE} fill={palette.water} />
@@ -166,7 +182,7 @@ export function groundFor(col: number, row: number): TileSymbol {
 }
 
 /** What `#` looks like in each realm. It always senses as rock. */
-const WALL_BY_REALM: Partial<Record<RealmId, TileSymbol>> = { woods: 'tree', cave: 'crystal', castle: 'wall' };
+const WALL_BY_REALM: Partial<Record<RealmId, TileSymbol>> = { woods: 'tree', swamp: 'reed', cave: 'crystal', hills: 'mound', castle: 'wall' };
 
 /** The tile under a map character, and the overlay on top of it (if any). `S` and `.` are plain ground. */
 export function tileFor(ch: string, col: number, row: number, realm?: RealmId): { base: TileSymbol; over: TileSymbol | null } {

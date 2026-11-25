@@ -1,4 +1,5 @@
 import type { ReactElement } from 'react';
+import type { RealmId } from '../../../logo/adventure/level.js';
 import type { Level } from '../../../logo/adventure/level.js';
 import { FRIEND_ART } from '../../components/gio/FriendArt';
 import type { FriendId } from '../../gio/catalog';
@@ -7,13 +8,43 @@ import { symbolId, type RealmPalette } from './tiles';
 const INK = '#17261f';
 const LINE = { fill: 'none', stroke: INK, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
 
-/** A Grumble in a 50 by 50 tile: round, big-eyed and cross, never scary. No weapons. */
-export function GrumbleArt({ color }: { color: string }): ReactElement {
+/** What a Grumble wears in the realms past the river. Round shapes only, and nothing that looks like a weapon. */
+function GrumbleHat({ realm }: { realm: RealmId }): ReactElement {
+  switch (realm) {
+    case 'swamp':
+      // A lily pad with a small pink flower.
+      return (
+        <g>
+          <ellipse cx="25" cy="11" rx="11" ry="5" fill="#2fa36b" stroke={INK} strokeOpacity="0.45" strokeWidth="1.8" />
+          <circle cx="27" cy="6" r="3.4" fill="#ffb3cf" stroke={INK} strokeOpacity="0.45" strokeWidth="1.4" />
+        </g>
+      );
+    case 'cave':
+      // Two little crystal nubs.
+      return (
+        <g>
+          <path d="M 13 15 L 15 4 L 20 12 Z M 30 12 L 35 4 L 37 15 Z" fill="#c9b8ff" stroke={INK} strokeOpacity="0.45" strokeWidth="1.8" strokeLinejoin="round" />
+        </g>
+      );
+    case 'hills':
+      // A tuft of orange grass.
+      return <path d="M 25 11 L 18 2 M 25 11 L 25 0 M 25 11 L 32 2" {...LINE} stroke="#f97316" strokeWidth={3} />;
+    default:
+      // A round tin helmet with a brim.
+      return (
+        <g>
+          <path d="M 11 15 Q 11 3 25 3 Q 39 3 39 15 Z" fill="#aaa8b6" stroke={INK} strokeOpacity="0.45" strokeWidth="2" strokeLinejoin="round" />
+          <path d="M 8 16 L 42 16" {...LINE} strokeOpacity="0.5" strokeWidth={3} />
+        </g>
+      );
+  }
+}/** A Grumble in a 50 by 50 tile: round, big-eyed and cross, never scary. No weapons. */
+export function GrumbleArt({ color, realm }: { color: string; realm?: RealmId }): ReactElement {
   return (
     <g>
       <ellipse cx="25" cy="44" rx="13" ry="3.4" fill={INK} fillOpacity="0.18" />
       <circle cx="25" cy="26" r="16" fill={color} stroke={INK} strokeOpacity="0.45" strokeWidth="2.2" />
-      <path d="M 14 14 L 17 8 M 25 10 L 25 4 M 36 14 L 33 8" {...LINE} strokeOpacity="0.5" />
+      {realm === undefined || realm === 'maze' || realm === 'woods' || realm === 'river' ? <path d="M 14 14 L 17 8 M 25 10 L 25 4 M 36 14 L 33 8" {...LINE} strokeOpacity="0.5" /> : <GrumbleHat realm={realm} />}
       <circle cx="19" cy="25" r="5" fill="#fff" stroke={INK} strokeWidth="1.4" />
       <circle cx="31" cy="25" r="5" fill="#fff" stroke={INK} strokeWidth="1.4" />
       <circle cx="20" cy="26" r="2.4" fill={INK} />
