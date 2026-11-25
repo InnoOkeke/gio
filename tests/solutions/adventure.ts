@@ -64,7 +64,7 @@ export const ADVENTURE_REFERENCE: Record<string, Partial<Record<AgeModeId, strin
   'cave-09': both('FD 100\nREST\nREPEAT 3 [JUMP]'),
   'hills-01': { coder: 'MAKE "n 3\nFD :n * 50\nRT 90\nFD :n * 50' },
   'hills-02': { coder: 'MAKE "n 1\nREPEAT 4 [FD :n * 50 RT 90 MAKE "n :n + 1]' },
-  'hills-03': { coder: 'FD 250\nRT 90\nFD GEMS * 50\nFREE' },
+  'hills-03': { coder: 'FD 250\nRT 90\nFD GEMS * 50' },
   'hills-04': { coder: 'MAKE "n 0\nREPEAT 6 [IF AHEAD = "clear [FD 50 MAKE "n :n + 1]]\nRT 90\nFD :n * 50' },
   'hills-05': { coder: 'MAKE "n 1\nREPEAT 3 [FD :n * 50 RT 90 FD :n * 50 LT 90 MAKE "n :n + 1]\nFREE' },
   'hills-06': { coder: 'REST\nMAKE "n 1\nREPEAT 5 [FD :n * 50 RT 90 MAKE "n :n + 1]' },
@@ -157,7 +157,7 @@ export const ADVENTURE_NAIVE: Record<string, Naive> = {
   // Forgets to make n bigger, so every side is one step.
   'hills-02': { code: 'MAKE "n 1\nREPEAT 4 [FD :n * 50 RT 90]', status: 'lost', reason: 'rock' },
   // Counts the steps across on the first hill; on the next the cage is further.
-  'hills-03': { code: 'FD 250\nRT 90\nFD 150\nFREE', status: 'lost', reason: 'nothing-to-free' },
+  'hills-03': { code: 'FD 250\nRT 90\nFD 150', status: 'unfinished', reason: null },
   // Remembers the first hill; on the taller one Gio stops short of the flag.
   'hills-04': { code: 'FD 200\nRT 90\nFD 200', status: 'unfinished', reason: null },
   // Forgets to grow the steps.
@@ -223,7 +223,7 @@ export const ADVENTURE_WASTEFUL: Record<string, string> = {
   'cave-09': 'FD 100\nREST\nJUMP\nJUMP\nJUMP',
   'hills-01': 'FD 50\nFD 100\nRT 90\nFD 100\nFD 50',
   'hills-02': 'FD 50\nRT 90\nFD 100\nRT 90\nFD 150\nRT 90\nFD 200',
-  'hills-03': 'FD 50\nFD 200\nRT 90\nFD GEMS * 50\nFREE',
+  'hills-03': 'FD 50\nFD 200\nRT 90\nFD GEMS * 50',
   'hills-04': 'MAKE "n 0\nREPEAT 6 [IF AHEAD = "clear [FD 50 MAKE "n :n + 1]]\nRT 90\nREPEAT :n [FD 50]',
   'hills-05': 'FD 50\nRT 90\nFD 50\nLT 90\nFD 100\nRT 90\nFD 100\nLT 90\nFD 150\nRT 90\nFD 150\nLT 90\nFREE',
   'hills-06': 'REST\nFD 50\nRT 90\nFD 100\nRT 90\nFD 150\nRT 90\nFD 200\nRT 90\nFD 250',

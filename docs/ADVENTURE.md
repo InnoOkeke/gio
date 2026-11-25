@@ -153,7 +153,7 @@ Keep numbers in a box. Teaches: Variables with MAKE (Turtle Coders only).
 | ---: | --- | --- | ---: | ---: | --- | --- | --- | --- |
 | 1 | Count the steps | level | 1 | 4 | 3 stars, 4 commands | edge (lost) | 2 stars, 5 commands |  |
 | 2 | Growing steps | level | 1 | 5 | 3 stars, 5 commands | rock (lost) | 2 stars, 7 commands |  |
-| 3 | Count the gems | level | 2 | 4 | 3 stars, 4 commands | nothing-to-free (lost) | 2 stars, 5 commands |  |
+| 3 | Count the gems | level | 2 | 3 | 3 stars, 3 commands | unfinished (unfinished) | 2 stars, 4 commands |  |
 | 4 | Two hills | level | 2 | 7 | 3 stars, 7 commands | unfinished (unfinished) | 2 stars, 8 commands |  |
 | 5 | Nutmeg's acorns | level | 1 | 8 | 3 stars, 8 commands | rock (lost) | 2 stars, 13 commands | nutmeg |
 | 6 | Hill Giant | boss: Hill Giant | 1 | 6 | 3 stars, 6 commands | enemy (lost) | 2 stars, 10 commands |  |
