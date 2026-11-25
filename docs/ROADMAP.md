@@ -86,7 +86,7 @@ Little Turtles stages are block-based: Shape Shore, Loop Lagoon, Colour Cove, Pe
 6. **Take-turns drawing.** Two kids on one device add one command each to build a picture together. Works offline.
 7. **Turtle on the floor (AR).** Point the phone at the floor and Gio walks and draws on it: the original 1970s floor turtle, back again. Newer phones only.
 8. **Colouring pages and `FILL`.** Print any drawing as a colouring sheet; a `FILL` command colours in shapes.
-9. **Gio's Adventure, a game you play with code (done).** A world of levels (forests, rivers, caves, a castle) where kids write commands to get Gio through: walk around rocks, `REPEAT` across a long bridge, `IF` there's a river then swim, collect gems, free trapped friends, beat boss levels. Each world introduces one coding idea; Maze mode is its first world. Blocks for Little Turtles, typed code for Turtle Coders.
+9. **Gio's Adventure, a game you play with code (done).** A world of levels (forests, rivers, caves, a castle) where kids write commands to get Gio through: walk around rocks, `REPEAT` across a long bridge, `IF` there's a river then swim, collect gems, free trapped friends, beat boss levels. Each world introduces one coding idea; Maze mode is its first world. Blocks for Little Turtles, typed code for Turtle Coders. Built: 7 worlds, 44 levels for Turtle Coders and 36 for Little Turtles, 7 bosses and 6 rescued friends (see `docs/ADVENTURE.md`).
 
 ## Tablet-first and phone-first layouts: done
 

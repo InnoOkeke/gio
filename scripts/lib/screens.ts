@@ -3,7 +3,9 @@
  * opens the screen through the real UI. No screen calls the AI. A screen with open === null is an
  * empty slot that a later feature fills in: the runner reports it and moves on.
  */
+import { LEVELS } from '../../src/logo/adventure/index.js';
 import { ISLANDS } from '../../src/ui/path/islands';
+import { ADVENTURE_REFERENCE } from '../../tests/solutions/adventure';
 import type { Cdp } from './cdp';
 import { sleep } from './cdp';
 
@@ -84,7 +86,23 @@ async function adventureRun(c: Cdp, plan: string): Promise<void> {
   if (!(await c.waitFor(`!!document.querySelector('.adv-result')`, 20000))) throw new Error('the result card did not open');
   await sleep(1300);
 }
-const GAME = 'WHEN "up [FD 20]\nWHEN "right [RT 90]\nWHEN "space [FD 5]';
+/** Every world is open and every level before this one is won, so a content wave B screen opens straight on the level. */
+const ALL_WORLDS = ['maze', 'woods', 'river', 'swamp', 'cave', 'hills', 'castle'];
+function waveBSeed(mode: 'coder' | 'little', id: string): Record<string, unknown> {
+  const mine = LEVELS.filter((l) => l.modes.includes(mode));
+  return adventureSeed(mode, mine.slice(0, mine.findIndex((l) => l.id === id)).map((l) => l.id), ALL_WORLDS);
+}
+/** A long plan scrolls the page while it is typed: scroll back and let the result card finish sliding in. */
+async function settleResult(c: Cdp): Promise<void> {
+  await c.evaluate('window.scrollTo(0, 0)');
+  await sleep(900);
+}
+/** The reference plan of a level, typed, run and left on the result card. */
+const referenceFor = (id: string, mode: 'coder' | 'little'): string => {
+  const code = ADVENTURE_REFERENCE[id]?.[mode];
+  if (code === undefined) throw new Error(`No reference plan for ${id} (${mode})`);
+  return code;
+};const GAME = 'WHEN "up [FD 20]\nWHEN "right [RT 90]\nWHEN "space [FD 5]';
 
 /** A first run can bring a new friend to say hello: send them off so the stage is what is on screen. */
 async function dismissFriends(c: Cdp): Promise<void> {
@@ -976,6 +994,53 @@ export const SCREENS: Screen[] = [
         '.adv-scene-box',
       ),
   },
-  { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },
+  // Content wave B (FEAT-8): Sleepy Swamp, Crystal Cave, Number Hills and Gio's Castle.
+  {
+    id: 'adventure-swamp-run',
+    label: 'Adventure: Sleepy Swamp with a patrolling Grumble and blinking fire stones',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(waveBSeed('coder', 'swamp-04'), 'adventure/swamp-04', '.adv-scene-box');
+      await c.type(referenceFor('swamp-04', 'coder'));
+      await adventureGo(c);
+      await sleep(1200);
+    },
+  },
+  { id: 'adventure-swamp-boss', label: 'Adventure: the Swamp Queen (Turtle Coders)', ready: '.adv-scene-box', open: (c) => c.seed(waveBSeed('coder', 'swamp-06'), 'adventure/swamp-06', '.adv-scene-box') },
+  {
+    id: 'adventure-cave-bree',
+    label: 'Adventure: Bree is freed with her own commands (Turtle Coders)',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(waveBSeed('coder', 'cave-07'), 'adventure/cave-07', '.adv-scene-box');
+      await c.click('[role=radio], button[aria-label^="Speed"]', 'Speed');
+      await adventureRun(c, referenceFor('cave-07', 'coder'));
+      await settleResult(c);
+    },
+  },
+  {
+    id: 'adventure-hills-nutmeg',
+    label: 'Adventure: Nutmeg is freed with a variable (Turtle Coders)',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(waveBSeed('coder', 'hills-05'), 'adventure/hills-05', '.adv-scene-box');
+      await c.click('[role=radio], button[aria-label^="Speed"]', 'Speed');
+      await adventureRun(c, referenceFor('hills-05', 'coder'));
+      await settleResult(c);
+    },
+  },
+  {
+    id: 'adventure-castle-spindle',
+    label: 'Adventure: Spindle is freed with a command that calls itself (Turtle Coders)',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(waveBSeed('coder', 'castle-06'), 'adventure/castle-06', '.adv-scene-box');
+      await c.click('[role=radio], button[aria-label^="Speed"]', 'Speed');
+      await adventureRun(c, referenceFor('castle-06', 'coder'));
+      await settleResult(c);
+    },
+  },
+  { id: 'adventure-castle-king', label: 'Adventure: the Grumble King, the final boss (Turtle Coders)', ready: '.adv-scene-box', open: (c) => c.seed(waveBSeed('coder', 'castle-08'), 'adventure/castle-08', '.adv-scene-box') },
+  { id: 'adventure-little-cave', label: 'Adventure: Little Turtles in the Crystal Cave with nested repeat blocks', ready: '.adv-scene-box', open: (c) => c.seed(waveBSeed('little', 'cave-04'), 'adventure/cave-04', '.adv-scene-box') },  { id: 'keyboard-editor', label: 'Keyboard-open editor with the command key row', open: keyboardChecks },
   { id: 'hardware-keys', label: 'Hardware keyboard on tablets: arrows, Tab and Escape in the editor', open: hardwareKeyChecks },
 ];

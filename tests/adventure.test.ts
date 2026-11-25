@@ -256,7 +256,8 @@ describe('Sleepy Swamp, Crystal Cave, Number Hills and Gio\'s Castle', () => {
     expect(ref('cave-04', 'little').has('NEST')).toBe(true);
     expect(ref('cave-08', 'little').has('NEST')).toBe(true);
     expect(ref('cave-06', 'little').has('IF')).toBe(true);
-    for (const level of LEVELS.filter((l) => l.realm === 'cave')) expect(level.map.join('')).toContain('j');
+    // A reference that jumps needs boots on the map. The climbing and crawling levels never jump.
+    for (const level of LEVELS.filter((l) => l.realm === 'cave' && Object.values(ADVENTURE_REFERENCE[l.id] ?? {}).some((code) => code.includes('JUMP')))) expect(level.map.join(''), level.id).toContain('j');
   });
 
   it('uses a variable on every Number Hills level except the gem-counting one, which counts with GEMS', () => {
