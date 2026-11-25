@@ -25,7 +25,7 @@ import {
 } from '../src/ui/adventure/state';
 import { ADVENTURE_KEY, PLANS_KEY, readAdventure, readPlans, writeAdventure, writePlans, type KeyStore } from '../src/ui/adventure/useAdventure';
 import { applyEvent, emptyRewards, parseRewards } from '../src/ui/gio/rewards';
-import { ADVENTURE_REFERENCE } from './solutions/adventure';
+import { ADVENTURE_REFERENCE, ADVENTURE_WASTEFUL } from './solutions/adventure';
 
 const TODAY = '2025-06-10';
 const read = (...p: string[]) => readFileSync(new URL(`../${p.join('/')}`, import.meta.url), 'utf8');
@@ -360,6 +360,23 @@ describe('rewardFor', () => {
     const out = playLevel(tree, 'little', little);
     expect(applyEvent(emptyRewards(), rewardFor(tree, 'little', little, out)!, TODAY).newFriends).toEqual([]);
     expect(recordLevel(emptyAdventure(), 'little', tree, out, TODAY).state.critters).toBe(1);
+  });
+
+  it('frees Bree only with TO, Nutmeg only with MAKE and Spindle only with a command that calls itself', () => {
+    const cases: [string, string, string][] = [
+      ['cave-07', 'bree', 'FD 50\nJUMP\nFD 50\nJUMP\nRT 90\nFD 50\nJUMP\nFD 50\nJUMP\nRT 90\nFD 50\nJUMP\nFD 50\nJUMP\nFREE'],
+      ['hills-05', 'nutmeg', ADVENTURE_WASTEFUL['hills-05']!],
+      ['castle-06', 'spindle', ADVENTURE_WASTEFUL['castle-06']!],
+    ];
+    for (const [id, friend, without] of cases) {
+      const level = LEVELS.find((l) => l.id === id)!;
+      const code = ADVENTURE_REFERENCE[id]!.coder!;
+      expect(applyEvent(emptyRewards(), rewardFor(level, 'coder', code, playLevel(level, 'coder', code))!, TODAY).newFriends, id).toEqual([friend]);
+      // A plan without the feature still opens the cage, with no friend coming home.
+      const out = playLevel(level, 'coder', without);
+      expect(out).toMatchObject({ status: 'won', friendsFreed: 1 });
+      expect(applyEvent(emptyRewards(), rewardFor(level, 'coder', without, out)!, TODAY).newFriends, `${id} without`).toEqual([]);
+    }
   });
 
   it('flags the real maze-05 fix once it is solved', () => {

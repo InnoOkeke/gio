@@ -114,8 +114,19 @@ describe('AdventureScene', () => {
     const l = level('maze-01');
     const html = renderToStaticMarkup(createElement('div', null, createElement(AdventureScene, { level: l, scene: initialScene(l) }), createElement(AdventureScene, { level: l, scene: initialScene(l) })));
     const ids = [...html.matchAll(/<symbol id="([^"]+)"/g)].map((m) => m[1]);
-    expect(ids).toHaveLength(26);
-    expect(new Set(ids).size).toBe(26);
+    expect(ids).toHaveLength(32);
+    expect(new Set(ids).size).toBe(32);
+  });
+
+  it('draws walls the way each realm builds them, and a dark fire stone under every fire cell', () => {
+    const uses = (id: string, tile: string) => new RegExp(`href="#[^"]+-${tile}"`).test(render(id));
+    for (const [id, tile] of [['woods-01', 'tree'], ['cave-01', 'crystal'], ['castle-01', 'wall'], ['maze-03', 'rock']] as const) {
+      expect(uses(id, tile), `${id} ${tile}`).toBe(true);
+      for (const other of ['tree', 'crystal', 'wall', 'rock'].filter((t) => t !== tile)) expect(uses(id, other), `${id} ${other}`).toBe(false);
+    }
+    const swamp = level('swamp-03');
+    // Both fire stones show even on a beat when they are dark.
+    expect(count(render('swamp-03'), 'data-ember="true"')).toBe(swamp.fires![0]!.cells.length);
   });
 });
 
@@ -132,5 +143,15 @@ describe('boss picture', () => {
     expect(at(2)).toContain('Hedge Giant, getting sleepy');
     expect(at(4)).toContain('Hedge Giant, fast asleep');
     expect(at(4)).toContain('data-boss-mood="2"');
+  });
+
+  it('gives every boss in the game its own picture and name', () => {
+    const bosses = LEVELS.filter((l) => l.kind === 'boss').map((l) => l.boss!);
+    expect(bosses.map((b) => b.name)).toEqual(['Hedge Giant', 'Big Stump', 'River Troll', 'Swamp Queen', 'Crystal Golem', 'Hill Giant', 'Grumble King']);
+    const pictures = bosses.map((b) => renderToStaticMarkup(createElement(BossArt, { art: b.art, gems: 0, gemsTotal: 2, palette: REALM_PALETTES.maze })));
+    pictures.forEach((html, k) => expect(html).toContain(`${bosses[k]!.name}, cross`));
+    // Strip the label and the art id: what is left is the drawing, and no two bosses share one.
+    const drawings = pictures.map((html) => html.replace(/aria-label="[^"]*"|data-boss-art="[^"]*"/g, ''));
+    expect(new Set(drawings).size).toBe(bosses.length);
   });
 });

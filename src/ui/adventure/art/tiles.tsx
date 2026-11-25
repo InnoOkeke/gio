@@ -35,7 +35,23 @@ export const REALM_PALETTES: Record<RealmId, RealmPalette> = {
 };
 
 /** Symbol ids used by the scene. `uid` keeps them apart when several scenes share a page. */
-export type TileSymbol = 'groundA' | 'groundB' | 'rock' | 'water' | 'bridge' | 'gem' | 'flag' | 'bars' | 'gate' | 'boots' | 'shield' | 'fire' | 'tree';
+export type TileSymbol =
+  | 'groundA'
+  | 'groundB'
+  | 'rock'
+  | 'water'
+  | 'bridge'
+  | 'gem'
+  | 'flag'
+  | 'bars'
+  | 'gate'
+  | 'boots'
+  | 'shield'
+  | 'fire'
+  | 'ember'
+  | 'tree'
+  | 'crystal'
+  | 'wall';
 
 export const symbolId = (uid: string, name: TileSymbol): string => `${uid}-${name}`;
 
@@ -70,6 +86,21 @@ export function TileDefs({ uid, palette }: { uid: string; palette: RealmPalette 
         <path d="M 25 4 Q 34 4 37 12 Q 45 15 43 24 Q 45 33 36 35 Q 30 40 24 36 Q 15 39 11 32 Q 4 28 8 20 Q 7 10 16 9 Q 19 4 25 4 Z" fill={palette.tuft} {...EDGE} strokeWidth={2.2} />
         <path d="M 15 17 Q 18 11 25 11" fill="none" stroke="#fff" strokeOpacity="0.35" strokeWidth="3" strokeLinecap="round" />
         <path d="M 30 22 q 3 -3 6 0 M 18 27 q 3 -3 6 0" fill="none" stroke={INK} strokeOpacity="0.3" strokeWidth="1.6" strokeLinecap="round" />
+      </symbol>
+      <symbol id={id('crystal')} viewBox={view}>
+        <path d="M 4 46 L 6 22 Q 14 8 26 8 Q 40 8 46 22 L 46 46 Z" fill={palette.rock} {...EDGE} strokeWidth={2.4} />
+        <path d="M 14 40 L 18 18 L 24 40 Z" fill="#c9b8ff" {...EDGE} strokeWidth={1.6} />
+        <path d="M 24 40 L 31 12 L 37 40 Z" fill="#e3d9ff" {...EDGE} strokeWidth={1.6} />
+        <path d="M 18 18 L 20 34 M 31 12 L 32 32" stroke="#fff" strokeOpacity="0.7" strokeWidth="1.6" strokeLinecap="round" />
+      </symbol>
+      <symbol id={id('wall')} viewBox={view}>
+        <rect x="1" y="1" width="48" height="48" rx="3" fill={palette.rock} {...EDGE} strokeWidth={2} />
+        <path d="M 1 17 L 49 17 M 1 33 L 49 33 M 25 1 L 25 17 M 13 17 L 13 33 M 37 17 L 37 33 M 25 33 L 25 49" fill="none" stroke={INK} strokeOpacity="0.35" strokeWidth="1.8" />
+        <path d="M 5 6 L 20 6 M 29 22 L 33 22" stroke={palette.rockHigh} strokeWidth="2.4" strokeLinecap="round" />
+      </symbol>
+      <symbol id={id('ember')} viewBox={view}>
+        <ellipse cx="25" cy="36" rx="15" ry="7" fill={palette.rock} {...EDGE} strokeWidth={2} />
+        <path d="M 16 34 Q 20 30 24 34 M 27 36 Q 31 32 35 36" fill="none" stroke="#ff8a24" strokeOpacity="0.8" strokeWidth="2" strokeLinecap="round" />
       </symbol>
       <symbol id={id('water')} viewBox={view}>
         <rect width={TILE} height={TILE} fill={palette.water} />
@@ -134,11 +165,14 @@ export function groundFor(col: number, row: number): TileSymbol {
   return (col + row) % 2 === 0 ? 'groundA' : 'groundB';
 }
 
+/** What `#` looks like in each realm. It always senses as rock. */
+const WALL_BY_REALM: Partial<Record<RealmId, TileSymbol>> = { woods: 'tree', cave: 'crystal', castle: 'wall' };
+
 /** The tile under a map character, and the overlay on top of it (if any). `S` and `.` are plain ground. */
 export function tileFor(ch: string, col: number, row: number, realm?: RealmId): { base: TileSymbol; over: TileSymbol | null } {
   switch (ch) {
     case '#':
-      return { base: groundFor(col, row), over: realm === 'woods' ? 'tree' : 'rock' };
+      return { base: groundFor(col, row), over: WALL_BY_REALM[realm ?? 'maze'] ?? 'rock' };
     case '~':
       return { base: 'water', over: null };
     case '=':

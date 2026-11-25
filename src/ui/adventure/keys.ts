@@ -31,6 +31,11 @@ const ALL: { key: AdventureKey; needs: string | string[] }[] = [
   { key: word('REPEAT', 'repeat the commands inside the brackets', 'REPEAT 4 [ ]'), needs: 'REPEAT' },
   { key: word('IF', 'do the commands only when the question is true', 'IF AHEAD = "water [ ]'), needs: 'IF' },
   { key: word('IFELSE', 'do one thing or the other', 'IFELSE AHEAD = "water [ ] [ ]'), needs: 'IFELSE' },
+  { key: word('TO', 'teach Gio a new command', 'TO HOP'), needs: 'TO' },
+  { key: word('END', 'finish the new command'), needs: 'TO' },
+  { key: word('STOP', 'stop this command now'), needs: 'STOP' },
+  { key: word('MAKE', 'keep a number in a box called n', 'MAKE "n 1'), needs: 'MAKE' },
+  { key: inline(':n', 'the number in the box called n'), needs: ['MAKE', 'TO'] },
   { key: inline('AHEAD', 'what Gio will find in the next step'), needs: 'AHEAD' },
   { key: inline('GEMS', 'how many gems Gio has'), needs: 'GEMS' },
   { key: inline('[ ]', 'brackets'), needs: ['REPEAT', 'IF', 'IFELSE'] },
@@ -45,6 +50,8 @@ function senseKeys(level: Level): AdventureKey[] {
     ['fire', (level.fires?.length ?? 0) > 0],
     ['enemy', (level.enemies?.length ?? 0) > 0],
     ['gem', map.includes('g')],
+    // "clear is on every map, so offer it only where the level's own hints ask for it.
+    ['clear', level.hints.some((h) => Object.values(h.reveal ?? {}).some((code) => code?.includes('"clear')))],
   ];
   return found.filter(([, there]) => there).map(([w]) => inline(`"${w}`, `the word ${w}`));
 }

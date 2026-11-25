@@ -72,7 +72,108 @@ export function bossMoodStep(gems: number, gemsTotal: number): 0 | 1 | 2 {
   return f >= 1 ? 2 : f >= 0.5 ? 1 : 0;
 }
 
-const BOSS_NAMES: Record<string, string> = { 'hedge-giant': 'Hedge Giant' };
+const BOSS_NAMES: Record<string, string> = {
+  'hedge-giant': 'Hedge Giant',
+  'big-stump': 'Big Stump',
+  'river-troll': 'River Troll',
+  'swamp-queen': 'Swamp Queen',
+  'crystal-golem': 'Crystal Golem',
+  'hill-giant': 'Hill Giant',
+  'grumble-king': 'Grumble King',
+};
+
+const STROKE = { stroke: INK, strokeOpacity: 0.4, strokeWidth: 2.4, strokeLinejoin: 'round' as const };
+
+/** What each boss wears on its head, so the bosses tell apart at a glance. Leaves for any other boss. */
+function Headgear({ art, palette }: { art: string; palette: RealmPalette }): ReactElement {
+  switch (art) {
+    case 'river-troll':
+      // A mop of river waves.
+      return (
+        <g>
+          {[34, 58, 82, 106, 128].map((x, k) => (
+            <path key={x} d={`M ${x - 16} ${42 - (k % 2) * 6} Q ${x - 8} ${22 - (k % 2) * 6} ${x} ${38 - (k % 2) * 6} Q ${x + 8} ${22 - (k % 2) * 6} ${x + 16} ${42 - (k % 2) * 6}`} fill={palette.water} {...STROKE} />
+          ))}
+          <path d="M 36 30 q 6 -5 12 0 M 92 24 q 6 -5 12 0" fill="none" stroke={palette.waveLine} strokeWidth="3" strokeLinecap="round" />
+        </g>
+      );
+    case 'swamp-queen':
+      // A crown of lily pads with a pink flower in the middle.
+      return (
+        <g>
+          {[40, 62, 98, 120].map((x, k) => (
+            <ellipse key={x} cx={x} cy={k === 0 || k === 3 ? 40 : 32} rx="15" ry="9" fill={palette.tuft} {...STROKE} />
+          ))}
+          {[0, 72, 144, 216, 288].map((a) => (
+            <ellipse key={a} cx="80" cy="16" rx="6" ry="12" fill="#ffb3cf" {...STROKE} strokeWidth={1.8} transform={`rotate(${a} 80 28)`} />
+          ))}
+          <circle cx="80" cy="28" r="6" fill="#ffd84d" {...STROKE} strokeWidth={1.8} />
+        </g>
+      );
+    case 'crystal-golem':
+      // Crystal spikes.
+      return (
+        <g>
+          {[
+            [34, 44, 22],
+            [56, 34, 30],
+            [80, 28, 38],
+            [104, 34, 30],
+            [126, 44, 22],
+          ].map(([x, y, h]) => (
+            <g key={x}>
+              <path d={`M ${x! - 10} ${y! + 8} L ${x} ${y! - h!} L ${x! + 10} ${y! + 8} Z`} fill="#c9b8ff" {...STROKE} />
+              <path d={`M ${x} ${y! - h!} L ${x! + 3} ${y! + 4}`} stroke="#fff" strokeOpacity="0.7" strokeWidth="2.4" strokeLinecap="round" />
+            </g>
+          ))}
+        </g>
+      );
+    case 'hill-giant':
+      // A grassy hill for a hat, with a number flag on top.
+      return (
+        <g>
+          <path d="M 24 46 Q 52 6 80 14 Q 108 6 136 46 Z" fill={palette.tuft} {...STROKE} />
+          <path d="M 80 14 L 80 -4" stroke={INK} strokeOpacity="0.7" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M 81 -4 L 100 2 L 81 9 Z" fill="#ffd84d" {...STROKE} strokeWidth={1.8} />
+          <text x="86" y="5.5" fontSize="8" fontWeight="700" fill={INK}>
+            3
+          </text>
+          <path d="M 44 34 q 3 -6 6 0 M 104 30 q 3 -6 6 0 M 72 26 q 3 -6 6 0" fill="none" stroke={INK} strokeOpacity="0.3" strokeWidth="1.6" strokeLinecap="round" />
+        </g>
+      );
+    case 'grumble-king':
+      // A gold crown with gems.
+      return (
+        <g>
+          <path d="M 36 46 L 32 8 L 56 28 L 80 0 L 104 28 L 128 8 L 124 46 Z" fill="#ffd84d" {...STROKE} strokeWidth={2.8} />
+          <circle cx="80" cy="30" r="6" fill="#ff6fa8" {...STROKE} strokeWidth={1.8} />
+          <circle cx="54" cy="38" r="4.4" fill="#4aa8ff" {...STROKE} strokeWidth={1.6} />
+          <circle cx="106" cy="38" r="4.4" fill="#4aa8ff" {...STROKE} strokeWidth={1.6} />
+          {[32, 80, 128].map((x, k) => (
+            <circle key={x} cx={x} cy={k === 1 ? 0 : 8} r="4" fill="#ffd84d" {...STROKE} strokeWidth={1.6} />
+          ))}
+        </g>
+      );
+    case 'big-stump':
+      // A tree stump hat with rings, and a leafy sprout.
+      return (
+        <g>
+          <path d="M 40 46 L 44 20 Q 80 8 116 20 L 120 46 Z" fill={palette.wood} {...STROKE} />
+          <ellipse cx="80" cy="20" rx="36" ry="9" fill="#d9a066" {...STROKE} />
+          <ellipse cx="80" cy="20" rx="20" ry="5" fill="none" stroke={INK} strokeOpacity="0.3" strokeWidth="1.6" />
+          <path d="M 80 12 Q 78 0 70 -2 Q 74 8 80 12 Q 84 2 94 0 Q 88 8 80 12" fill={palette.tuft} {...STROKE} strokeWidth={1.8} />
+        </g>
+      );
+    default:
+      return (
+        <g>
+          {[28, 52, 80, 108, 132].map((x, k) => (
+            <circle key={x} cx={x} cy={k % 2 === 0 ? 40 : 30} r={k === 2 ? 22 : 17} fill={palette.tuft} {...STROKE} />
+          ))}
+        </g>
+      );
+  }
+}
 
 /**
  * The big boss picture that stands beside the map. Same family as a Grumble, much bigger. The art id picks
@@ -82,13 +183,10 @@ const BOSS_NAMES: Record<string, string> = { 'hedge-giant': 'Hedge Giant' };
 export function BossArt({ art, gems, gemsTotal, palette, name }: { art: string; gems: number; gemsTotal: number; palette: RealmPalette; name?: string }): ReactElement {
   const step = bossMoodStep(gems, gemsTotal);
   const label = name ?? BOSS_NAMES[art] ?? 'Boss';
-  const leaf = palette.tuft;
   return (
-    <svg viewBox="0 0 160 160" role="img" aria-label={`${label}, ${step === 2 ? 'fast asleep' : step === 1 ? 'getting sleepy' : 'cross'}`} data-boss-mood={step} width="100%" height="100%">
+    <svg viewBox="0 -8 160 168" role="img" aria-label={`${label}, ${step === 2 ? 'fast asleep' : step === 1 ? 'getting sleepy' : 'cross'}`} data-boss-mood={step} data-boss-art={art} width="100%" height="100%">
       <ellipse cx="80" cy="148" rx="52" ry="9" fill={INK} fillOpacity="0.18" />
-      {[28, 52, 80, 108, 132].map((x, k) => (
-        <circle key={x} cx={x} cy={k % 2 === 0 ? 40 : 30} r={k === 2 ? 22 : 17} fill={leaf} stroke={INK} strokeOpacity="0.4" strokeWidth="2.4" />
-      ))}
+      <Headgear art={art} palette={palette} />
       <circle cx="80" cy="88" r="58" fill={palette.grumble} stroke={INK} strokeOpacity="0.45" strokeWidth="3" />
       <ellipse cx="55" cy="112" rx="9" ry="5.5" fill="#ff8fa3" fillOpacity="0.7" />
       <ellipse cx="105" cy="112" rx="9" ry="5.5" fill="#ff8fa3" fillOpacity="0.7" />

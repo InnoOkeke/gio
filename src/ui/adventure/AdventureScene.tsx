@@ -77,6 +77,9 @@ export function AdventureScene({ level, scene, mood = 'idle', tween = false, sec
               <FriendInTile art={friendArt} />
             </g>
           ))}
+        {(level.fires ?? []).flatMap((f) =>
+          f.cells.map(([c, r]) => <use key={`ember${f.id}${c},${r}`} href={`#${symbolId(uid, 'ember')}`} x={c * TILE} y={r * TILE} width={TILE} height={TILE} data-ember="true" />),
+        )}
         {scene.fires.map(([c, r]) => (
           <use key={`fire${c},${r}`} href={`#${symbolId(uid, 'fire')}`} x={c * TILE} y={r * TILE} width={TILE} height={TILE} data-fire="true" />
         ))}

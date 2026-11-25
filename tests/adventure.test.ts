@@ -213,6 +213,83 @@ describe('Whispering Woods and Rolling River', () => {
   });
 });
 
+describe('Sleepy Swamp, Crystal Cave, Number Hills and Gio\'s Castle', () => {
+  const realm = (r: string, mode: AgeModeId) => LEVELS.filter((l) => l.realm === r && l.modes.includes(mode)).map((l) => l.id);
+  const ref = (id: string, mode: AgeModeId) => {
+    const level = LEVELS.find((l) => l.id === id)!;
+    const res = checkAdventure(level, mode, ADVENTURE_REFERENCE[id]![mode]!);
+    if (!res.ok) throw new Error(res.problem.message);
+    return features(res.program);
+  };
+
+  it('gives each mode six levels per world, ending in the boss, and no Number Hills for Little Turtles', () => {
+    expect(realm('swamp', 'coder')).toEqual(['swamp-01', 'swamp-02', 'swamp-03', 'swamp-04', 'swamp-05', 'swamp-06']);
+    expect(realm('swamp', 'little')).toEqual(realm('swamp', 'coder'));
+    expect(realm('cave', 'coder')).toEqual(['cave-01', 'cave-02', 'cave-03', 'cave-05', 'cave-07', 'cave-09']);
+    expect(realm('cave', 'little')).toEqual(['cave-01', 'cave-02', 'cave-04', 'cave-06', 'cave-08', 'cave-09']);
+    expect(realm('hills', 'coder')).toEqual(['hills-01', 'hills-02', 'hills-03', 'hills-04', 'hills-05', 'hills-06']);
+    expect(realm('hills', 'little')).toEqual([]);
+    expect(realm('castle', 'coder')).toEqual(['castle-01', 'castle-02', 'castle-03', 'castle-05', 'castle-06', 'castle-08']);
+    expect(realm('castle', 'little')).toEqual(['castle-01', 'castle-02', 'castle-04', 'castle-05', 'castle-07', 'castle-08']);
+    for (const id of ['swamp-06', 'cave-09', 'hills-06', 'castle-08']) expect(LEVELS.find((l) => l.id === id)!.kind).toBe('boss');
+    // 44 coder levels and 36 Little levels in all, as the design counts them.
+    expect(LEVELS.filter((l) => l.modes.includes('coder'))).toHaveLength(44);
+    expect(LEVELS.filter((l) => l.modes.includes('little'))).toHaveLength(36);
+  });
+
+  it('every Swamp level needs timing: its reference waits with REST, and a plan that never waits fails', () => {
+    for (const level of LEVELS.filter((l) => l.realm === 'swamp' && l.n !== 5)) {
+      for (const mode of level.modes) {
+        expect(ADVENTURE_REFERENCE[level.id]![mode]).toMatch(/REST/);
+        expect(['fire', 'enemy']).toContain(ADVENTURE_NAIVE[level.id]!.reason);
+      }
+    }
+    // Shield! is the level where Gio takes a hit on purpose.
+    const shield = LEVELS.find((l) => l.id === 'swamp-05')!;
+    const out = playLevel(shield, 'coder', ADVENTURE_REFERENCE['swamp-05']!.coder!);
+    expect(out.trace.filter((e) => e.type === 'hit')).toEqual([expect.objectContaining({ reason: 'fire', absorbed: true })]);
+  });
+
+  it('teaches coders TO with an input and commands calling commands, and Little Turtles nested loops', () => {
+    for (const id of ['cave-03', 'cave-05', 'cave-07']) expect(ref(id, 'coder').has('TO'), id).toBe(true);
+    expect(ref('cave-05', 'coder').has('INPUT')).toBe(true);
+    expect(ref('cave-04', 'little').has('NEST')).toBe(true);
+    expect(ref('cave-08', 'little').has('NEST')).toBe(true);
+    expect(ref('cave-06', 'little').has('IF')).toBe(true);
+    for (const level of LEVELS.filter((l) => l.realm === 'cave')) expect(level.map.join('')).toContain('j');
+  });
+
+  it('uses a variable on every Number Hills level except the gem-counting one, which counts with GEMS', () => {
+    for (const level of LEVELS.filter((l) => l.realm === 'hills' && l.id !== 'hills-03')) expect(ref(level.id, 'coder').has('MAKE'), level.id).toBe(true);
+    expect(ADVENTURE_REFERENCE['hills-03']!.coder).toContain('GEMS');
+  });
+
+  it('climbs the Castle spirals with a command that calls itself, and the mirror rooms need IF', () => {
+    expect(ref('castle-03', 'coder').has('RECURSION')).toBe(true);
+    expect(ref('castle-06', 'coder').has('RECURSION')).toBe(true);
+    expect(ref('castle-04', 'little').has('NEST')).toBe(true);
+    for (const mode of ['little', 'coder'] as const) expect(ref('castle-05', mode).has('IF')).toBe(true);
+  });
+
+  it('levels with variants beat a plan that remembers one map', () => {
+    for (const id of ['hills-03', 'hills-04', 'castle-05']) {
+      const level = LEVELS.find((l) => l.id === id)!;
+      const naive = ADVENTURE_NAIVE[id]!.code;
+      for (const mode of level.modes) {
+        expect(playLevel({ ...level, variants: [] }, mode, naive).status, id).toBe('won');
+        expect(playLevel(level, mode, naive).message.startsWith('On another map: ')).toBe(true);
+      }
+    }
+  });
+
+  it('every boss level guards its flag with a gate and moving danger', () => {
+    for (const level of LEVELS.filter((l) => l.kind === 'boss' && !['maze', 'woods'].includes(l.realm))) {
+      expect(level.map.join(''), level.id).toContain('D');
+      expect((level.enemies?.length ?? 0) + (level.fires?.length ?? 0), level.id).toBeGreaterThan(0);
+    }
+  });
+});
+
 describe('Maze maps can be solved by search', () => {
   it('finds a winning route that collects every gem on every map', () => {
     for (const level of LEVELS) {
