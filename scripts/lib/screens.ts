@@ -895,6 +895,18 @@ export const SCREENS: Screen[] = [
     },
   },
   {
+    id: 'adventure-next-level',
+    label: 'Adventure: Next level after a win opens the next level, not the lock page',
+    ready: '.adv-scene-box',
+    open: async (c) => {
+      await c.seed(adventureSeed('coder', ['maze-01']), 'adventure/maze-02', '.adv-scene-box');
+      await c.click('[role=radio], button[aria-label^="Speed"]', 'Speed');
+      await adventureRun(c, 'FD 100\nRT 90\nFD 200');
+      await c.click('a', 'Next level');
+      if (!(await c.waitFor(`window.location.pathname.endsWith('/adventure/maze-03') && !!document.querySelector('.adv-scene-box')`, 8000))) throw new Error('Next level did not open the next level');
+      if (await c.evaluate(`!!document.querySelector('.adv-message')`)) throw new Error('Next level opened the locked page');
+    },
+  },  {
     id: 'adventure-lose',
     label: 'Adventure: result card after a plan that walks off the map',
     ready: '.adv-scene-box',

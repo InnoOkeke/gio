@@ -62,7 +62,6 @@ export const HILLS_LEVELS: Level[] = [
     start: { col: 0, row: 6, dir: 'N' },
     allow: { little: [], coder: [...CODER, 'REPEAT', 'FREE', 'GEMS'] },
     par: { coder: 4 },
-    friend: { art: 'critter' },
     hints: [
       { text: 'The number of gems is different on every hill, and so is the distance across. Gio can use the number of gems as a number.' },
       { text: 'Walk up the gems, turn right, then walk GEMS * 50.', reveal: { coder: 'FD 250\nRT 90\nFD GEMS * 50' } },

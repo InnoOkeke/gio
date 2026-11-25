@@ -17,6 +17,8 @@ export interface ResultCardProps {
   outcome: LevelOutcome;
   /** The best stars so far, after this run. */
   stars: number;
+  /** The stars this run earned, for the sentence about the next star. Defaults to `stars`. */
+  runStars?: number;
   /** Commands in this plan, for the rule of the next star. */
   par: number;
   /** The level after this one, when the child can open it. */
@@ -34,10 +36,10 @@ export interface ResultCardProps {
 }
 
 /** What a finished run says: stars and the rule for the next one after a win, one kind sentence after a miss. */
-export function ResultCard({ level, number, outcome, stars, par, next, opened, friendLine, stickers, offerHint, onHint, onTryAgain, onClose }: ResultCardProps) {
+export function ResultCard({ level, number, outcome, stars, runStars, par, next, opened, friendLine, stickers, offerHint, onHint, onTryAgain, onClose }: ResultCardProps) {
   const won = outcome.status === 'won';
   const primary = useRef<HTMLAnchorElement & HTMLButtonElement>(null);
-  const nextRule = won ? nextStarRule(stars, outcome.commands, par) : null;
+  const nextRule = won ? nextStarRule(runStars ?? stars, outcome.commands, par) : null;
   const boss = level.kind === 'boss' && level.boss ? level.boss.name : null;
   const others = won ? variantMaps(level, outcome) : [];
   const title = won ? (boss ? `You beat ${boss}!` : 'You did it!') : outcome.status === 'unfinished' ? 'Almost there!' : 'Oops!';

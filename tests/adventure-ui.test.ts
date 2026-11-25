@@ -102,10 +102,10 @@ describe('the adventure editor language', () => {
 
 describe('ResultCard', () => {
   const l = level('maze-02');
-  const render = (code: string, stars: number) => {
+  const render = (code: string, stars: number, runStars?: number) => {
     const outcome = playLevel(l, 'coder', code);
     return renderToStaticMarkup(
-      createElement(MemoryRouter, null, createElement(ResultCard, { level: l, outcome, stars, par: 3, next: level('maze-03'), opened: null, friendLine: null, stickers: [], offerHint: true, onHint: () => undefined, onTryAgain: () => undefined, onClose: () => undefined })),
+      createElement(MemoryRouter, null, createElement(ResultCard, { level: l, outcome, stars, runStars, par: 3, next: level('maze-03'), opened: null, friendLine: null, stickers: [], offerHint: true, onHint: () => undefined, onTryAgain: () => undefined, onClose: () => undefined })),
     );
   };
   it('shows stars, the rule for the next star and the way on after a win', () => {
@@ -115,6 +115,12 @@ describe('ResultCard', () => {
     expect(html).toContain('Next level');
     expect(html).toContain('/adventure/maze-03');
     expect(html).not.toContain('Try for 3 stars');
+  });
+  it('describes this run, not the best record, after a worse replay', () => {
+    const html = render(ADVENTURE_REFERENCE['maze-02']!.coder!, 3, 2);
+    expect(html).toContain('3 of 3 stars');
+    expect(html).not.toContain('as short as it gets');
+    expect(html).toContain('for a third star');
   });
   it('offers another try for three stars when fewer were earned', () => {
     expect(render(ADVENTURE_REFERENCE['maze-02']!.coder!, 2)).toContain('Try for 3 stars');

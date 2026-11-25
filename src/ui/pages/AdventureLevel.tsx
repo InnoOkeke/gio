@@ -52,7 +52,8 @@ export default function AdventureLevel() {
   const { mode } = useMode();
   const m: AgeModeId = mode ?? 'coder';
   const level = levelId ? levelById(levelId) : undefined;
-  const { state } = useAdventure();
+  const adventure = useAdventure();
+  const { state } = adventure;
   if (!level) return <LevelMessage title="That level is not here" text="Pick a level from the map." />;
   if (!level.modes.includes(m)) {
     return <LevelMessage title="This level is for Turtle Coders" text="Little Turtles have their own levels. Pick one from the map." />;
@@ -61,7 +62,7 @@ export default function AdventureLevel() {
   if (!status.open) {
     return <LevelMessage title="This level is still locked" text="Win the level before it to open this one." />;
   }
-  return <LevelPlay key={`${m}:${level.id}`} level={level} mode={m} />;
+  return <LevelPlay key={`${m}:${level.id}`} level={level} mode={m} adventure={adventure} />;
 }
 
 function LevelMessage({ title, text }: { title: string; text: string }) {
@@ -85,8 +86,8 @@ interface Finished {
   stickers: string[];
 }
 
-function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
-  const adventure = useAdventure();
+/** One progress store per page: the lock check and a win read and write the same state. */
+function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; adventure: ReturnType<typeof useAdventure> }) {
   const rewards = useRewards();
   const compact = useIsCompact();
   const reduced = useMedia('(prefers-reduced-motion: reduce)');
@@ -190,6 +191,20 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
     clearAnswer();
     editorRef.current?.setRunningLine(null);
   };
+  const resetRef = useRef(reset);
+  resetRef.current = reset;
+  const overlayOpen = resultOpen || hintOpen || introOpen || describeOpen;
+  // Escape resets the run (design 8.7). It leaves the editor, sheets and watch mode alone, which use it themselves.
+  useEffect(() => {
+    if (overlayOpen || watch.active) return undefined;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.defaultPrevented) return;
+      if (e.target instanceof Element && e.target.closest('.cm-editor')) return;
+      resetRef.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [overlayOpen, watch.active]);
   const tryAgain = () => {
     setResultOpen(false);
     play.reset();
@@ -365,6 +380,7 @@ function LevelPlay({ level, mode }: { level: Level; mode: AgeModeId }) {
           number={levelNumber(level, mode)}
           outcome={finished.outcome}
           stars={record?.stars ?? finished.outcome.stars}
+          runStars={finished.outcome.stars}
           par={par}
           next={nextOpen}
           opened={finished.result.opensRealm}

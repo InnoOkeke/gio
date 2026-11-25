@@ -437,8 +437,8 @@ describe('a full playthrough leaves quest progress alone', () => {
     // Coders free Dot, Olly (REPEAT), Hoot (IF), Bree (TO), Nutmeg (MAKE) and Spindle (a command that calls itself).
     // Little Turtles meet Dot and Olly too, and free critters where coders meet the coder-only friends.
     expect(rewards.friends).toEqual(['dot', 'olly', 'hoot', 'bree', 'nutmeg', 'spindle']);
-    // river-06, cave-08 and castle-07 for Little Turtles, hills-03 for coders.
-    expect(state.critters).toBe(4);
+    // river-06, cave-08 and castle-07 for Little Turtles. Coders free no critter (design 5.6).
+    expect(state.critters).toBe(3);
   });
 
   it('survives storage that throws or holds garbage', () => {
