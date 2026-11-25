@@ -59,7 +59,7 @@ export async function launchBrowser(base: string): Promise<Cdp> {
   const port = 9300 + Math.floor(Math.random() * 500);
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-cdp-'));
   // The window must be bigger than every emulated screen: touches outside the real window are dropped.
-  const proc: ChildProcess = spawn(exe, ['--headless=new', '--disable-gpu', '--window-size=1600,1600', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
+  const proc: ChildProcess = spawn(exe, ['--headless=new', '--mute-audio', '--disable-gpu', '--window-size=1600,1600', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
 
   let wsUrl = '';
   for (let k = 0; k < 50 && !wsUrl; k++) {

@@ -27,7 +27,7 @@ if (!exe) throw new Error('No Edge or Chrome found');
 
 const port = 9300 + Math.floor(Math.random() * 500);
 const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'gio-cdp-'));
-const browser = spawn(exe, ['--headless=new', '--disable-gpu', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
+const browser = spawn(exe, ['--headless=new', '--mute-audio', '--disable-gpu', `--remote-debugging-port=${port}`, `--user-data-dir=${profile}`, 'about:blank'], { stdio: 'ignore' });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
