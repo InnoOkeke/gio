@@ -44,16 +44,18 @@ export default function ColouringDialog({ events, title, onClose }: ColouringDia
             </button>
           </div>
           {src ? (
-            <>
-              <div className="colouring-preview" aria-hidden="false">
+            <div className="colouring-body">
+              <div className="colouring-preview">
                 <p className="colouring-preview-title">{title}</p>
                 <img src={src} alt={FUN_TEXT.colouringPreviewAlt(title)} className="colouring-preview-art" />
               </div>
-              <p className="m-0 text-[15px] font-bold text-ink-2">{FUN_TEXT.colouringIntro}</p>
-              <button type="button" className="btn btn-primary btn-lg" onClick={() => window.print()}>
-                <PrintIcon size={22} /> {FUN_TEXT.colouringPrint}
-              </button>
-            </>
+              <div className="flex flex-col gap-4">
+                <p className="m-0 text-[15px] font-bold text-ink-2">{FUN_TEXT.colouringIntro}</p>
+                <button type="button" className="btn btn-primary btn-lg" onClick={() => window.print()}>
+                  <PrintIcon size={22} /> {FUN_TEXT.colouringPrint}
+                </button>
+              </div>
+            </div>
           ) : (
             <>
               <p className="m-0 text-[17px] font-bold text-ink-2" role="alert">

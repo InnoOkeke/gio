@@ -1478,6 +1478,22 @@ html[data-perf='lite'] .btn-stop {
  * Colouring page: a paper-shaped preview in the dialog, and one portrait page
  * that fits both A4 (186 x 273 mm inside the margins) and Letter (192 x 255 mm)
  * -------------------------------------------------------------------------- */
+.colouring-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+/* Short windows (a phone on its side): the page beside the words, so Print is on the first screen. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .colouring-body {
+    flex-direction: row;
+    align-items: center;
+  }
+  .colouring-body .colouring-preview {
+    flex: none;
+    height: min(62vh, 300px);
+  }
+}
 .colouring-preview {
   display: flex;
   flex-direction: column;

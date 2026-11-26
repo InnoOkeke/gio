@@ -802,6 +802,24 @@ export const SCREENS: Screen[] = [
     },
   },
   {
+    id: 'colouring-page',
+    label: 'Colouring page dialog (a filled square and circle)',
+    open: async (c) => {
+      await c.seed(
+        { ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('; My house\nREPEAT 4 [FD 100 RT 90]\nSETPC "yellow\nFILL\nPU SETXY 50 150 PD\nSETPC "red\nCIRCLE 30\nFILL') },
+        '?mode=coder',
+      );
+      await runAndWait(c, '.bubble-success');
+      await sleep(600); // the studio settles after the run; only the menu and the dialog are judged
+      await c.evaluate(`window.__cls = 0`);
+      await c.click('button[aria-haspopup=dialog]', 'Picture');
+      await sleep(500);
+      await c.click('[role=dialog] button', 'Colouring page');
+      if (!(await c.waitFor(`!!document.querySelector('#colouring-title') && !!document.querySelector('.colouring-preview-art')?.complete`, 10000))) throw new Error('the colouring page did not open');
+      await sleep(600);
+    },
+  },
+  {
     id: 'more-menu',
     label: 'More menu (phones; tablets have no More button and show the Save menu instead)',
     open: async (c) => {
