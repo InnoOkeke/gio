@@ -24,6 +24,25 @@ interface PythonState {
   arcs: [number, number][];
   rec: Recorded[];
   frames: number;
+  /** The rectangles of each FILL, as [x, y, w, h]. */
+  fills: [number, number, number, number][][];
+}
+
+/** How much of the stage some rectangles cover, counted on a half-unit grid (rectangles overlap, so their areas don't add up). */
+function paintedArea(rects: number[][]): number {
+  if (!rects.length) return 0;
+  const step = 0.5;
+  const x0 = Math.min(...rects.map((r) => r[0]!));
+  const x1 = Math.max(...rects.map((r) => r[0]! + r[2]!));
+  const y0 = Math.min(...rects.map((r) => r[1]!));
+  const y1 = Math.max(...rects.map((r) => r[1]! + r[3]!));
+  let hits = 0;
+  for (let y = y0 + step / 2; y < y1; y += step) {
+    for (let x = x0 + step / 2; x < x1; x += step) {
+      if (rects.some((r) => x >= r[0]! && x < r[0]! + r[2]! && y >= r[1]! && y < r[1]! + r[3]!)) hits++;
+    }
+  }
+  return Math.round(hits * step * step);
 }
 
 /** GIO draws an arc as lines while the turtle stands still; the last line of each run is where the arc ends. */
@@ -87,6 +106,7 @@ function instrument(code: string, presses: GameKey[], beep: boolean): string {
     'import sys, time, types',
     '_rec = []',
     '_frames = [0]',
+    '_fill_log = []',
     'time.sleep = lambda seconds: _rec.append(["sleep", seconds])',
     beep
       ? '_ws = types.ModuleType("winsound")\n_ws.Beep = lambda hz, ms: _rec.append(["tone", hz, ms / 1000])\nsys.modules["winsound"] = _ws'
@@ -99,6 +119,8 @@ function instrument(code: string, presses: GameKey[], beep: boolean): string {
   return code
     .replace('from turtle import *', `from turtle import *\n${prelude}`)
     .replace('mode("logo")', 'mode("logo")\ntracer(0)\n_arc_ends = []')
+    // Real Python draws FILL on its canvas, so write down how much area each FILL covers.
+    .replace('    return rects\n\n_fills', '    _fill_log.append(rects)\n    return rects\n\n_fills')
     // The test presses keys and ticks itself, so don't start Python's own game clock.
     .replace('\n_tick()  # start the game clock', '')
     // The final update() only shows the last picture; it is not a frame the program asked for.
@@ -106,7 +128,7 @@ function instrument(code: string, presses: GameKey[], beep: boolean): string {
     .replace('    circle(-radius, angle)\n', '    circle(-radius, angle)\n    _arc_ends.append((round(xcor(), 3), round(ycor(), 3)))\n')
     .replace(
       /\ndone\(\)$/,
-      `\n${calls}\nimport json\nprint(json.dumps({"x": round(xcor(), 3), "y": round(ycor(), 3), "h": round(heading(), 3) % 360, "down": isdown(), "arcs": _arc_ends, "rec": _rec, "frames": _frames[0]}))\nbye()`,
+      `\n${calls}\nimport json\nprint(json.dumps({"x": round(xcor(), 3), "y": round(ycor(), 3), "h": round(heading(), 3) % 360, "down": isdown(), "arcs": _arc_ends, "rec": _rec, "frames": _frames[0], "fills": _fill_log}))\nbye()`,
     );
 }
 
@@ -141,7 +163,12 @@ function verify(name: string, beep: boolean): void {
   const pySlots = pythonTimeline(py.rec);
   const gioFrames = events.filter((e) => e.type === 'frame').length;
   const timelineOk = JSON.stringify(gioSlots) === JSON.stringify(pySlots) && gioFrames === py.frames;
-  const ok = stateOk && arcsOk && timelineOk;
+  // Each FILL covers the same area in Python as in GIO. A circle is a many-sided polygon in Python, so curves get 5 percent.
+  const gioFills = events.flatMap((e) => (e.type === 'fill' ? [paintedArea(e.rects.map((r) => [r.x, r.y, r.w, r.h]))] : []));
+  const pyFills = py.fills.map(paintedArea);
+  const slack = /\b(ARC|CIRCLE)\b/i.test(source) ? 0.05 : 0.01;
+  const fillsOk = gioFills.length === pyFills.length && gioFills.every((a, k) => Math.abs(a - pyFills[k]!) <= a * slack);
+  const ok = stateOk && arcsOk && timelineOk && fillsOk;
   if (!ok) failures++;
 
   const label = beep ? name : `${name} (no winsound)`;
@@ -149,6 +176,7 @@ function verify(name: string, beep: boolean): void {
     .filter(Boolean)
     .join(', ');
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label.padEnd(20)} final (${py.x}, ${py.y}) heading ${py.h}  arcs ${arcs.length}/${py.arcs.length}${extras ? `  (${extras})` : ''}`);
+  if (!fillsOk) console.log(`      filled area GIO ${JSON.stringify(gioFills)} Python ${JSON.stringify(pyFills)}`);
   if (!timelineOk) console.log(`      GIO    ${JSON.stringify(gioSlots)} frames ${gioFrames}\n      Python ${JSON.stringify(pySlots)} frames ${py.frames}`);
 }
 

@@ -25,6 +25,8 @@ export const PROGRAMS: Record<string, string> = {
   flipbook: 'REPEAT 5 [CLEAN FD 10 * REPCOUNT FRAME RT 20]',
   pause: 'FD 10 WAIT 30 FD 10',
   slownote: 'SETTEMPO 20 PLAY [C 16] FD 10',
+  fill: 'SETPENSIZE 3\nREPEAT 4 [FD 100 RT 90]\nPU RT 45 FD 50 PD\nSETPENCOLOR "gold\nFILL\nPU SETXY 150 0 PD SETPENCOLOR "green\nREPEAT 3 [FD 80 RT 120]\nFILL\nFD 10',
+  fillcircle: 'SETPENCOLOR "red\nCIRCLE 40\nFILL\nPU FD 80 PD SETPENCOLOR "blue\nCIRCLE 20\nFILL',
   ownframe: 'TO FRAME :n\n REPEAT 4 [FD :n RT 90]\nEND\nTO WAIT\n RT 10\nEND\nTO PLAY :n\n FD :n\nEND\nFRAME 30 WAIT PLAY 20',
 };
 

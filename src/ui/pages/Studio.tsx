@@ -110,6 +110,7 @@ function fileName(title: string, ext: string): string {
   return `${safe || 'gio-drawing'}.${ext}`;
 }
 const ReplayDialog = lazy(() => import('../components/ReplayDialog'));
+const ColouringDialog = lazy(() => import('../components/ColouringDialog'));
 // Each editor loads only in the mode that uses it: dnd-kit with the blocks, CodeMirror with Coder code.
 const BlocksEditor = lazy(() => import('../editor/BlocksEditor').then((m) => ({ default: m.BlocksEditor })));
 const LogoEditor = lazy(() => import('../editor/LogoEditor').then((m) => ({ default: m.LogoEditor })));
@@ -227,6 +228,8 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [questsOpen, setQuestsOpen] = useState(false);
   const [gardenOpen, setGardenOpen] = useState(false);
   const [movie, setMovie] = useState<{ events: readonly TurtleEvent[]; background: string } | null>(null);
+  /** The drawing shown as a colouring page, while that dialog is open. */
+  const [colouring, setColouring] = useState<readonly TurtleEvent[] | null>(null);
   const [quest, setQuest] = useState<Quest | null>(null);
   const [questFeedback, setQuestFeedback] = useState<string | null>(null);
   const [questDone, setQuestDone] = useState(false);
@@ -927,6 +930,10 @@ function StudioView({ initial }: { initial: Loaded }) {
     if (!stage) return;
     setMovie({ events: [...stage.events()], background: stage.background() });
   };
+  const openColouring = () => {
+    const stage = stageRef.current;
+    if (stage) setColouring([...stage.events()]);
+  };
 
   const startNew = () => {
     tutor.reset();
@@ -1122,7 +1129,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                   <ResetIcon />
                 </button>
                 <SoundToggle />
-                <ExportMenu empty={!hasDrawing(stageRef.current?.events() ?? [])} little={little} onPicture={exportPicture} onMovie={openMovie} onDrawingFile={exportSvg} />
+                <ExportMenu empty={!hasDrawing(stageRef.current?.events() ?? [])} little={little} onPicture={exportPicture} onMovie={openMovie} onDrawingFile={exportSvg} onColouring={openColouring} />
               </div>
             </div>
 
@@ -1283,6 +1290,11 @@ function StudioView({ initial }: { initial: Loaded }) {
             onSaved={() => toast.show({ text: 'Saved your movie!' })}
             onClose={() => setMovie(null)}
           />
+        </Suspense>
+      )}
+      {colouring && (
+        <Suspense fallback={null}>
+          <ColouringDialog events={colouring} title={title || DEFAULT_TITLE} onClose={() => setColouring(null)} />
         </Suspense>
       )}
       {toast.view}

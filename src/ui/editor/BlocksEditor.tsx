@@ -21,6 +21,7 @@ import {
 import { BLOCK_COLORS, hasBody, NAMED_COLORS, type Block, type BlockKind, type NotePitch } from '../../logo/index.js';
 import { ArrowDownIcon, ArrowUpIcon, MinusIcon, PlusIcon, TrashIcon } from '../components/icons';
 import { haptic } from '../haptics';
+import { FUN_TEXT } from '../i18n-fun';
 import { NOTE_KEYS } from '../runtime/keys';
 import { useMedia } from '../responsive/useMedia';
 import { useWindowClass } from '../responsive/useWindowClass';
@@ -60,6 +61,7 @@ const SPECS: Record<BlockKind, Spec> = {
   color: { label: 'Colour', glyph: '🎨', color: '#ec3f86', make: () => ({ kind: 'color', color: 'red' }) },
   size: { label: 'Thick pen', glyph: '●', color: '#f97316', make: () => ({ kind: 'size', n: 5 }), number: { step: 1, min: 1, max: 20 } },
   circle: { label: 'Circle', glyph: '◯', color: '#0f8fa6', make: () => ({ kind: 'circle', n: 50 }), number: { step: 10, min: 10, max: 150 } },
+  fill: { label: FUN_TEXT.fillBlock, glyph: '🪣', color: '#d97706', make: () => ({ kind: 'fill' }) },
   note: { label: 'Note', glyph: '♪', color: '#d9467a', make: () => ({ kind: 'note', pitch: 'C', beats: 1 }) },
   frame: { label: 'Next picture', glyph: '🎞', color: '#8b5cf6', make: () => ({ kind: 'frame' }) },
   wait: {
@@ -95,7 +97,7 @@ export interface PaletteConfig {
   runLabel?: string;
 }
 const PALETTE_GROUPS: PaletteConfig['groups'] = [
-  { id: 'draw', title: 'Draw', kinds: ['forward', 'right', 'left', 'back', 'repeat', 'color', 'circle', 'size', 'penup', 'pendown'] },
+  { id: 'draw', title: 'Draw', kinds: ['forward', 'right', 'left', 'back', 'repeat', 'color', 'circle', 'fill', 'size', 'penup', 'pendown'] },
   { id: 'music', title: 'Music', kinds: ['note', 'repeat'] },
   { id: 'movie', title: 'Movie', kinds: ['frame', 'wait', 'repeat'] },
 ];

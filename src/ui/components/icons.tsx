@@ -86,6 +86,22 @@ export const MovieIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const PrintIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 9V4h10v5" />
+    <rect x="3.5" y="9" width="17" height="7.5" rx="2" />
+    <path d="M7 14h10v6H7z" />
+  </Icon>
+);
+
+/** A crayon, for the colouring page. */
+export const CrayonIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M14.5 4.5 19.5 9.5 9 20H4v-5Z" />
+    <path d="m12 7 5 5" />
+  </Icon>
+);
+
 export const ShapesIcon = (p: IconProps) => (
   <Icon {...p}>
     <circle cx="7.5" cy="7.5" r="3.5" />

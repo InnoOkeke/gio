@@ -2,6 +2,7 @@ import { NAMED_COLORS, PALETTE_16, rgbToHex } from './colors.js';
 import { LogoError, suggest, type SourcePos } from './errors.js';
 import type { Expr, Procedure, Program, Stmt } from './parser.js';
 import { parseTune } from './music.js';
+import { computeFill, type FillRect, type Segment } from './fill.js';
 import type { GameKey } from './primitives.js';
 
 export type Value = number | string | boolean | Value[];
@@ -35,6 +36,8 @@ export type TurtleEvent =
   | (EventBase & { type: 'background'; color: string })
   | (EventBase & { type: 'print'; text: string })
   | (EventBase & { type: 'dot'; x: number; y: number; r: number; color: string })
+  /** FILL: the rectangles together colour in one closed shape. They are painted under the lines. */
+  | (EventBase & { type: 'fill'; color: string; rects: FillRect[] })
   | (EventBase & { type: 'show'; text: string })
   | (EventBase & { type: 'gameover' })
   /** Notes to play one after another. hz: null is a rest. Tempo is already worked into seconds. */
@@ -139,6 +142,8 @@ class Interpreter {
   private state: TurtleState = { ...INITIAL_STATE };
   private background = DEFAULT_BACKGROUND;
   private events: TurtleEvent[] = [];
+  /** What the pen has drawn since the last clear, for FILL to find the closed shape. */
+  private segments: Segment[] = [];
   private readonly handlers = new Map<GameKey, Stmt[]>();
   private gameOver = false;
   private readonly globals = new Map<string, Value>();
@@ -344,6 +349,7 @@ class Interpreter {
     this.state.x = round(x2);
     this.state.y = round(y2);
     if (this.state.penDown) {
+      this.segments.push({ x1, y1, x2: this.state.x, y2: this.state.y, size: this.state.size });
       this.emit({ type: 'line', x1, y1, x2: this.state.x, y2: this.state.y, color: this.state.color, size: this.state.size, line, state: this.snapshot() });
     } else {
       this.emit({ type: 'move', line, state: this.snapshot() });
@@ -363,6 +369,7 @@ class Interpreter {
     let prev = pointAt(heading);
     for (let s = 1; s <= segments; s++) {
       const p = pointAt(heading + (sweep * s) / segments);
+      this.segments.push({ x1: prev.x, y1: prev.y, x2: p.x, y2: p.y, size: this.state.size });
       this.emit({ type: 'line', x1: prev.x, y1: prev.y, x2: p.x, y2: p.y, color: this.state.color, size: this.state.size, line, state: this.snapshot() });
       prev = p;
     }
@@ -420,9 +427,11 @@ class Interpreter {
         this.state.x = 0;
         this.state.y = 0;
         this.state.heading = 0;
+        this.segments = [];
         this.emit({ type: 'clear', line, state: this.snapshot() });
         return;
       case 'CLEAN':
+        this.segments = [];
         this.emit({ type: 'clear', line, state: this.snapshot() });
         return;
       case 'SETXY': {
@@ -471,7 +480,20 @@ class Interpreter {
       case 'DOT': {
         const x = round(num(0));
         const y = round(num(1));
-        this.emit({ type: 'dot', x, y, r: Math.max(3, this.state.size * 2 + 2), color: this.state.color, line, state: this.snapshot() });
+        const r = Math.max(3, this.state.size * 2 + 2);
+        this.segments.push({ x1: x, y1: y, x2: x, y2: y, size: r * 2 });
+        this.emit({ type: 'dot', x, y, r, color: this.state.color, line, state: this.snapshot() });
+        return;
+      }
+      case 'FILL': {
+        const rects = computeFill(this.segments, this.state.x, this.state.y);
+        if (!rects) {
+          throw new LogoError(
+            'FILL needs the turtle inside a closed shape. Draw the shape first and check it has no gap, then FILL while the turtle is inside it.',
+            pos,
+          );
+        }
+        this.emit({ type: 'fill', color: this.state.color, rects, line, state: this.snapshot() });
         return;
       }
       case 'SHOW':

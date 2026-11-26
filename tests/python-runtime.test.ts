@@ -141,6 +141,8 @@ describe('every program in check-programs draws the same through Pyodide as thro
       }
       const dots = (events: TurtleEvent[]) => events.filter((e) => e.type === 'dot').map((e) => (e.type === 'dot' ? [e.x, e.y, e.r, e.color] : []));
       expect(dots(py)).toEqual(dots(gio));
+      const fillsOf = (events: TurtleEvent[]) => events.flatMap((e) => (e.type === 'fill' ? [e.color] : []));
+      expect(fillsOf(py)).toEqual(fillsOf(gio));
       const shows = (events: TurtleEvent[]) => events.filter((e) => e.type === 'show').map((e) => (e.type === 'show' ? e.text : ''));
       expect(shows(py)).toEqual(shows(gio));
       expect(timeline(py)).toEqual(timeline(gio));

@@ -15,6 +15,7 @@ export type Block =
   | { kind: 'color'; color: string }
   | { kind: 'size'; n: number }
   | { kind: 'circle'; n: number }
+  | { kind: 'fill' }
   | { kind: 'note'; pitch: NotePitch; beats: 1 | 2 }
   | { kind: 'frame' }
   | { kind: 'wait'; n: number }
@@ -48,6 +49,7 @@ export const BLOCK_COMMANDS_HELP = [
   `SETPENCOLOR "name: one of ${BLOCK_COLORS.map((c) => `"${c}`).join(' ')}`,
   'SETPENSIZE n: pen thickness, 1 to 20',
   'CIRCLE n: a circle of radius n around the turtle',
+  'FILL: colour in the closed shape the turtle is inside, with the pen colour. Draw the shape first; after a CIRCLE the turtle is in the middle, after REPEAT 4 [FD 100 RT 90] it is on a corner, and FILL still finds the shape',
   'PLAY [C D E]: play notes, one after another. Only C D E F G A B C5 and R (a rest) are allowed. A 2 after a note makes it last twice as long, like PLAY [E 2]',
   'FRAME: show the picture so far and hold it a moment, for a flip-book animation',
   'WAIT n: pause for n sixtieths of a second, so WAIT 60 is one second',
@@ -122,6 +124,7 @@ export function toBlocks(program: Program): ToBlocksResult {
         case 'CIRCLE': block = needNumber('circle'); break;
         case 'WAIT': block = needNumber('wait'); break;
         case 'FRAME': block = { kind: 'frame' }; break;
+        case 'FILL': block = { kind: 'fill' }; break;
         case 'SWIM': block = { kind: 'swim' }; break;
         case 'JUMP': block = { kind: 'jump' }; break;
         case 'FREE': block = { kind: 'free' }; break;
@@ -164,6 +167,7 @@ export function blocksToLogo(blocks: Block[], depth = 0): string {
         case 'circle': return `${pad}CIRCLE ${b.n}`;
         case 'note': return `${pad}PLAY [${b.pitch}${b.beats === 2 ? ' 2' : ''}]`;
         case 'frame': return `${pad}FRAME`;
+        case 'fill': return `${pad}FILL`;
         case 'wait': return `${pad}WAIT ${b.n}`;
         case 'swim': return `${pad}SWIM`;
         case 'jump': return `${pad}JUMP`;

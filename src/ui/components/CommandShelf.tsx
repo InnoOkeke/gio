@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { NAMED_COLORS } from '../../logo/index.js';
 import { useWindowClass } from '../responsive/useWindowClass';
+import { FUN_TEXT } from '../i18n-fun';
 
 interface Snippet {
   code: string;
@@ -35,6 +36,7 @@ const GROUPS: { title: string; snippets: Snippet[] }[] = [
     snippets: [
       { code: 'REPEAT 4 [ ]', hint: 'Do the commands inside [ ] 4 times' },
       { code: 'CIRCLE 40', hint: 'Draw a circle around the turtle' },
+      { code: 'FILL', hint: FUN_TEXT.fillHint },
     ],
   },
   {

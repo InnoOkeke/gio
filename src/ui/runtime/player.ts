@@ -1,6 +1,7 @@
 import { DEFAULT_BACKGROUND, INITIAL_STATE, type RunResult, type TurtleEvent, type TurtleState } from '../../logo/index.js';
 import { holdSeconds, isAnimated, type Tone } from './timeline';
 import { clampZoom, renderRatio } from '../responsive/zoom';
+import { paintFill } from './paint';
 
 /** The visible world runs from -WORLD_HALF to +WORLD_HALF on both axes. */
 export const WORLD_HALF = 300;
@@ -202,6 +203,7 @@ export class Player {
       const e = this.events[k]!;
       if (e.type === 'line') this.strokeSegment(e, 0, 1);
       if (e.type === 'dot') this.fillDot(e);
+      if (e.type === 'fill') this.paintFill(k);
       if (e.type === 'clear') this.clearCanvas();
     }
     const current = this.events[this.index];
@@ -292,6 +294,7 @@ export class Player {
         if (e.type === 'frame') this.cb.onFrame(++this.frames);
         if (e.type === 'clear') this.clearCanvas();
         if (e.type === 'dot') this.fillDot(e);
+        if (e.type === 'fill') this.paintFill(this.index);
         if (e.type === 'show') this.cb.onShow(e.text);
         if (e.type === 'gameover') this.cb.onGameOver();
         if (e.type === 'print') this.cb.onPrint(e.text);
@@ -352,6 +355,12 @@ export class Player {
     this.ctx.beginPath();
     this.ctx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
     this.ctx.fill();
+  }
+
+  private paintFill(at: number): void {
+    const scale = this.canvas.width / (WORLD_HALF * 2);
+    const half = this.canvas.width / 2;
+    paintFill(this.ctx, this.events, at, () => this.ctx.setTransform(scale, 0, 0, -scale, half, half));
   }
 
   /** Events still waiting to be drawn (games skip a tick when the turtle falls behind). */

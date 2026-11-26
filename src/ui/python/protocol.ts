@@ -48,6 +48,8 @@ const WORLD = 1000;
 const GAME_KEYS: readonly string[] = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'SPACE'];
 const MAX_TEXT = 200;
 const MAX_TONES = 256;
+/** The most rectangles one FILL may bring back. GIO's own FILL makes far fewer. */
+const MAX_RECTS = 5000;
 /** The most events one Python call may bring back; the same cap the Python shim keeps. */
 export const MAX_EVENTS = 20000;
 
@@ -121,6 +123,21 @@ function cleanEvent(raw: unknown): TurtleEvent | null {
       const color = colour(raw['color']);
       if (x === null || y === null || r === null || color === null) return null;
       return { type: 'dot', x, y, r, color, ...base };
+    }
+    case 'fill': {
+      const color = colour(raw['color']);
+      if (color === null || !Array.isArray(raw['rects'])) return null;
+      const rects: { x: number; y: number; w: number; h: number }[] = [];
+      for (const r of raw['rects'].slice(0, MAX_RECTS)) {
+        if (!isObject(r)) return null;
+        const x = coord(r['x']);
+        const y = coord(r['y']);
+        const w = coord(r['w']);
+        const h = coord(r['h']);
+        if (x === null || y === null || w === null || h === null || w <= 0 || h <= 0) return null;
+        rects.push({ x, y, w, h });
+      }
+      return { type: 'fill', color, rects, ...base };
     }
     case 'play': {
       if (!Array.isArray(raw['tones'])) return null;

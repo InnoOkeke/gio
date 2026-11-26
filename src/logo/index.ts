@@ -14,6 +14,8 @@ export { parseTune, noteHz, noteName } from './music.js';
 export type { Tune, TuneItem } from './music.js';
 export { NAMED_COLORS, PALETTE_16 } from './colors.js';
 export { translate, toText } from './translate.js';
+export { computeFill } from './fill.js';
+export type { FillRect, Segment } from './fill.js';
 export { toBlocks, blocksToLogo, hasBody, BLOCK_COLORS, BLOCK_COMMANDS_HELP, NOTE_PITCHES } from './blocks.js';
 export type { Block, BlockKind, BodyBlock, IfSense, NotePitch, ToBlocksResult } from './blocks.js';
 export type { TargetLanguage, Translation, TranslatedLine } from './translate.js';

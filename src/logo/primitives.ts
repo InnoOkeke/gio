@@ -29,6 +29,7 @@ const SPECS: PrimitiveSpec[] = [
   { name: 'SETY', aliases: [], arity: 1, kind: 'command', help: 'Jump up or down to a y position' },
   { name: 'ARC', aliases: [], arity: 2, kind: 'command', help: 'Draw part of a circle around the turtle: ARC angle radius' },
   { name: 'CIRCLE', aliases: [], arity: 1, kind: 'command', help: 'Draw a circle around the turtle: CIRCLE radius' },
+  { name: 'FILL', aliases: [], arity: 0, kind: 'command', help: 'Colour in the closed shape the turtle is inside, using the pen colour' },
   { name: 'HIDETURTLE', aliases: ['HT'], arity: 0, kind: 'command', help: 'Hide the turtle' },
   { name: 'SHOWTURTLE', aliases: ['ST'], arity: 0, kind: 'command', help: 'Show the turtle' },
   { name: 'PRINT', aliases: ['PR'], arity: 1, kind: 'command', help: 'Show a message or number' },

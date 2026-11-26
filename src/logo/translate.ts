@@ -1,6 +1,7 @@
 import { NAMED_COLORS, PALETTE_16 } from './colors.js';
 import type { Expr, Procedure, Program, Stmt } from './parser.js';
 import { TICK_MS } from './primitives.js';
+import { fillHelperLines } from './fill-python.js';
 
 export type TargetLanguage = 'python' | 'javascript';
 
@@ -30,7 +31,7 @@ const PYTHON_RESERVED = new Set([
   'pensize', 'bgcolor', 'hideturtle', 'showturtle', 'heading', 'xcor', 'ycor', 'circle', 'isdown', 'mode', 'done', 'randrange',
   'sqrt', 'sin', 'cos', 'radians', 'speed', 'logo_arc', 'logo_clearscreen', 'palette', 'onkey', 'listen',
   'on_up', 'on_down', 'on_left', 'on_right', 'on_space', 'on_tick', 'show', 'dot', 'logo_dot', 'game_over', 'distance',
-  'ontimer', 'position', 'turtle',
+  'ontimer', 'position', 'turtle', 'logo_fill', 'logo_clean', '_fills', '_fill_rects', '_forget_fills', '_math', '_turtle',
 ]);
 /** Names the sound, wait and movie helpers use. They are only kept free when the program uses PLAY, SETTEMPO, WAIT or FRAME, so older programs translate exactly as before. */
 const PYTHON_RESERVED_CREATIVE = ['play', 'settempo', 'wait', 'frame', 'update', 'tracer', 'sleep', 'note_hz', 'winsound', '_tempo', '_tone'];
@@ -141,7 +142,9 @@ class Translator {
   private readonly trailingComments: { line: number; text: string }[] = [];
   private readonly emittedCommentLines = new Set<number>();
   private pendingNote: string | null = null;
-  private readonly needs = { arc: false, clearscreen: false, palette: false, random: false, math: false, keys: false, tick: false, dot: false, show: false, gameover: false, music: false, wait: false, frames: false };
+  private readonly needs = { arc: false, clearscreen: false, palette: false, random: false, math: false, keys: false, tick: false, dot: false, show: false, gameover: false, music: false, wait: false, frames: false, fill: false, clean: false };
+  /** The program has a FILL somewhere, so CLEAN and CLEARSCREEN must also wipe the filled shapes. */
+  private readonly usesFill: boolean;
 
   constructor(
     private readonly program: Program,
@@ -149,6 +152,13 @@ class Translator {
     private readonly language: TargetLanguage,
   ) {
     this.py = language === 'python';
+    let fill = false;
+    const seeFill = (s: Stmt): void => {
+      if (s.kind === 'command' && s.name === 'FILL') fill = true;
+    };
+    walk(program.main, seeFill);
+    for (const proc of program.procedures.values()) walk(proc.body, seeFill);
+    this.usesFill = fill;
     for (const name of program.procedures.keys()) {
       const id = identifier(name, language);
       this.procNames.set(name, id);
@@ -252,6 +262,7 @@ class Translator {
         { text: '' },
       );
     }
+    if (this.needs.fill) out.push(...fillHelperLines());
     if (this.needs.arc) {
       out.push(
         { text: '# Logo draws arcs around the turtle and leaves it where it was' },
@@ -275,6 +286,7 @@ class Translator {
       out.push(
         { text: "# Logo's CLEARSCREEN: wipe the drawing and go home without drawing" },
         { text: 'def logo_clearscreen():' },
+        ...(this.usesFill ? [{ text: '    _forget_fills()' }] : []),
         { text: '    clear()' },
         { text: '    was_down = isdown()' },
         { text: '    penup()' },
@@ -283,6 +295,9 @@ class Translator {
         { text: '        pendown()' },
         { text: '' },
       );
+    }
+    if (this.needs.clean) {
+      out.push({ text: "# Logo's CLEAN: wipe the lines and the filled shapes, and stay where you are" }, { text: 'def logo_clean():' }, { text: '    _forget_fills()' }, { text: '    clear()' }, { text: '' });
     }
     if (this.needs.music) {
       out.push(
@@ -546,7 +561,12 @@ class Translator {
         if (!py) return 'clearScreen()';
         this.needs.clearscreen = true;
         return 'logo_clearscreen()';
-      case 'CLEAN': return py ? 'clear()' : 'clean()';
+      case 'CLEAN':
+        if (py && this.usesFill) {
+          this.needs.clean = true;
+          return 'logo_clean()';
+        }
+        return py ? 'clear()' : 'clean()';
       case 'SETXY': return `goto(${a[0]}, ${a[1]})`;
       case 'SETX': return py ? `setx(${a[0]})` : `setX(${a[0]})`;
       case 'SETY': return py ? `sety(${a[0]})` : `setY(${a[0]})`;
@@ -584,6 +604,10 @@ class Translator {
       case 'FRAME':
         if (py) this.needs.frames = true;
         return 'frame()';
+      case 'FILL':
+        if (!py) return 'fill()';
+        this.needs.fill = true;
+        return 'logo_fill()';
       case 'GAMEOVER':
         if (!py) return 'gameOver()';
         this.needs.gameover = true;

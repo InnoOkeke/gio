@@ -50,6 +50,7 @@ _stage = [None]  # the one turtle that draws on GIO's stage
 _keys = {}  # GameKey name (UP, DOWN, ...) -> function
 _timers = {}  # id -> (function, ms)
 _next_timer = [1]
+_segments = []  # (x1, y1, x2, y2, size) for every line and dot on the stage since the last clear, for FILL
 
 _KEY_NAMES = {"up": "UP", "down": "DOWN", "left": "LEFT", "right": "RIGHT", "space": "SPACE"}
 
@@ -58,6 +59,18 @@ def _begin_call():
     """The host calls this before every entry (run, key press, timer) so the limits count per call."""
     del _events[:]
     _seconds[0] = 0.0
+
+
+def _gio_segments():
+    """The lines and dots drawn so far. GIO's translated FILL asks for these (real Python reads its canvas instead)."""
+    return list(_segments)
+
+
+def _gio_fill(rects):
+    """Colour in a shape: the rectangles, in the pen colour, go under the lines on GIO's stage."""
+    state = _stage_state()
+    clean = [[_round(v) for v in rect] for rect in rects]
+    _emit("fill", state, color=state.color, rects=[{"x": r[0], "y": r[1], "w": r[2], "h": r[3]} for r in clean])
 
 
 def _take_events():
@@ -255,6 +268,7 @@ class Turtle:
         s.x, s.y = _round(x), _round(y)
         if drawing:
             _emit("line", s, x1=_round(x1), y1=_round(y1), x2=s.x, y2=s.y, color=s.color, size=_round(s.size))
+            _segments.append((_round(x1), _round(y1), s.x, s.y, _round(s.size)))
         else:
             _emit("move", s)
 
@@ -322,7 +336,9 @@ class Turtle:
         diameter = _num(size, "dot")
         paint = _color(color, "dot") if color else s.color
         self._claim(True)
-        _emit("dot", s, x=_round(s.x), y=_round(s.y), r=_round(max(diameter / 2.0, 1)), color=paint)
+        radius = _round(max(diameter / 2.0, 1))
+        _emit("dot", s, x=_round(s.x), y=_round(s.y), r=radius, color=paint)
+        _segments.append((_round(s.x), _round(s.y), _round(s.x), _round(s.y), radius * 2))
 
     # pen
     def penup(self):
@@ -394,11 +410,13 @@ class Turtle:
     # the page
     def clear(self):
         if _stage[0] is self:
+            del _segments[:]
             _emit("clear", self.s)
 
     def reset(self):
         self.s.reset()
         if _stage[0] is self:
+            del _segments[:]
             _emit("clear", self.s)
 
     def write(self, arg, move=False, align="left", font=None):
@@ -559,11 +577,13 @@ def reset():
     for turtle in _all_turtles():
         turtle.s.reset()
     if _stage[0] is not None:
+        del _segments[:]
         _emit("clear", _stage[0].s)
 
 
 def clearscreen():
     if _stage[0] is not None:
+        del _segments[:]
         _emit("clear", _stage[0].s)
 
 
@@ -602,6 +622,7 @@ def mode(m=None):
         for turtle in _all_turtles():
             turtle.s.reset()
         if _events:
+            del _segments[:]
             _emit("clear", _stage_state())
 
 

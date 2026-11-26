@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useSheetDrag } from '../responsive/useSheetDrag';
-import { DownloadIcon, MovieIcon, ShapesIcon } from './icons';
+import { FUN_TEXT } from '../i18n-fun';
+import { CrayonIcon, DownloadIcon, MovieIcon, ShapesIcon } from './icons';
 
 interface ExportMenuProps {
   /** Nothing has been drawn yet. */
@@ -10,6 +11,8 @@ interface ExportMenuProps {
   onPicture(): void;
   onMovie(): void;
   onDrawingFile(): void;
+  /** Open the printable colouring page. */
+  onColouring(): void;
 }
 
 interface Row {
@@ -21,8 +24,8 @@ interface Row {
   run(): void;
 }
 
-/** One "Picture" button that opens the three ways to keep a drawing: picture, movie and drawing file. */
-export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile }: ExportMenuProps) {
+/** One "Picture" button that opens the ways to keep a drawing: picture, movie, drawing file and colouring page. */
+export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, onColouring }: ExportMenuProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -87,6 +90,14 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile }:
       tile: 'bg-[var(--green-soft)] text-[var(--green-ink)]',
       icon: <ShapesIcon size={24} />,
       run: onDrawingFile,
+    },
+    {
+      id: 'colouring',
+      title: FUN_TEXT.colouringRow,
+      help: little ? FUN_TEXT.colouringRowHelpLittle : FUN_TEXT.colouringRowHelp,
+      tile: 'bg-[#fde7f0] text-[#a3245a]',
+      icon: <CrayonIcon size={24} />,
+      run: onColouring,
     },
   ];
 

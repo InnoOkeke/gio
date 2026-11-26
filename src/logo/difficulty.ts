@@ -30,6 +30,7 @@ const FAMILY: Record<string, string> = {
   CLEAN: 'pen',
   SETPENCOLOR: 'colour',
   SETBACKGROUND: 'colour',
+  FILL: 'colour',
   CIRCLE: 'curve',
   ARC: 'curve',
   DOT: 'dot',

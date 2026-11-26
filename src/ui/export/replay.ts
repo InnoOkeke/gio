@@ -1,5 +1,6 @@
 import { INITIAL_STATE, type TurtleEvent, type TurtleState } from '../../logo/index.js';
 import { WORLD_HALF } from '../runtime/player';
+import { paintFill } from '../runtime/paint';
 
 export interface ReplaySprite {
   x: number;
@@ -43,7 +44,7 @@ function eventCost(e: TurtleEvent, before: TurtleState): number {
   }
   if (e.type === 'move') return Math.hypot(e.state.x - before.x, e.state.y - before.y);
   if (e.type === 'turn') return TURN_COST;
-  if (e.type === 'dot') return DOT_COST;
+  if (e.type === 'dot' || e.type === 'fill') return DOT_COST;
   return 0;
 }
 
@@ -100,7 +101,7 @@ export function planReplay(events: readonly TurtleEvent[], opts: ReplayOptions):
         visible: e.state.visible,
       };
     }
-    frames.push({ upto: idx, fraction: e.type === 'dot' ? 0 : fraction, t: k / count, sprite });
+    frames.push({ upto: idx, fraction: e.type === 'dot' || e.type === 'fill' ? 0 : fraction, t: k / count, sprite });
   }
   return frames;
 }
@@ -214,6 +215,8 @@ export async function* renderReplayFrames(
         baseCtx.beginPath();
         baseCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
         baseCtx.fill();
+      } else if (e.type === 'fill') {
+        paintFill(baseCtx, events, cursor, toWorld);
       }
       cursor++;
       drawn = 0;
