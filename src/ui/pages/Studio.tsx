@@ -37,7 +37,10 @@ import { ActionDock } from '../components/ActionDock';
 import { AskFold } from '../components/AskFold';
 import { FocusOffer, FocusToggle, useFocusMode } from '../components/FocusMode';
 import { StudioHeader } from '../components/StudioHeader';
+import { commandsUsed } from '../../logo/daily.js';
+import { recordDaily, savedResult, todaysPuzzle, type DailyResult, type TodaysPuzzle } from '../daily';
 import { haptic } from '../haptics';
+import { FUN_TEXT } from '../i18n-fun';
 import { useWindowClass } from '../responsive/useWindowClass';
 import '../responsive/studio.css';
 import { useToast } from '../components/Toast';
@@ -111,6 +114,7 @@ function fileName(title: string, ext: string): string {
 }
 const ReplayDialog = lazy(() => import('../components/ReplayDialog'));
 const ColouringDialog = lazy(() => import('../components/ColouringDialog'));
+const DailyDialog = lazy(() => import('../components/DailyDialog'));
 // Each editor loads only in the mode that uses it: dnd-kit with the blocks, CodeMirror with Coder code.
 const BlocksEditor = lazy(() => import('../editor/BlocksEditor').then((m) => ({ default: m.BlocksEditor })));
 const LogoEditor = lazy(() => import('../editor/LogoEditor').then((m) => ({ default: m.LogoEditor })));
@@ -230,6 +234,10 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [movie, setMovie] = useState<{ events: readonly TurtleEvent[]; background: string } | null>(null);
   /** The drawing shown as a colouring page, while that dialog is open. */
   const [colouring, setColouring] = useState<readonly TurtleEvent[] | null>(null);
+  /** The Daily Turtle Puzzle dialog: today's puzzle and, once solved, its result. */
+  const [daily, setDaily] = useState<{ today: TodaysPuzzle; result: DailyResult | null } | null>(null);
+  /** The daily puzzle being played, so a solve is recorded under the number it was opened with. */
+  const dailyPlayRef = useRef<TodaysPuzzle | null>(null);
   const [quest, setQuest] = useState<Quest | null>(null);
   const [questFeedback, setQuestFeedback] = useState<string | null>(null);
   const [questDone, setQuestDone] = useState(false);
@@ -578,6 +586,16 @@ function StudioView({ initial }: { initial: Loaded }) {
         return;
       }
       setQuestDone(true);
+      if (q.id.startsWith('daily-')) {
+        // The Daily Turtle Puzzle: its result stays in this browser and never touches quest progress, badges or the map.
+        const today = dailyPlayRef.current ?? todaysPuzzle(q.audience);
+        const saved = recordDaily(today.number, q.audience, commandsUsed(codeRef.current) ?? 1, today.par);
+        setFriendQueue((f) => [...f, ...earned.newFriends]);
+        haptic('win');
+        setBubble({ kind: 'success', text: FUN_TEXT.dailyBubbleSolved, mood: 'cheer' });
+        momentTimer.current.schedule(() => setDaily({ today, result: saved }), 800);
+        return;
+      }
       const helped = help.used();
       if (skill.isActive(q.id)) {
         // A skill check challenge: no star, clear, review or sticker for the quest. Only the verdict counts.
@@ -930,6 +948,17 @@ function StudioView({ initial }: { initial: Loaded }) {
     if (!stage) return;
     setMovie({ events: [...stage.events()], background: stage.background() });
   };
+  const openDaily = () => {
+    const today = todaysPuzzle(mode);
+    setDaily({ today, result: savedResult(today.number, mode) });
+  };
+  const playDaily = () => {
+    if (!daily) return;
+    dailyPlayRef.current = daily.today;
+    setDaily(null);
+    startQuest(daily.today.puzzle);
+  };
+  const dailySolved = useMemo(() => savedResult(todaysPuzzle(mode).number, mode) !== null, [mode, daily, questDone]);
   const openColouring = () => {
     const stage = stageRef.current;
     if (stage) setColouring([...stage.events()]);
@@ -1075,7 +1104,7 @@ function StudioView({ initial }: { initial: Loaded }) {
           />
         )}
         {quest ? (
-          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted && !skill.run} review={review ? { index: review.index, total: review.ids.length } : null} nextLabel={skill.run ? 'Next challenge' : review ? (review.index + 1 < review.ids.length ? 'Next review quest' : 'Finish review') : 'Next quest'} onHint={() => void askForHint()} onNext={nextQuest} onLeave={leaveQuest} onVoice={(text) => {
+          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted && !skill.run} review={review ? { index: review.index, total: review.ids.length } : null} eyebrow={quest.id.startsWith('daily-') ? FUN_TEXT.dailyEyebrow((dailyPlayRef.current ?? todaysPuzzle(mode)).number) : undefined} nextLabel={quest.id.startsWith('daily-') ? FUN_TEXT.dailySeeResult : skill.run ? 'Next challenge' : review ? (review.index + 1 < review.ids.length ? 'Next review quest' : 'Finish review') : 'Next quest'} onHint={() => void askForHint()} onNext={quest.id.startsWith('daily-') ? openDaily : nextQuest} onLeave={leaveQuest} onVoice={(text) => {
             const command = parseVoiceCommand(text);
             if (command) doCommand(command);
             else setBubble({ kind: 'info', text: 'In a quest you write the code yourself! You can say run, hint, explain or step.' });
@@ -1129,7 +1158,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                   <ResetIcon />
                 </button>
                 <SoundToggle />
-                <ExportMenu empty={!hasDrawing(stageRef.current?.events() ?? [])} little={little} onPicture={exportPicture} onMovie={openMovie} onDrawingFile={exportSvg} onColouring={openColouring} />
+                <ExportMenu empty={!hasDrawing(stageRef.current?.events() ?? [])} little={little} onPicture={exportPicture} onMovie={openMovie} onDrawingFile={exportSvg} onColouring={openColouring} onDaily={openDaily} dailySolved={dailySolved} />
               </div>
             </div>
 
@@ -1295,6 +1324,11 @@ function StudioView({ initial }: { initial: Loaded }) {
       {colouring && (
         <Suspense fallback={null}>
           <ColouringDialog events={colouring} title={title || DEFAULT_TITLE} onClose={() => setColouring(null)} />
+        </Suspense>
+      )}
+      {daily && (
+        <Suspense fallback={null}>
+          <DailyDialog today={daily.today} mode={mode} result={daily.result} onPlay={playDaily} onClose={() => setDaily(null)} />
         </Suspense>
       )}
       {toast.view}

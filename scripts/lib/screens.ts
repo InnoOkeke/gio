@@ -4,6 +4,7 @@
  * empty slot that a later feature fills in: the runner reports it and moves on.
  */
 import { LEVELS } from '../../src/logo/adventure/index.js';
+import { todaysPuzzle } from '../../src/ui/daily';
 import { ISLANDS } from '../../src/ui/path/islands';
 import { ADVENTURE_REFERENCE } from '../../tests/solutions/adventure';
 import type { Cdp } from './cdp';
@@ -817,6 +818,46 @@ export const SCREENS: Screen[] = [
       await c.click('[role=dialog] button', 'Colouring page');
       if (!(await c.waitFor(`!!document.querySelector('#colouring-title') && !!document.querySelector('.colouring-preview-art')?.complete`, 10000))) throw new Error('the colouring page did not open');
       await sleep(600);
+    },
+  },
+  {
+    id: 'daily-puzzle',
+    label: 'Daily Turtle Puzzle dialog, before it is solved',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 100 RT 90]') }, '?mode=coder');
+      await c.click('button[aria-haspopup=dialog]', 'Picture');
+      await sleep(500);
+      await c.click('[role=dialog] button', 'Daily puzzle');
+      if (!(await c.waitFor(`!!document.querySelector('#daily-title') && !!document.querySelector('.quest-preview canvas')`, 10000))) throw new Error('the daily puzzle did not open');
+      await sleep(600);
+    },
+  },
+  {
+    id: 'daily-result',
+    label: 'Daily Turtle Puzzle dialog, solved, with the result to share (little mode, two stars)',
+    open: async (c) => {
+      const { number } = todaysPuzzle('little');
+      const solved = { v: 1, solved: { [`${number}:little`]: { commands: 9, stars: 2 } } };
+      await c.seed({ ...little, 'gio.progress': LITTLE_PROGRESS, 'gio.daily': solved }, '?mode=little');
+      await c.click('button[aria-haspopup=dialog]', 'Picture');
+      await sleep(500);
+      await c.click('[role=dialog] button', 'Daily puzzle');
+      if (!(await c.waitFor(`!!document.querySelector('.daily-share-text')`, 10000))) throw new Error('the daily result did not open');
+      await sleep(900);
+    },
+  },
+  {
+    id: 'daily-quest',
+    label: 'The studio while playing today\u2019s puzzle',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS }, '?mode=coder');
+      await c.click('button[aria-haspopup=dialog]', 'Picture');
+      await sleep(500);
+      await c.click('[role=dialog] button', 'Daily puzzle');
+      await c.waitFor(`!!document.querySelector('#daily-title')`, 10000);
+      await c.click('[role=dialog] button', 'Play today');
+      if (!(await c.waitFor(`!!document.querySelector('#quest-title')`, 10000))) throw new Error('the puzzle did not start');
+      await sleep(700);
     },
   },
   {

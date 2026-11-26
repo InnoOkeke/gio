@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { useSheetDrag } from '../responsive/useSheetDrag';
 import { FUN_TEXT } from '../i18n-fun';
-import { CrayonIcon, DownloadIcon, MovieIcon, ShapesIcon } from './icons';
+import { CrayonIcon, DownloadIcon, MovieIcon, ShapesIcon, TrophyIcon } from './icons';
 
 interface ExportMenuProps {
   /** Nothing has been drawn yet. */
@@ -13,6 +13,10 @@ interface ExportMenuProps {
   onDrawingFile(): void;
   /** Open the printable colouring page. */
   onColouring(): void;
+  /** Open today's Daily Turtle Puzzle. */
+  onDaily(): void;
+  /** Today's puzzle is already solved on this device. */
+  dailySolved: boolean;
 }
 
 interface Row {
@@ -22,10 +26,12 @@ interface Row {
   tile: string;
   icon: ReactNode;
   run(): void;
+  /** Works with nothing drawn yet. */
+  always?: boolean;
 }
 
 /** One "Picture" button that opens the ways to keep a drawing: picture, movie, drawing file and colouring page. */
-export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, onColouring }: ExportMenuProps) {
+export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, onColouring, onDaily, dailySolved }: ExportMenuProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -99,10 +105,19 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
       icon: <CrayonIcon size={24} />,
       run: onColouring,
     },
+    {
+      id: 'daily',
+      title: FUN_TEXT.dailyRow,
+      help: dailySolved ? FUN_TEXT.dailyRowSolved : little ? FUN_TEXT.dailyRowHelpLittle : FUN_TEXT.dailyRowHelp,
+      tile: 'bg-[#ece6ff] text-[#5b36c4]',
+      icon: <TrophyIcon size={24} />,
+      run: onDaily,
+      always: true,
+    },
   ];
 
   const pick = (row: Row) => {
-    if (empty) return;
+    if (empty && !row.always) return;
     close();
     row.run();
   };
@@ -152,13 +167,13 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
                   key={row.id}
                   type="button"
                   className="save-row"
-                  aria-disabled={empty}
+                  aria-disabled={empty && !row.always}
                   onClick={() => pick(row)}
                 >
                   <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-[14px] ${row.tile}`}>{row.icon}</span>
                   <span className="flex min-w-0 flex-col gap-0.5">
                     <span className="text-[17px] font-black leading-tight">{row.title}</span>
-                    <span className="text-[14px] font-semibold leading-tight text-ink-2">{empty ? reason : row.help}</span>
+                    <span className="text-[14px] font-semibold leading-tight text-ink-2">{empty && !row.always ? reason : row.help}</span>
                   </span>
                 </button>
               ))}

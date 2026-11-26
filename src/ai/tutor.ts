@@ -1,3 +1,4 @@
+import { CODER_DAILY, LITTLE_DAILY } from '../logo/daily-pool.js';
 import { diagnose, type Diagnosis } from '../logo/diagnose.js';
 import { PRIMITIVES } from '../logo/index.js';
 import { checkQuest, QUESTS, type Quest } from '../logo/quests.js';
@@ -238,7 +239,7 @@ const GIVE_UP = 'The turtle could not think of a good hint this time. Try again 
 
 function findQuest(questId: string | undefined, style: AssistantStyle): Quest | undefined {
   if (questId === undefined) return undefined;
-  const quest = QUESTS.find((q) => q.id === questId);
+  const quest = QUESTS.find((q) => q.id === questId) ?? [...LITTLE_DAILY, ...CODER_DAILY].find((q) => q.id === questId);
   if (!quest) throw badRequest("I don't know that quest. Try opening it again from Quests.");
   if ((quest.audience === 'little') !== (style === 'blocks')) throw badRequest("That quest isn't for this age group. Open it again from Quests.");
   return quest;

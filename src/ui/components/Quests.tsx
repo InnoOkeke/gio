@@ -16,6 +16,8 @@ interface QuestCardProps {
   hinted: boolean;
   /** Set while playing a review: which quest of the visit this is. */
   review: { index: number; total: number } | null;
+  /** Replaces the line that says where the quest sits on the map (the Daily Turtle Puzzle has no place on it). */
+  eyebrow?: string;
   /** The label of the button that follows the path once the quest is done. */
   nextLabel: string;
   onHint(): void;
@@ -26,7 +28,7 @@ interface QuestCardProps {
 }
 
 /** Shown above the studio while a quest is active: where it sits on the map, and how it went. */
-export function QuestCard({ quest, done, feedback, star, hinted, review, nextLabel, onHint, onNext, onLeave, onVoice }: QuestCardProps) {
+export function QuestCard({ quest, done, feedback, star, hinted, review, eyebrow, nextLabel, onHint, onNext, onLeave, onVoice }: QuestCardProps) {
   const c = CONCEPTS[quest.concept];
   const voice = useVoice(onVoice);
   const place = placeOf(quest.id);
@@ -44,7 +46,7 @@ export function QuestCard({ quest, done, feedback, star, hinted, review, nextLab
           </p>
         )}
         <p className="m-0 eyebrow" style={{ color: '#44554c' }}>
-          {place ? `Stage ${stageNumber(place.island)} of ${stageCount(place.island.audience)} · ${place.island.name} · Unit ${place.unitIndex + 1} · Quest ${place.index + 1} of 3` : `${c.name} quest`}
+          {eyebrow ?? (place ? `Stage ${stageNumber(place.island)} of ${stageCount(place.island.audience)} · ${place.island.name} · Unit ${place.unitIndex + 1} · Quest ${place.index + 1} of 3` : `${c.name} quest`)}
         </p>
         <h2 id="quest-title" className="m-0 text-[22px] font-black leading-tight">
           {quest.title}

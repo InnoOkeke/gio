@@ -48,6 +48,11 @@ export default function Privacy() {
         <Section title="Gio&rsquo;s Adventure">
           <p className="m-0">Gio&rsquo;s Adventure keeps its own record in the browser (<code>gio.adventure</code>): which levels were won, the stars on each, the fewest commands used, the date of the win, and which story cards were shown. The last plan a child wrote for each level (up to 100 levels) is kept in <code>gio.adventure.code</code> so a level can be picked up again. Neither key is sent to GIO, and neither changes quest progress. Clearing the browser&rsquo;s site data removes them.</p>
         </Section>
+        <Section title="The Daily Turtle Puzzle">
+          <p className="m-0">GIO picks each day&rsquo;s puzzle from the date on the device, so everyone gets the same one and it works without the internet. Nothing about the puzzle is sent to GIO, and there are no accounts, scores or leaderboards.</p>
+          <p className="m-0">When a child solves a puzzle, GIO keeps the puzzle number, the age group, how many commands were used and the stars earned, for the last 60 puzzles, in the browser (<code>gio.daily</code>). It is never sent to GIO. Clearing the browser&rsquo;s site data removes it.</p>
+          <p className="m-0">The result a child can share is only a few words and stars, such as &ldquo;GIO #42 solved in 7 commands&rdquo; with a link to GIO. It never includes the child&rsquo;s code or drawing. It goes out only when a child taps Share, through the phone&rsquo;s own share menu, or it is copied to the clipboard.</p>
+        </Section>
         <Section title="Pictures, movies and drawing files">
           <p className="m-0">Pictures, movies and drawing files (SVG) are made on the child&rsquo;s own device and saved to its downloads folder, or shared through the phone&rsquo;s own share menu. Nothing is uploaded to GIO. A movie carries only the drawing and a small &ldquo;Made with GIO&rdquo; mark.</p>
         </Section>

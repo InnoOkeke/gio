@@ -1676,3 +1676,92 @@ html[data-perf='lite'] .btn-stop {
     display: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+ * Daily Turtle Puzzle: the puzzle card and the result to share
+ * -------------------------------------------------------------------------- */
+.daily-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.daily-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  text-align: center;
+  background: var(--surface);
+  border: 2px solid var(--line);
+  border-radius: 20px;
+}
+.daily-card > .min-w-0 {
+  width: 100%;
+}
+.daily-badge {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  color: #fff;
+  background: #7a4cf0;
+  border-radius: 16px;
+}
+.daily-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  background: #fff8e1;
+  border-radius: 20px;
+}
+.daily-stars {
+  display: flex;
+  gap: 8px;
+}
+.daily-star {
+  animation: daily-star-pop 480ms cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+@keyframes daily-star-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2) rotate(-30deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.daily-share-text {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 18px;
+  font-weight: 900;
+  text-align: center;
+  overflow-wrap: anywhere;
+  background: var(--surface);
+  border: 2px dashed var(--line-strong);
+  border-radius: 16px;
+  user-select: all;
+}
+/* A tablet or a phone on its side: the puzzle beside its result or its Play button. */
+@media (min-width: 640px) {
+  .daily-body {
+    flex-direction: row;
+    align-items: center;
+  }
+  .daily-body > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .daily-star {
+    animation: none;
+  }
+}
+html[data-perf='lite'] .daily-star {
+  animation: none;
+}
