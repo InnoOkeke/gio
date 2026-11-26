@@ -51,6 +51,18 @@ const run = (c: Cdp) => c.click('button', 'Run');
 const coder = { 'gio.mode': 'coder' };
 const little = { 'gio.mode': 'little' };
 
+/** Open the language sheet from the studio header: the globe button, or the More sheet's language row on phones. */
+async function openLanguage(c: Cdp): Promise<void> {
+  const direct = await c.evaluate<boolean>(`(() => { const b = [...document.querySelectorAll('header [data-lang-button]')].find((e) => e.getBoundingClientRect().width > 0); if (!b) return false; b.click(); return true; })()`);
+  if (!direct) {
+    await c.click('header button[aria-haspopup="dialog"]', '');
+    await c.waitFor(`!!document.querySelector('.bottom-sheet [data-lang-button]')`, 4000);
+    await c.click('.bottom-sheet [data-lang-button]');
+  }
+  if (!(await c.waitFor(`!!document.querySelector('[data-testid="language-sheet"]')`, 4000))) throw new Error('the language sheet did not open');
+  await sleep(500);
+}
+
 /** Open the quest map from the studio header. */
 async function openMap(c: Cdp): Promise<void> {
   await c.click('button', 'Quest map');
@@ -610,6 +622,14 @@ async function hardwareKeyChecks(c: Cdp): Promise<void> {
 }
 export const SCREENS: Screen[] = [
   { id: 'mode-picker', label: 'Mode picker', ready: 'h1', open: (c) => c.seed({}, '', 'h1') },
+  {
+    id: 'language-sheet',
+    label: 'Coder studio, language sheet open',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('REPEAT 4 [FD 100 RT 90]') }, '?mode=coder');
+      await openLanguage(c);
+    },
+  },
   { id: 'little-empty', label: 'Little studio, empty (first-win offer)', open: (c) => c.seed(little, '?mode=little') },
   {
     id: 'little-blocks',

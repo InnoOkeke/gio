@@ -1,6 +1,8 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Wordmark } from '../components/GioMark';
+import { LanguageButton } from '../components/LanguageButton';
+import { messages as english } from '../../i18n/locales/en.js';
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -39,7 +41,8 @@ export default function Privacy() {
         </Section>
 
         <Section title="What stays in the browser">
-          <p className="m-0">Quest progress and badges, which quests earned a gold or silver star, which islands on the adventure map are sailed, the calendar dates used to plan short review visits, the age mode a child picked, the read-aloud setting, an unsaved draft, unsaved changes to up to 50 saved drawings (<code>gio.unsaved</code>) and the edit keys for saved drawings are kept in the browser&rsquo;s own storage (localStorage) on that device. GIO&rsquo;s server never receives the progress, settings or draft. A drawing&rsquo;s edit key is stored in the browser and sent to GIO only when the child saves changes to that drawing. Clearing the browser&rsquo;s site data removes them.</p>
+          <p className="m-0">Quest progress and badges, which quests earned a gold or silver star, which islands on the adventure map are sailed, the calendar dates used to plan short review visits, the age mode a child picked, the language a child picked, the read-aloud setting, an unsaved draft, unsaved changes to up to 50 saved drawings (<code>gio.unsaved</code>) and the edit keys for saved drawings are kept in the browser&rsquo;s own storage (localStorage) on that device. GIO&rsquo;s server never receives the progress, settings or draft. A drawing&rsquo;s edit key is stored in the browser and sent to GIO only when the child saves changes to that drawing. Clearing the browser&rsquo;s site data removes them.</p>
+          <p className="m-0">{english['privacy.lang']}</p>
           <p className="m-0">GIO also remembers, for each age group, whether the first-drawing welcome has already been shown (the key is called gio.firstWin). It stays on the device and is never sent to GIO.</p>
           <p className="m-0">Stages are kept the same way. Which stages a child sailed, which ones they tested out of with a skill check, and the date they became a Logo Master (all in <code>gio.path</code>), and whether Gio wears the golden shell (<code>gio.rewards</code>) never leave the browser. A skill check itself is not saved: leaving it simply ends it.</p>
           <p className="m-0">The Logo Master certificate has a box for a name. If someone types one, it is kept in the browser (<code>gio.certificate</code>), up to 40 characters, so it is still there next time. It is never sent to GIO&rsquo;s server and is not put in the link. The &ldquo;Forget my name&rdquo; button on the certificate page deletes it, and so does clearing the site data. The name only appears on the printed page if someone prints it.</p>
@@ -89,7 +92,10 @@ export default function Privacy() {
           <p className="m-0">Like almost every website, the web server that hosts GIO writes standard connection logs (the internet address, the time and the page requested). These logs do not include what a child typed to the turtle or the code they wrote, and GIO does not use them to follow children around.</p>
         </Section>
 
-        <p className="m-0 text-[16px] font-semibold text-ink-3">GIO is an open-source project under the MIT licence.</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="m-0 text-[16px] font-semibold text-ink-3">GIO is an open-source project under the MIT licence.</p>
+          <LanguageButton />
+        </div>
       </main>
     </div>
   );

@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { haptic } from '../haptics';
-import { KEY_ROW, wordSnippet, type KeyRowKey } from '../editor/key-row';
+import { useLang, useT } from '../lang';
+import { KEY_ROW, keyRowFor, wordSnippet, type KeyRowKey } from '../editor/key-row';
 import type { LogoEditorHandle } from '../editor/LogoEditor';
 import '../responsive/keyboard.css';
 
@@ -25,6 +26,9 @@ interface CommandKeyRowProps {
  */
 export function CommandKeyRow({ visible, onKey }: CommandKeyRowProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const { lang } = useLang();
+  const t = useT();
+  const keys = useMemo(() => keyRowFor(lang, t), [lang, t]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -46,14 +50,14 @@ export function CommandKeyRow({ visible, onKey }: CommandKeyRowProps) {
   if (!visible) return null;
   const keep = (e: { preventDefault(): void }) => e.preventDefault();
   return (
-    <div ref={ref} className="key-row" role="toolbar" aria-label="Logo command keys" onPointerDown={keep} onMouseDown={keep}>
+    <div ref={ref} className="key-row" role="toolbar" aria-label={t('keys.toolbar')} onPointerDown={keep} onMouseDown={keep}>
       <div className="key-row-scroll" data-hscroll>
-        {KEY_ROW.filter((k) => k.kind !== 'run').map((key) => (
+        {keys.filter((k) => k.kind !== 'run').map((key) => (
           <button
             key={key.id}
             type="button"
             className="key-row-key"
-            aria-label={`Type ${key.label}: ${key.hint}`}
+            aria-label={t('keys.type', { label: key.label, hint: key.hint })}
             onClick={() => {
               haptic('tap');
               onKey(key);
@@ -63,8 +67,8 @@ export function CommandKeyRow({ visible, onKey }: CommandKeyRowProps) {
           </button>
         ))}
       </div>
-      <button type="button" className="key-row-key is-run" aria-label="Run the program" onClick={() => onKey(RUN_KEY)}>
-        Run
+      <button type="button" className="key-row-key is-run" aria-label={t('keys.runAria')} onClick={() => onKey(RUN_KEY)}>
+        {t('btn.run')}
       </button>
     </div>
   );

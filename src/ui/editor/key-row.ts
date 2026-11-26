@@ -1,3 +1,5 @@
+import type { Lang, Params } from '../../i18n/index.js';
+import { wordIn } from '../../logo/words.js';
 /**
  * The keys of the on-screen command row, in order. Command words start their own line like the
  * command shelf does; numbers and brackets are typed inline so "FD", "5", "0" reads FD 50.
@@ -30,12 +32,38 @@ export const KEY_ROW: KeyRowKey[] = [
   { id: 'run', label: 'Run', kind: 'run', hint: 'run the program' },
 ];
 
+/**
+ * The key row in one language. The words are that language's command words (official short forms
+ * AV/RE/TD/TG/LC/BC in French, AV/RE and so on in Spanish, FD/BK/RT/LT otherwise) and the hints come from
+ * the messages. English gives exactly KEY_ROW.
+ */
+export function keyRowFor(lang: Lang, t: (key: string, params?: Params) => string): KeyRowKey[] {
+  const w = (canon: string) => wordIn(lang, canon, true);
+  const wordKey = (canon: string, hintKey: string): KeyRowKey => {
+    const label = w(canon);
+    return { id: canon === 'REPEAT' ? 'REPEAT' : label, label: canon === 'REPEAT' ? wordIn(lang, 'REPEAT') : label, kind: 'word', insert: canon === 'REPEAT' ? wordIn(lang, 'REPEAT') : label, hint: t(hintKey) };
+  };
+  return [
+    wordKey('FORWARD', 'keys.hint.forward'),
+    wordKey('BACK', 'keys.hint.back'),
+    wordKey('RIGHT', 'keys.hint.right'),
+    wordKey('LEFT', 'keys.hint.left'),
+    wordKey('REPEAT', 'keys.hint.repeat'),
+    inline('[ ]', t('keys.hint.brackets')),
+    ...'0123456789'.split('').map((d) => inline(d, t('keys.hint.digit', { d }))),
+    inline('45', t('keys.hint.number')),
+    inline('90', t('keys.hint.number')),
+    wordKey('PENUP', 'keys.hint.penup'),
+    wordKey('PENDOWN', 'keys.hint.pendown'),
+    { id: 'run', label: t('btn.run'), kind: 'run', hint: t('keys.hint.run') },
+  ];
+}
 /** REPEAT as a word key types a whole REPEAT with the caret between its brackets. */
 export const REPEAT_SNIPPET = 'REPEAT 4 [ ]';
 
 /** The snippet a word key hands to LogoEditor.insert. */
 export function wordSnippet(key: KeyRowKey): string {
-  return key.id === 'REPEAT' ? REPEAT_SNIPPET : (key.insert ?? '');
+  return key.id === 'REPEAT' ? (key.insert === 'REPEAT' ? REPEAT_SNIPPET : `${key.insert} 4 [ ]`) : (key.insert ?? '');
 }
 
 /**

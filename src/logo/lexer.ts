@@ -1,4 +1,5 @@
 import { LogoError, type SourcePos } from './errors.js';
+import { foldWord } from './word-table.js';
 
 export type TokenType = 'number' | 'word' | 'quoted' | 'var' | 'lbracket' | 'rbracket' | 'lparen' | 'rparen' | 'op';
 
@@ -8,6 +9,8 @@ export interface Token {
   text: string;
   /** The text exactly as typed (original case). */
   raw: string;
+  /** Upper-case with accents removed: used only to look a word up in the language tables. */
+  folded: string;
   value?: number;
   pos: SourcePos;
   /** Whitespace directly before / after this token. Used to read `10 -20` as two numbers. */
@@ -17,7 +20,7 @@ export interface Token {
 
 const OPERATORS = new Set(['+', '-', '*', '/', '<', '>', '=']);
 /** Letters, digits and the punctuation kids put in messages (\"You win!\", \"Let's go,\"). */
-const WORD_CHAR = /[A-Za-z0-9_.?!,'&@#]/;
+const WORD_CHAR = /[\p{L}0-9_.?!,'&@#]/u;
 
 export function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
@@ -37,8 +40,8 @@ export function tokenize(source: string): Token[] {
     return ch;
   };
 
-  const push = (token: Omit<Token, 'spaceBefore' | 'spaceAfter'>): void => {
-    tokens.push({ ...token, spaceBefore: sawSpace, spaceAfter: false });
+  const push = (token: Omit<Token, 'spaceBefore' | 'spaceAfter' | 'folded'>): void => {
+    tokens.push({ ...token, folded: foldWord(token.text), spaceBefore: sawSpace, spaceAfter: false });
     sawSpace = false;
   };
 

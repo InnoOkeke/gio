@@ -1,5 +1,6 @@
 import { LogoError, suggest, type SourcePos } from './errors.js';
 import { tokenize, type Token } from './lexer.js';
+import { canonical } from './word-table.js';
 import { allPrimitiveNames, GAME_KEYS, lookupPrimitive, type GameKey, type PrimitiveSpec } from './primitives.js';
 
 export type Expr =
@@ -32,6 +33,16 @@ export interface Program {
   main: Stmt[];
 }
 
+/** A command word the parser read, with where it stands and the command it means. localizeSource rewrites these and nothing else. */
+export interface ResolvedWord {
+  line: number;
+  column: number;
+  /** The word exactly as typed. */
+  raw: string;
+  /** The canonical command: FORWARD, REPEAT, IF ... */
+  canon: string;
+}
+
 /** Optional extras for one parse. Without them the parser behaves exactly as it does in Studio. */
 export interface ParseOptions {
   /** Words known only to this parse (the adventure words), keyed by upper-case name. A child's own TO with the same name wins. */
@@ -51,24 +62,30 @@ const LATE_WORDS = new Set(['PLAY', 'SETTEMPO', 'WAIT', 'FRAME']);
  */
 function collectSignatures(tokens: Token[]): Map<string, number> {
   const arities = new Map<string, number>();
-  for (let i = 0; i < tokens.length; i++) {
-    const t = tokens[i]!;
-    if (t.type !== 'word' || t.text !== 'TO') continue;
-    const nameTok = tokens[i + 1];
-    if (!nameTok || nameTok.type !== 'word') continue;
-    let count = 0;
-    let j = i + 2;
-    while (tokens[j]?.type === 'var') {
-      count++;
-      j++;
+  // First the English TO, then the other languages' TO (POUR, PARA ...), so a name the child
+  // defined with TO is never mistaken for the local TO word itself.
+  for (const english of [true, false]) {
+    for (let i = 0; i < tokens.length; i++) {
+      const t = tokens[i]!;
+      if (t.type !== 'word') continue;
+      if (english ? t.text !== 'TO' : arities.has(t.text) || canonical(t.text, false) !== 'TO') continue;
+      const nameTok = tokens[i + 1];
+      if (!nameTok || nameTok.type !== 'word') continue;
+      let count = 0;
+      let j = i + 2;
+      while (tokens[j]?.type === 'var') {
+        count++;
+        j++;
+      }
+      arities.set(nameTok.text, count);
     }
-    arities.set(nameTok.text, count);
   }
   return arities;
 }
 
 class Parser {
   private i = 0;
+  readonly resolved: ResolvedWord[] = [];
 
   constructor(
     private readonly tokens: Token[],
@@ -85,6 +102,15 @@ class Parser {
     return LATE_WORDS.has(name) || (this.options.words?.has(name) ?? false);
   }
 
+  /** What a word means: its canonical command, unless the program teaches its own command with that name. */
+  private canon(t: Token): string {
+    return canonical(t.text, this.arities.has(t.text));
+  }
+
+  private note(t: Token, canon: string): void {
+    this.resolved.push({ line: t.pos.line, column: t.pos.column, raw: t.raw, canon });
+  }
+
   private gate(word: string, pos: SourcePos): void {
     const allow = this.options.allow;
     if (!allow || allow.has(word)) return;
@@ -96,7 +122,8 @@ class Parser {
     const main: Stmt[] = [];
     while (!this.atEnd()) {
       const t = this.peek()!;
-      if (t.type === 'word' && t.text === 'TO') {
+      if (t.type === 'word' && this.canon(t) === 'TO') {
+        this.note(t, 'TO');
         this.gate('TO', t.pos);
         const proc = this.parseProcedure();
         if (procedures.has(proc.name)) {
@@ -129,11 +156,12 @@ class Parser {
     for (;;) {
       const t = this.peek();
       if (!t) throw new LogoError(`TO ${name} needs an END to finish it.`, toTok.pos);
-      if (t.type === 'word' && t.text === 'END') {
+      if (t.type === 'word' && this.canon(t) === 'END') {
+        this.note(t, 'END');
         this.next();
         break;
       }
-      if (t.type === 'word' && t.text === 'TO') {
+      if (t.type === 'word' && this.canon(t) === 'TO') {
         throw new LogoError(`TO ${name} needs an END before you start teaching another command.`, t.pos);
       }
       body.push(this.parseStatement());
@@ -175,7 +203,9 @@ class Parser {
       throw new LogoError(`I wasn't expecting "${t.text}" here. Lines should start with a command, like FD or REPEAT.`, t.pos);
     }
 
-    switch (t.text) {
+    const c = this.canon(t);
+    if (RESERVED.has(c)) this.note(t, c);
+    switch (c) {
       case 'TO':
         throw new LogoError('TO can only be used at the top level, not inside another command.', t.pos);
       case 'END':
@@ -220,8 +250,9 @@ class Parser {
         return { kind: 'stop', pos: t.pos };
     }
 
-    const prim = this.isLate(t.text) && this.arities.has(t.text) ? undefined : this.lookup(t.text);
+    const prim = this.isLate(c) && this.arities.has(t.text) ? undefined : this.lookup(c);
     if (prim) {
+      this.note(t, prim.name);
       this.gate(prim.name, t.pos);
       if (prim.kind === 'reporter') {
         throw new LogoError(`${prim.name} gives back a value. Use it inside a command, like FD ${prim.name}${prim.arity ? ' 100' : ''}.`, t.pos);
@@ -253,7 +284,7 @@ class Parser {
       return new LogoError(`Names can't have a dash (-) in them, because - means minus. Try ${t.text}_${rest.text} instead.`, t.pos);
     }
     const glued = /^([A-Z]+)(\d+(?:\.\d+)?)$/.exec(t.text);
-    if (glued && (this.lookup(glued[1]!) || this.arities.has(glued[1]!))) {
+    if (glued && (this.lookup(canonical(glued[1]!, this.arities.has(glued[1]!))) || this.arities.has(glued[1]!))) {
       return new LogoError(`Put a space between ${glued[1]} and ${glued[2]}, like ${glued[1]} ${glued[2]}.`, t.pos);
     }
     const hint = suggest(t.text, [...allPrimitiveNames(), ...(this.options.words?.keys() ?? []), ...this.arities.keys()]);
@@ -341,8 +372,10 @@ class Parser {
       case 'lbracket':
         return this.parseLiteralList();
       case 'word': {
-        const prim = this.isLate(t.text) && this.arities.has(t.text) ? undefined : this.lookup(t.text);
+        const c = this.canon(t);
+        const prim = this.isLate(c) && this.arities.has(t.text) ? undefined : this.lookup(c);
         if (prim?.kind === 'reporter') {
+          this.note(t, prim.name);
           this.gate(prim.name, t.pos);
           this.next();
           // A reporter's inputs stop before a comparison, so DISTANCE :x :y < 15 compares the distance.
@@ -350,7 +383,7 @@ class Parser {
           for (let k = 0; k < prim.arity; k++) args.push(this.parseAdditive(prim.name, t.pos));
           return { kind: 'reporter', name: prim.name, args, pos: t.pos };
         }
-        if (prim || RESERVED.has(t.text) || this.arities.has(t.text)) {
+        if (prim || RESERVED.has(c) || this.arities.has(t.text)) {
           throw new LogoError(`${owner} needs an input before ${t.text}. Try something like ${owner} 50.`, t.pos);
         }
         throw this.unknownWord(t);
@@ -405,7 +438,14 @@ class Parser {
   }
 }
 
-export function parse(source: string, options: ParseOptions = {}): Program {
+/** Parse, and also return the command words the parser resolved, with their positions. */
+export function parseWithWords(source: string, options: ParseOptions = {}): { program: Program; words: ResolvedWord[] } {
   const tokens = tokenize(source);
-  return new Parser(tokens, collectSignatures(tokens), options).parseProgram();
+  const parser = new Parser(tokens, collectSignatures(tokens), options);
+  const program = parser.parseProgram();
+  return { program, words: parser.resolved };
+}
+
+export function parse(source: string, options: ParseOptions = {}): Program {
+  return parseWithWords(source, options).program;
 }

@@ -1,5 +1,7 @@
 import { NAMED_COLORS } from './colors.js';
+import type { Lang } from '../i18n/types.js';
 import type { Expr, Program, Stmt } from './parser.js';
+import { wordIn } from './word-table.js';
 
 /**
  * The block language for Little Turtles: a small, friendly subset of Logo.
@@ -151,36 +153,37 @@ export function toBlocks(program: Program): ToBlocksResult {
 }
 
 /** Write blocks as tidy Logo, one command per line, with REPEAT bodies indented. */
-export function blocksToLogo(blocks: Block[], depth = 0): string {
+export function blocksToLogo(blocks: Block[], lang: Lang = 'en', depth = 0): string {
   const pad = '  '.repeat(depth);
+  const w = (canon: string, short = false): string => wordIn(lang, canon, short);
   return blocks
     .map((b) => {
       switch (b.kind) {
-        case 'forward': return `${pad}FD ${b.n}`;
-        case 'back': return `${pad}BK ${b.n}`;
-        case 'right': return `${pad}RT ${b.n}`;
-        case 'left': return `${pad}LT ${b.n}`;
-        case 'penup': return `${pad}PU`;
-        case 'pendown': return `${pad}PD`;
-        case 'color': return `${pad}SETPENCOLOR "${b.color}`;
-        case 'size': return `${pad}SETPENSIZE ${b.n}`;
-        case 'circle': return `${pad}CIRCLE ${b.n}`;
-        case 'note': return `${pad}PLAY [${b.pitch}${b.beats === 2 ? ' 2' : ''}]`;
-        case 'frame': return `${pad}FRAME`;
-        case 'fill': return `${pad}FILL`;
-        case 'wait': return `${pad}WAIT ${b.n}`;
+        case 'forward': return `${pad}${w('FORWARD', true)} ${b.n}`;
+        case 'back': return `${pad}${w('BACK', true)} ${b.n}`;
+        case 'right': return `${pad}${w('RIGHT', true)} ${b.n}`;
+        case 'left': return `${pad}${w('LEFT', true)} ${b.n}`;
+        case 'penup': return `${pad}${w('PENUP', true)}`;
+        case 'pendown': return `${pad}${w('PENDOWN', true)}`;
+        case 'color': return `${pad}${w('SETPENCOLOR')} "${b.color}`;
+        case 'size': return `${pad}${w('SETPENSIZE')} ${b.n}`;
+        case 'circle': return `${pad}${w('CIRCLE')} ${b.n}`;
+        case 'note': return `${pad}${w('PLAY')} [${b.pitch}${b.beats === 2 ? ' 2' : ''}]`;
+        case 'frame': return `${pad}${w('FRAME')}`;
+        case 'fill': return `${pad}${w('FILL')}`;
+        case 'wait': return `${pad}${w('WAIT')} ${b.n}`;
         case 'swim': return `${pad}SWIM`;
         case 'jump': return `${pad}JUMP`;
         case 'free': return `${pad}FREE`;
         case 'rest': return `${pad}REST`;
         case 'if': {
-          const head = `IF ${b.sense} ${b.not ? '<>' : '='} "${b.is}`;
+          const head = `${w('IF')} ${b.sense} ${b.not ? '<>' : '='} "${b.is}`;
           if (!b.body.length) return `${pad}${head} [ ]`;
-          return `${pad}${head} [\n${blocksToLogo(b.body, depth + 1)}\n${pad}]`;
+          return `${pad}${head} [\n${blocksToLogo(b.body, lang, depth + 1)}\n${pad}]`;
         }
         case 'repeat': {
-          if (!b.body.length) return `${pad}REPEAT ${b.n} [ ]`;
-          return `${pad}REPEAT ${b.n} [\n${blocksToLogo(b.body, depth + 1)}\n${pad}]`;
+          if (!b.body.length) return `${pad}${w('REPEAT')} ${b.n} [ ]`;
+          return `${pad}${w('REPEAT')} ${b.n} [\n${blocksToLogo(b.body, lang, depth + 1)}\n${pad}]`;
         }
       }
     })

@@ -2,6 +2,7 @@ import { Fragment, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LEVELS, type AgeModeId, type RealmId } from '../../logo/adventure/index.js';
 import { ArrowLeftIcon, CloseIcon, LockIcon, PlayIcon, StarIcon } from '../components/icons';
+import { LanguageButton } from '../components/LanguageButton';
 import { Sheet } from '../components/Sheet';
 import { TurtleSprite } from '../components/TurtleSprite';
 import { useMode } from '../mode';
@@ -58,6 +59,7 @@ export default function Adventure() {
               {total.stars} of {total.max}
             </span>
           </span>
+          <LanguageButton />
         </div>
       </header>
       <div className="adv-map-scroll">

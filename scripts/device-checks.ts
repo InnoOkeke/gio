@@ -175,7 +175,7 @@ export const COLLECT_FACTS = `(() => {
       if (kids[0]) panel = kids[0];
     }
     const buttons = [...modal.querySelectorAll('button, a[href]')];
-    const close = buttons.find((b) => visible(b) && /^close$/i.test(nameOf(b))) || buttons.find((b) => visible(b) && /close|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop|^hi,/i.test(nameOf(b)));
+    const close = buttons.find((b) => visible(b) && /^close$/i.test(nameOf(b))) || buttons.find((b) => visible(b) && /close|fermer|cerrar|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop|^hi,/i.test(nameOf(b)));
     dialog = { panel: rectOf(panel), close: close ? rectOf(close) : null, closeName: close ? nameOf(close) : '' };
   }
   let header = null;

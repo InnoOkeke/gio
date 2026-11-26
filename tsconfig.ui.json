@@ -11,6 +11,6 @@
     "resolveJsonModule": true,
     "types": ["vite/client"]
   },
-  "include": ["src/ui/**/*", "src/logo/**/*"],
+  "include": ["src/ui/**/*", "src/logo/**/*", "src/i18n/**/*"],
   "exclude": ["node_modules", "dist", "src/ui/offline/sw.ts"]
 }

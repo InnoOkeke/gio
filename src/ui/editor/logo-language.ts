@@ -4,10 +4,13 @@ import { StateEffect, StateField, type Extension } from '@codemirror/state';
 import { Decoration, EditorView, type DecorationSet } from '@codemirror/view';
 import { tags as t } from '@lezer/highlight';
 import { NAMED_COLORS, PRIMITIVES } from '../../logo/index.js';
+import { canonical, foldWord, LOCAL_WORDS } from '../../logo/words.js';
 import type { PrimitiveSpec } from '../../logo/primitives.js';
 
 const COMMAND_WORDS = new Set(PRIMITIVES.flatMap((p) => [p.name, ...p.aliases]));
 const CONTROL_WORDS = new Set(['REPEAT', 'IF', 'IFELSE', 'TO', 'END', 'MAKE', 'STOP', 'WHEN']);
+/** The French, Spanish and Pidgin command words, folded, with the English command each one means. */
+const LOCAL = Object.values(LOCAL_WORDS).flatMap((table) => Object.entries(table).flatMap(([canon, words]) => words.map((w) => ({ word: w, canon }))));
 
 /** Where the parser is relative to PLAY: right after the word, or inside its [ ] list of notes. */
 interface LogoState {
@@ -42,12 +45,12 @@ function makeParser(extra: ReadonlySet<string>): StreamParser<LogoState> {
     if (stream.match(/^"[A-Za-z0-9_.?!,'&@#]+/)) return 'string';
     if (stream.match(/^[[\]()]/)) return 'bracket';
     if (stream.match(/^[+\-*/<>=]/)) return 'operator';
-    const word = stream.match(/^[A-Za-z_][A-Za-z0-9_.?]*/) as RegExpMatchArray | null;
+    const word = stream.match(/^[\p{L}_][\p{L}0-9_.?]*/u) as RegExpMatchArray | null;
     if (word) {
-      const upper = word[0].toUpperCase();
+      const upper = canonical(foldWord(word[0]), false);
       if (upper === 'PLAY') state.tune = 'after-play';
       if (CONTROL_WORDS.has(upper)) return 'keyword';
-      if (COMMAND_WORDS.has(upper) || extra.has(upper)) return 'atom';
+      if (COMMAND_WORDS.has(upper) || extra.has(word[0].toUpperCase())) return 'atom';
       return 'def';
     }
     stream.next();
@@ -80,7 +83,7 @@ function completeLogo(context: CompletionContext, extra: readonly PrimitiveSpec[
       options: Object.keys(NAMED_COLORS).map((c) => ({ label: c.toLowerCase(), type: 'constant', detail: 'colour' })),
     };
   }
-  const word = context.matchBefore(/[A-Za-z]+/);
+  const word = context.matchBefore(/\p{L}+/u);
   if (!word || (word.from === word.to && !context.explicit)) return null;
   const options = [
     ...[...PRIMITIVES, ...extra].map((p) => ({
@@ -97,8 +100,15 @@ function completeLogo(context: CompletionContext, extra: readonly PrimitiveSpec[
     { label: 'ifelse', type: 'keyword', info: 'IFELSE question [yes] [no]' },
     { label: 'stop', type: 'keyword', info: 'Stops the current command' },
     { label: 'when', type: 'keyword', info: 'WHEN "up [FD 10] runs the commands each time the up arrow is pressed (games!)' },
+    ...LOCAL.filter((l) => !COMMAND_WORDS.has(l.word) && !CONTROL_WORDS.has(l.word)).map((l) => ({
+      label: l.word.toLowerCase(),
+      type: CONTROL_WORDS.has(l.canon) ? 'keyword' : 'function',
+      detail: l.canon.toLowerCase(),
+    })),
   ];
-  return { from: word.from, options, validFor: /^[A-Za-z]*$/ };
+  const seen = new Set<string>();
+  const unique = options.filter((o) => !seen.has(o.label) && seen.add(o.label));
+  return { from: word.from, options: unique, validFor: /^\p{L}*$/u };
 }
 
 /* ---- Line highlights: the line the turtle is running, and the line with a problem ---- */

@@ -6,6 +6,7 @@
  * GIO_URL is the server (default http://localhost:3001), GIO_SHOTS_DIR the folder for pictures
  * (default: gio-device-shots in the system temp folder). DEVICE=ipad-mini and
  * ORIENTATION=landscape narrow the run; SCREEN=certificate picks one screen. Writes index.json and
+ * LANG=fr (en, pcm, fr or es) seeds that language choice (gio.lang) before every screen loads. Writes index.json and
  * index.md next to the pictures and exits 1 if any assertion fails or a screen cannot be opened.
  */
 import fs from 'fs';
@@ -21,6 +22,8 @@ const base = process.env['GIO_URL'] ?? 'http://localhost:3001';
 const outDir = process.env['GIO_SHOTS_DIR'] ?? path.join(os.tmpdir(), 'gio-device-shots');
 const onlyDevice = process.env['DEVICE'];
 const onlyOrientation = process.env['ORIENTATION'] as Orientation | undefined;
+/** Only GIO's own language ids count, so a system LANG such as en_US.UTF-8 is ignored. */
+const lang = ['en', 'pcm', 'fr', 'es'].includes(process.env['LANG'] ?? '') ? process.env['LANG']! : null;
 const onlyScreens = (process.env['SCREEN'] ?? process.env['SCREENS'] ?? '').split(',').map((s) => s.trim()).filter(Boolean);
 
 interface Entry {
@@ -35,6 +38,10 @@ interface Entry {
 async function main(): Promise<void> {
   fs.mkdirSync(outDir, { recursive: true });
   const cdp = await launchBrowser(base);
+  if (lang) {
+    const seed = cdp.seed.bind(cdp);
+    cdp.seed = (entries, query, titleSelector) => seed({ 'gio.lang': lang, ...entries }, query, titleSelector);
+  }
   const entries: Entry[] = [];
   try {
     for (const device of DEVICES) {

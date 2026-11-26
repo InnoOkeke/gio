@@ -1,63 +1,65 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { NAMED_COLORS } from '../../logo/index.js';
+import { localizeSource, wordIn } from '../../logo/words.js';
+import { useLang, useT } from '../lang';
 import { useWindowClass } from '../responsive/useWindowClass';
-import { FUN_TEXT } from '../i18n-fun';
 
 interface Snippet {
+  /** The English code; shown and inserted in the child's language. */
   code: string;
   hint: string;
 }
 
-const GROUPS: { title: string; snippets: Snippet[] }[] = [
+const GROUPS: { id: string; snippets: Snippet[] }[] = [
   {
-    title: 'Move',
+    id: 'move',
     snippets: [
-      { code: 'FD 50', hint: 'Walk forward 50 steps' },
-      { code: 'BK 50', hint: 'Walk backward 50 steps' },
+      { code: 'FD 50', hint: 'shelf.hint.forward' },
+      { code: 'BK 50', hint: 'shelf.hint.back' },
     ],
   },
   {
-    title: 'Turn',
+    id: 'turn',
     snippets: [
-      { code: 'RT 90', hint: 'Turn right a quarter turn' },
-      { code: 'LT 90', hint: 'Turn left a quarter turn' },
+      { code: 'RT 90', hint: 'shelf.hint.right' },
+      { code: 'LT 90', hint: 'shelf.hint.left' },
     ],
   },
   {
-    title: 'Pen',
+    id: 'pen',
     snippets: [
-      { code: 'PU', hint: 'Pen up: move without drawing' },
-      { code: 'PD', hint: 'Pen down: draw again' },
-      { code: 'SETPENSIZE 5', hint: 'Make the line thicker' },
+      { code: 'PU', hint: 'shelf.hint.penup' },
+      { code: 'PD', hint: 'shelf.hint.pendown' },
+      { code: 'SETPENSIZE 5', hint: 'shelf.hint.size' },
     ],
   },
   {
-    title: 'Magic',
+    id: 'magic',
     snippets: [
-      { code: 'REPEAT 4 [ ]', hint: 'Do the commands inside [ ] 4 times' },
-      { code: 'CIRCLE 40', hint: 'Draw a circle around the turtle' },
-      { code: 'FILL', hint: FUN_TEXT.fillHint },
+      { code: 'REPEAT 4 [ ]', hint: 'shelf.hint.repeat' },
+      { code: 'CIRCLE 40', hint: 'shelf.hint.circle' },
+      { code: 'FILL', hint: 'shelf.hint.fill' },
     ],
   },
   {
-    title: 'Music',
+    id: 'music',
     snippets: [
-      { code: 'PLAY [C D E]', hint: 'Play three notes, one after another' },
-      { code: 'PLAY [C E G 2]', hint: 'Play notes; the 2 makes the last one twice as long' },
-      { code: 'SETTEMPO 90', hint: 'Play the notes slower (bigger numbers are faster)' },
+      { code: 'PLAY [C D E]', hint: 'shelf.hint.play3' },
+      { code: 'PLAY [C E G 2]', hint: 'shelf.hint.playLong' },
+      { code: 'SETTEMPO 90', hint: 'shelf.hint.tempo' },
     ],
   },
   {
-    title: 'Movie',
+    id: 'movie',
     snippets: [
-      { code: 'FRAME', hint: 'Show this picture, then hold it a moment' },
-      { code: 'WAIT 30', hint: 'Wait half a second (60 is one second)' },
-      { code: 'CLEAN', hint: 'Wipe the picture to start the next one' },
+      { code: 'FRAME', hint: 'shelf.hint.frame' },
+      { code: 'WAIT 30', hint: 'shelf.hint.wait' },
+      { code: 'CLEAN', hint: 'shelf.hint.clean' },
     ],
   },
   {
-    title: 'Game',
-    snippets: [{ code: 'WHEN "up [ ]', hint: 'Do the commands inside [ ] when the up arrow is pressed' }],
+    id: 'game',
+    snippets: [{ code: 'WHEN "up [ ]', hint: 'shelf.hint.when' }],
   },
 ];
 
@@ -66,26 +68,33 @@ const SWATCHES = ['red', 'orange', 'yellow', 'green', 'teal', 'blue', 'purple', 
 export function CommandShelf({ onInsert }: { onInsert(code: string): void }) {
   // On phones the groups become a swipeable tab strip so the shelf stays one short row.
   const compact = useWindowClass().widthClass === 'compact';
-  const [tab, setTab] = useState(GROUPS[0]!.title);
-  const shown = (title: string) => !compact || tab === title;
+  const { lang } = useLang();
+  const t = useT();
+  const [tab, setTab] = useState(GROUPS[0]!.id);
+  const shown = (id: string) => !compact || tab === id;
+  const groups = useMemo(
+    () => GROUPS.map((g) => ({ ...g, snippets: g.snippets.map((s) => ({ code: localizeSource(s.code, lang), hint: s.hint })) })),
+    [lang],
+  );
+  const colourWord = wordIn(lang, 'SETPENCOLOR');
   return (
     <div className="command-shelf flex flex-col gap-3 px-4 py-4 border-t border-line bg-paper-2 rounded-b-[28px] lg:min-h-0 lg:overflow-y-auto">
       {compact && (
-        <div className="shelf-tabs" role="tablist" aria-label="Command groups" data-hscroll>
-          {[...GROUPS.map((g) => g.title), 'Colours'].map((title) => (
-            <button key={title} type="button" role="tab" aria-selected={tab === title} className="chip" onClick={() => setTab(title)}>
-              {title}
+        <div className="shelf-tabs" role="tablist" aria-label={t('shelf.groups')} data-hscroll>
+          {[...GROUPS.map((g) => g.id), 'colours'].map((id) => (
+            <button key={id} type="button" role="tab" aria-selected={tab === id} className="chip" onClick={() => setTab(id)}>
+              {t(`shelf.group.${id}`)}
             </button>
           ))}
         </div>
       )}
       <div className="flex flex-wrap gap-x-5 gap-y-3">
-        {GROUPS.filter((group) => shown(group.title)).map((group) => (
-          <div key={group.title} className="flex flex-col gap-1.5">
-            <span className="eyebrow">{group.title}</span>
+        {groups.filter((group) => shown(group.id)).map((group) => (
+          <div key={group.id} className="flex flex-col gap-1.5">
+            <span className="eyebrow">{t(`shelf.group.${group.id}`)}</span>
             <div className="flex flex-wrap gap-1.5">
               {group.snippets.map((s) => (
-                <button key={s.code} type="button" className="chip" title={s.hint} aria-label={`Insert ${s.code}: ${s.hint}`} onClick={() => onInsert(s.code)}>
+                <button key={s.code} type="button" className="chip" title={t(s.hint)} aria-label={t('shelf.insert', { code: s.code, hint: t(s.hint) })} onClick={() => onInsert(s.code)}>
                   {s.code}
                 </button>
               ))}
@@ -93,8 +102,8 @@ export function CommandShelf({ onInsert }: { onInsert(code: string): void }) {
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-1.5" hidden={!shown('Colours')}>
-        <span className="eyebrow">Colours</span>
+      <div className="flex flex-col gap-1.5" hidden={!shown('colours')}>
+        <span className="eyebrow">{t('shelf.group.colours')}</span>
         <div className="flex flex-wrap gap-2">
           {SWATCHES.map((name) => (
             <button
@@ -102,9 +111,9 @@ export function CommandShelf({ onInsert }: { onInsert(code: string): void }) {
               type="button"
               className="swatch"
               style={{ backgroundColor: NAMED_COLORS[name.toUpperCase()] }}
-              title={`SETPENCOLOR "${name}`}
-              aria-label={`Insert pen colour ${name}`}
-              onClick={() => onInsert(`SETPENCOLOR "${name}`)}
+              title={`${colourWord} "${name}`}
+              aria-label={t('shelf.insertColour', { name })}
+              onClick={() => onInsert(`${colourWord} "${name}`)}
             />
           ))}
         </div>

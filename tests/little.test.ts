@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { check } from '../src/logo/index.js';
 import { complexity } from '../src/logo/difficulty.js';
-import { toBlocks } from '../src/logo/blocks.js';
+import { blocksToLogo, toBlocks, type Block } from '../src/logo/blocks.js';
 import { checkQuest, features, QUESTS, wordsUsed, type Quest } from '../src/logo/quests.js';
 import { LITTLE_NEW } from '../src/logo/stages/little.js';
 import { islandsFor, questById, stageNumber, type Island } from '../src/ui/path/islands';
@@ -215,5 +215,24 @@ describe('little content: no stage is much easier than the one before it', () =>
     const star = stageRows[7]!;
     expect(star.island.key).toBe('little:stars');
     for (const r of stageRows.slice(4, 7)) expect(star.mean, r.island.name).toBeGreaterThan(r.mean);
+  });
+});
+
+describe('blocksToLogo in each language', () => {
+  const blocks: Block[] = [
+    { kind: 'repeat', n: 4, body: [{ kind: 'forward', n: 50 }, { kind: 'right', n: 90 }] },
+    { kind: 'penup' },
+    { kind: 'color', color: 'red' },
+    { kind: 'note', pitch: 'C', beats: 2 },
+  ];
+  it('English output is unchanged', () => {
+    expect(blocksToLogo(blocks)).toBe('REPEAT 4 [\n  FD 50\n  RT 90\n]\nPU\nSETPENCOLOR "red\nPLAY [C 2]');
+  });
+  it('writes the language words and reads back as the same blocks', () => {
+    expect(blocksToLogo(blocks, 'fr')).toBe('REPETE 4 [\n  AV 50\n  TD 90\n]\nLC\nFIXECOULEUR "red\nJOUE [C 2]');
+    for (const lang of ['en', 'pcm', 'fr', 'es'] as const) {
+      const checked = check(blocksToLogo(blocks, lang));
+      expect(checked.ok && toBlocks(checked.program), lang).toEqual({ ok: true, blocks });
+    }
   });
 });

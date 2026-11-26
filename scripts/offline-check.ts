@@ -18,12 +18,13 @@ import { parOf } from '../src/logo/daily.js';
 import { shareText, todaysPuzzle } from '../src/ui/daily';
 
 /**
+/**
  * The first measurement (build bc7278978ac4: 1,572,117 B raw, 826,860 B gzip) plus 15 percent.
- * Raw was raised for the fun features: FILL and colouring pages brought it to 1,822,132 B and the Daily Turtle Puzzle to 1,841,317 B
- * (911,719 B gzip, still inside the first gzip budget). The new raw budget is that plus about 1 percent. Gzip is what is downloaded.
+ * Raw was raised for the fun features (FILL, colouring pages, Daily Turtle Puzzle) and again when the four languages were bundled.
+ * Gzip is what is downloaded. Re-measure after the merge and set the final numbers below.
  */
-const BUDGET_RAW = 1_860_000;
-const BUDGET_GZIP = 951_000;
+const BUDGET_RAW = 2_102_000;
+const BUDGET_GZIP = 1_043_000;
 
 const OFFLINE_MESSAGE = 'Gio needs the internet for this one. Drawing and quests still work, and your code is safe on this phone.';
 const PYTHON_OFFLINE_TEXT = 'Python needs the internet to get ready.';

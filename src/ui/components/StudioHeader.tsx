@@ -3,7 +3,10 @@ import { createPortal } from 'react-dom';
 import { MODE_LABEL, type AgeMode } from '../mode';
 import { useSheetDrag } from '../responsive/useSheetDrag';
 import { useDialog } from '../useDialog';
+import { LANGS } from '../../i18n/index.js';
+import { useLang, useT } from '../lang';
 import { Wordmark } from './GioMark';
+import { LanguageButton, LanguageSheet } from './LanguageButton';
 import { CloseIcon, GamepadIcon, LeafIcon, MapIcon, PlusIcon, SaveIcon, ShareIcon } from './icons';
 
 export interface StudioHeaderProps {
@@ -44,6 +47,8 @@ function TitleInput({ title, onTitle, className }: Pick<StudioHeaderProps, 'titl
 /** Save, Share, New and Switch mode in a bottom sheet, for phones where the header has no room. */
 function MoreMenu({ p }: { p: StudioHeaderProps }) {
   const [open, setOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const t = useT();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const firstRef = useRef<HTMLButtonElement>(null);
@@ -58,7 +63,7 @@ function MoreMenu({ p }: { p: StudioHeaderProps }) {
   };
   return (
     <>
-      <button ref={buttonRef} type="button" className="btn btn-quiet px-3 studio-icon-btn" aria-haspopup="dialog" aria-expanded={open} aria-label="More" onClick={() => setOpen(true)}>
+      <button ref={buttonRef} type="button" className="btn btn-quiet px-3 studio-icon-btn" aria-haspopup="dialog" aria-expanded={open} aria-label={t('btn.more')} onClick={() => setOpen(true)}>
         <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <circle cx="5" cy="12" r="2.2" />
           <circle cx="12" cy="12" r="2.2" />
@@ -66,12 +71,16 @@ function MoreMenu({ p }: { p: StudioHeaderProps }) {
         </svg>
       </button>
       {/* Portalled: the header's backdrop blur would otherwise trap the fixed sheet inside the header. */}
-      {open && createPortal(<MoreSheet p={p} panelRef={panelRef} firstRef={firstRef} titleId={titleId} close={close} pick={pick} />, document.body)}
+      {open && createPortal(<MoreSheet p={p} panelRef={panelRef} firstRef={firstRef} titleId={titleId} close={close} pick={pick} onLanguage={() => setLangOpen(true)} />, document.body)}
+      <LanguageSheet open={langOpen} onClose={() => setLangOpen(false)} />
     </>
   );
 }
 
-function MoreSheet({ p, panelRef, firstRef, titleId, close, pick }: { p: StudioHeaderProps; panelRef: RefObject<HTMLDivElement>; firstRef: RefObject<HTMLButtonElement>; titleId: string; close(): void; pick(action: () => void): () => void }) {
+function MoreSheet({ p, panelRef, firstRef, titleId, close, pick, onLanguage }: { p: StudioHeaderProps; panelRef: RefObject<HTMLDivElement>; firstRef: RefObject<HTMLButtonElement>; titleId: string; close(): void; pick(action: () => void): () => void; onLanguage(): void }) {
+  const t = useT();
+  const { lang } = useLang();
+  const langName = LANGS.find((l) => l.id === lang)!.name;
   useDialog(panelRef, firstRef, close);
   useSheetDrag(panelRef, close);
   return (
@@ -81,9 +90,9 @@ function MoreSheet({ p, panelRef, firstRef, titleId, close, pick }: { p: StudioH
         <div className="bottom-sheet-grip" aria-hidden="true" />
         <div className="flex items-center justify-between gap-3 px-3" data-sheet-header>
           <h2 id={titleId} className="m-0 text-[18px] font-black">
-            More
+            {t('btn.more')}
           </h2>
-          <button type="button" className="btn btn-ghost btn-icon" onClick={close} aria-label="Close">
+          <button type="button" className="btn btn-ghost btn-icon" onClick={close} aria-label={t('btn.close')}>
             <CloseIcon />
           </button>
         </div>
@@ -92,13 +101,16 @@ function MoreSheet({ p, panelRef, firstRef, titleId, close, pick }: { p: StudioH
             <SaveIcon /> <span className="text-[17px] font-black">{p.saveLabel}</span>
           </button>
           <button type="button" className="save-row" onClick={pick(p.onShare)} disabled={p.sharing}>
-            <ShareIcon /> <span className="text-[17px] font-black">Share</span>
+            <ShareIcon /> <span className="text-[17px] font-black">{t('btn.share')}</span>
           </button>
           <button type="button" className="save-row" onClick={pick(p.onNew)}>
-            <PlusIcon /> <span className="text-[17px] font-black">New drawing</span>
+            <PlusIcon /> <span className="text-[17px] font-black">{t('btn.newDrawing')}</span>
           </button>
           <button type="button" className="save-row" onClick={pick(p.onChooseAgain)}>
-            <span className="text-[17px] font-black">Switch mode ({MODE_LABEL[p.mode]})</span>
+            <span className="text-[17px] font-black">{t('more.switchMode', { mode: t(`mode.${p.mode}`) })}</span>
+          </button>
+          <button type="button" className="save-row" data-lang-button onClick={pick(onLanguage)}>
+            <span className="text-[17px] font-black">{t('lang.button', { name: langName })}</span>
           </button>
         </div>
       </div>
@@ -148,14 +160,15 @@ export function StudioHeader(p: StudioHeaderProps) {
               </>
             ) : (
               <>
+                <LanguageButton className="btn btn-quiet min-w-[48px] px-0 xl:px-3" codeClass="hidden xl:inline text-[14px] font-black" />
                 <button type="button" className="btn btn-ghost hidden xl:inline-flex" onClick={p.onChooseAgain} title="Switch age mode">
                   {MODE_LABEL[p.mode]}
                 </button>
                 <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onGarden} aria-label="Gio's garden">
-                  <LeafIcon className="text-[#12a36b]" /> <span className="hidden md:inline">Garden</span>
+                  <LeafIcon className="text-[#12a36b]" /> <span className="hidden lg:inline">Garden</span>
                 </button>
                 <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3 relative" onClick={p.onMap} aria-label={mapLabel}>
-                  <MapIcon className="text-[#0f8fa6]" /> <span className="hidden md:inline">Map</span>
+                  <MapIcon className="text-[#0f8fa6]" /> <span className="hidden lg:inline">Map</span>
                   {count}
                   {dot}
                 </button>
@@ -166,7 +179,7 @@ export function StudioHeader(p: StudioHeaderProps) {
                   <PlusIcon /> New
                 </button>
                 <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onSave} disabled={p.saveDisabled} aria-label={p.saveLabel}>
-                  <SaveIcon /> <span className="hidden sm:inline">{p.saveLabel}</span>
+                  <SaveIcon /> <span className="hidden md:inline">{p.saveLabel}</span>
                 </button>
                 <button type="button" className="btn btn-primary min-w-[48px] max-sm:px-3" onClick={p.onShare} disabled={p.sharing} aria-label="Share">
                   <ShareIcon /> <span className="hidden sm:inline">Share</span>

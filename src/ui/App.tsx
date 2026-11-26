@@ -3,6 +3,7 @@ import { Route, Routes } from 'react-router-dom';
 import { Wordmark } from './components/GioMark';
 import { ModePicker } from './components/ModePicker';
 import { AppStatus } from './components/AppStatus';
+import { LangProvider } from './lang';
 import { ModeProvider, useMode } from './mode';
 import NotFound from './pages/NotFound';
 import Studio from './pages/Studio';
@@ -66,6 +67,7 @@ export default function App() {
   useWindowClass();
   return (
     <AppErrorBoundary>
+      <LangProvider>
       <ModeProvider>
         <Routes>
           <Route path="/" element={<StudioGate />} />
@@ -78,6 +80,7 @@ export default function App() {
         </Routes>
         <AppStatus />
       </ModeProvider>
+      </LangProvider>
     </AppErrorBoundary>
   );
 }
