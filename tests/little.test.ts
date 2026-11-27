@@ -1,13 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { check } from '../src/logo/index.js';
 import { complexity } from '../src/logo/difficulty.js';
-import { toBlocks, type Block } from '../src/logo/blocks.js';
+import { toBlocks } from '../src/logo/blocks.js';
 import { checkQuest, features, QUESTS, wordsUsed, type Quest } from '../src/logo/quests.js';
 import { LITTLE_NEW } from '../src/logo/stages/little.js';
 import { islandsFor, questById, stageNumber, type Island } from '../src/ui/path/islands';
 import { emptyPath, islandState, nextStop, recordQuest } from '../src/ui/path/state';
 import { LITTLE_NAIVE, LITTLE_SOLUTIONS } from './solutions/little';
 import { SOLUTIONS } from './solutions';
+import { onGrid } from './on-grid';
 import { ADJACENT_EXEMPT, ADJACENT_TOLERANCE, mean, spearman } from './solutions/curve';
 
 const STAGES: Record<number, { key: string; name: string; ids: string[] }> = {
@@ -24,27 +25,6 @@ const LITTLE = islandsFor('little');
 const EXEMPT: ReadonlySet<string> = new Set(['little:fewest']);
 const questsOf = (island: Island): Quest[] => island.units.flat().map((id) => questById(id)!);
 const score = (q: Quest): number => complexity(SOLUTIONS[q.id]!);
-
-/** The numbers the block steppers can reach (src/ui/editor/BlocksEditor.tsx). */
-const onGrid = (blocks: Block[]): boolean =>
-  blocks.every((b) => {
-    switch (b.kind) {
-      case 'forward':
-      case 'back':
-        return b.n >= 0 && b.n <= 300 && b.n % 10 === 0;
-      case 'right':
-      case 'left':
-        return b.n >= 0 && b.n <= 360 && b.n % 15 === 0;
-      case 'circle':
-        return b.n >= 10 && b.n <= 150 && b.n % 10 === 0;
-      case 'size':
-        return b.n >= 1 && b.n <= 20;
-      case 'repeat':
-        return b.n >= 1 && b.n <= 36 && onGrid(b.body);
-      default:
-        return true;
-    }
-  });
 
 describe('little content: quests', () => {
   it('has 42 new quests, all for Little Turtles, in stage order, and 60 little quests in all', () => {

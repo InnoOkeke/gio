@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { toBlocks } from '../src/logo/blocks.js';
+import { check } from '../src/logo/index.js';
+import { onGrid } from './on-grid';
 import { CODER_DAILY, LITTLE_DAILY } from '../src/logo/daily-pool.js';
 import { commandsUsed, DAILY_POOL, dayOf, parOf, puzzleNumber, puzzleOfTheDay, starsFor } from '../src/logo/daily.js';
 import { checkQuest, QUESTS } from '../src/logo/quests.js';
@@ -80,6 +83,16 @@ describe('the puzzle pool', () => {
     for (const p of CODER_DAILY) expect(p.audience).toBe('coder');
   });
 
+  it.each(LITTLE_DAILY.map((p) => [p.id, p] as const))('%s: target and solution are made of blocks on the stepper grid, so a child can build them', (_id, puzzle) => {
+    for (const code of [puzzle.target!, puzzle.solution]) {
+      const parsed = check(code);
+      expect(parsed.ok).toBe(true);
+      if (!parsed.ok) continue;
+      const blocks = toBlocks(parsed.program);
+      expect(blocks.ok).toBe(true);
+      if (blocks.ok) expect(onGrid(blocks.blocks)).toBe(true);
+    }
+  });
   for (const puzzle of all) {
     describe(puzzle.id, () => {
       it('has a reference solution that passes the checker', () => {
