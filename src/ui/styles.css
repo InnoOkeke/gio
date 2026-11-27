@@ -1765,3 +1765,40 @@ html[data-perf='lite'] .btn-stop {
 html[data-perf='lite'] .daily-star {
   animation: none;
 }
+/* The studio hides the target picture on narrow screens; in this dialog it is the puzzle itself. */
+html[data-width] .daily-card .quest-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.daily-body.daily-body-one {
+  flex-direction: column;
+  align-items: stretch;
+}
+/* A phone on its side is short: words beside the picture, and Play right under them. */
+@media (max-height: 500px) and (orientation: landscape) {
+  .daily-body:not(.daily-body-one) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+  .daily-body:not(.daily-body-one) > * {
+    flex: none;
+  }
+  .daily-body:not(.daily-body-one) .daily-card {
+    flex-direction: row;
+    text-align: left;
+    padding: 10px 14px;
+    gap: 14px;
+  }
+  .daily-body:not(.daily-body-one) .daily-card > .min-w-0 {
+    flex: 1 1 0;
+    width: auto;
+  }
+  .daily-badge,
+  .daily-intro,
+  .daily-card .quest-preview figcaption {
+    display: none;
+  }
+}

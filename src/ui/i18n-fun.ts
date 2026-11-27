@@ -41,7 +41,6 @@ export const FUN_TEXT = {
   dailyStarsHelp: 'Three stars means you used as few commands as possible.',
   dailyTomorrow: 'Come back tomorrow for a new puzzle.',
   dailyShare: 'Share my result',
-  dailyShareHelp: 'Your result is only a few words and stars. It does not give the answer away.',
   dailyShared: 'Shared!',
   dailyCopied: 'Copied! Paste it to a friend.',
   dailyShareFailed: 'I could not share it. You can copy the words above.',

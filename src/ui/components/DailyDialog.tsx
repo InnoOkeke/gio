@@ -35,7 +35,7 @@ export default function DailyDialog({ today, result, onPlay, onClose }: DailyDia
         <div className="flex items-center justify-between gap-3" data-sheet-header>
           <div className="min-w-0">
             <p className="m-0 eyebrow" style={{ color: '#44554c' }}>
-              {FUN_TEXT.dailyNumber(today.number)}
+              {result ? `${FUN_TEXT.dailyNumber(today.number)} \u00b7 ${today.puzzle.title}` : FUN_TEXT.dailyNumber(today.number)}
             </p>
             <h2 id="daily-title" className="m-0 text-[24px] font-black leading-tight">
               {result ? FUN_TEXT.dailySolvedTitle : FUN_TEXT.dailyTitle}
@@ -45,17 +45,19 @@ export default function DailyDialog({ today, result, onPlay, onClose }: DailyDia
             <CloseIcon />
           </button>
         </div>
-        <div className="daily-body">
-          <div className="daily-card">
-            <span className="daily-badge" aria-hidden="true">
-              <TrophyIcon size={26} />
-            </span>
-            <div className="min-w-0">
-              <h3 className="m-0 text-[20px] font-black leading-tight">{today.puzzle.title}</h3>
-              <p className="m-0 mt-1 text-[16px] font-semibold text-ink-2">{today.puzzle.goal}</p>
+        <div className={result ? 'daily-body daily-body-one' : 'daily-body'}>
+          {!result && (
+            <div className="daily-card">
+              <span className="daily-badge" aria-hidden="true">
+                <TrophyIcon size={26} />
+              </span>
+              <div className="min-w-0">
+                <h3 className="m-0 text-[20px] font-black leading-tight">{today.puzzle.title}</h3>
+                <p className="m-0 mt-1 text-[16px] font-semibold text-ink-2">{today.puzzle.goal}</p>
+              </div>
+              <TargetPreview quest={today.puzzle} />
             </div>
-            <TargetPreview quest={today.puzzle} />
-          </div>
+          )}
           {result ? (
             <div className="flex flex-col gap-3">
               <div className="daily-result" role="group" aria-label={`${FUN_TEXT.dailyResult(result.commands)}, ${result.stars} of 3 stars`}>
@@ -69,7 +71,6 @@ export default function DailyDialog({ today, result, onPlay, onClose }: DailyDia
               <p className="daily-share-text" aria-label={shareText(today.number, result)}>
                 {shareText(today.number, result)}
               </p>
-              <p className="m-0 text-[15px] font-bold text-ink-2">{FUN_TEXT.dailyShareHelp}</p>
               <button type="button" className="btn btn-primary btn-lg" onClick={() => void share()}>
                 <ShareIcon size={22} /> {FUN_TEXT.dailyShare}
               </button>
@@ -91,7 +92,7 @@ export default function DailyDialog({ today, result, onPlay, onClose }: DailyDia
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              <p className="m-0 text-[15px] font-bold text-ink-2">{FUN_TEXT.dailyIntro}</p>
+              <p className="daily-intro m-0 text-[15px] font-bold text-ink-2">{FUN_TEXT.dailyIntro}</p>
               <button type="button" className="btn btn-primary btn-lg" onClick={onPlay}>
                 {FUN_TEXT.dailyPlay}
               </button>
