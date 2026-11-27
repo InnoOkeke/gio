@@ -1,5 +1,6 @@
 import type { StickerId } from '../gio/catalog';
 import { moodFor, type GioMood } from '../gio/mood';
+import { useT } from '../lang';
 import { TurtleSprite } from './TurtleSprite';
 
 export type BubbleKind = 'info' | 'success' | 'problem';
@@ -22,6 +23,7 @@ interface TurtleBubbleProps {
 }
 
 export function TurtleBubble({ message, onShowLine, mood, stickers }: TurtleBubbleProps) {
+  const t = useT();
   return (
     <div className="flex items-start gap-3" role="status" aria-live="polite">
       <div className="w-11 h-11 shrink-0 mt-0.5" aria-hidden="true">
@@ -38,7 +40,7 @@ export function TurtleBubble({ message, onShowLine, mood, stickers }: TurtleBubb
           ))}
         {message.kind === 'problem' && message.line !== undefined && (
           <button type="button" className="mt-1 inline-flex min-h-[48px] items-center text-[14px] font-extrabold underline underline-offset-4" onClick={() => onShowLine(message.line!)}>
-            Show me line {message.line}
+            {t('tutor.showLine', { line: message.line })}
           </button>
         )}
       </div>

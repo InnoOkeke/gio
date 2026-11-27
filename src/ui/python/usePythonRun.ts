@@ -6,6 +6,7 @@ import type { PythonEditorHandle } from '../editor/PythonEditor';
 import { deletePythonDoc, readPythonDoc, writePythonDoc, MAX_ENTRY_CHARS, type PythonDoc } from './doc';
 import type { PythonResult } from './protocol';
 import { isOffline } from '../api';
+import { tr } from '../lang-state';
 import { PythonRuntime, PYTHON_READY_KEY } from './runtime';
 
 export type PythonPhase = 'idle' | 'loading' | 'ready' | 'failed';
@@ -25,9 +26,9 @@ interface Options {
   onStart(): void;
 }
 
-const DROPPED_TEXT = 'Some of what your Python drew could not be shown.';
+const droppedText = (): string => tr('python.run.partial');
 /** The engine is not kept on the phone (the browser does not cache it for the locked frame), so starting Python always needs the internet. */
-export const PYTHON_OFFLINE_TEXT = 'Python needs the internet to get ready. Logo drawing and quests still work without it.';
+export const pythonOfflineText = (): string => tr('python.run.offline');
 function rememberedReady(): boolean {
   try {
     return localStorage.getItem(PYTHON_READY_KEY) === '1';
@@ -45,7 +46,7 @@ function resultFor(events: TurtleEvent[]): RunResult {
 /** The last line of a Python message is the part a child can use, so keep that and say where it happened. */
 function plainProblem(message: string, line: number): string {
   const last = message.trim().split('\n').pop() ?? message;
-  return line > 0 ? `Python found a problem on line ${line}: ${last}` : `Python found a problem: ${last}`;
+  return line > 0 ? tr('python.run.problemLine', { line, message: last }) : tr('python.run.problem', { message: last });
 }
 
 /**
@@ -142,7 +143,7 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
     if (!activeRef.current) return;
     if (result.dropped) {
       hadProblemRef.current = true;
-      optionsRef.current.setBubble({ kind: 'info', text: DROPPED_TEXT });
+      optionsRef.current.setBubble({ kind: 'info', text: droppedText() });
     }
     if (result.events.length) {
       pressingRef.current = true;
@@ -157,7 +158,7 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
     // No connection: say so before making the frame, which would otherwise wait for a download that cannot come.
     if (isOffline()) {
       setPhase('failed');
-      setFailure(PYTHON_OFFLINE_TEXT);
+      setFailure(pythonOfflineText());
       return false;
     }
     setFailure(null);
@@ -169,7 +170,7 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
       return true;
     } catch (error) {
       setPhase('failed');
-      setFailure(error instanceof Error ? error.message : 'Python could not start.');
+      setFailure(error instanceof Error ? error.message : tr('python.run.noStart'));
       return false;
     }
   }, [runtime]);
@@ -187,12 +188,12 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
       if (code === null || !code.trim()) {
         optionsRef.current.setBubble({
           kind: 'info',
-          text: generated.ok === false && generated.reason === 'problem' ? 'Fix the Logo first, then I can run it as Python.' : 'There is no Python to run yet. Write some Logo or make the Python yours.',
+          text: generated.ok === false && generated.reason === 'problem' ? tr('python.run.fixLogo') : tr('python.run.none'),
         });
         return;
       }
       if (!consented) {
-        optionsRef.current.setBubble({ kind: 'info', text: 'Tap Get Python ready first. Then I can run your Python.' });
+        optionsRef.current.setBubble({ kind: 'info', text: tr('python.run.getReadyFirst') });
         return;
       }
       // A Python run is not a Logo run: nothing it does can earn a sticker, a star or a quest.
@@ -206,9 +207,9 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
       setLine(null);
       stageRef.current?.reset();
       if (!runtime().isReady()) {
-        optionsRef.current.setBubble({ kind: 'info', text: 'Getting real Python ready…' });
+        optionsRef.current.setBubble({ kind: 'info', text: tr('python.gettingReal') });
         if (!(await getReady())) {
-          optionsRef.current.setBubble({ kind: 'problem', text: isOffline() ? PYTHON_OFFLINE_TEXT : "I couldn't get Python ready. Check your connection and try again." });
+          optionsRef.current.setBubble({ kind: 'problem', text: isOffline() ? pythonOfflineText() : tr('python.run.couldNotGet') });
           activeRef.current = false;
           setActive(false);
           return;
@@ -221,14 +222,14 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
       const keyed = result.keys.length > 0 || result.ticks.length > 0;
       if (!result.events.length) {
         if (result.error) reportProblem(result);
-        else if (result.dropped) optionsRef.current.setBubble({ kind: 'info', text: DROPPED_TEXT });
-        else optionsRef.current.setBubble({ kind: 'info', text: keyed ? 'Game on! Press the arrow keys to play.' : 'That Python made no drawing. Add a command like forward(100), then run it.' });
+        else if (result.dropped) optionsRef.current.setBubble({ kind: 'info', text: droppedText() });
+        else optionsRef.current.setBubble({ kind: 'info', text: keyed ? tr('python.run.gameOn') : tr('python.run.noDrawing') });
         return;
       }
       stageRef.current?.load(resultFor(result.events));
       if (result.error) reportProblem(result);
-      else if (result.dropped) optionsRef.current.setBubble({ kind: 'info', text: DROPPED_TEXT });
-      else optionsRef.current.setBubble({ kind: 'info', text: keyed ? 'Game on! Press the arrow keys to play.' : 'Running your Python. This is real Python, in your browser!' });
+      else if (result.dropped) optionsRef.current.setBubble({ kind: 'info', text: droppedText() });
+      else optionsRef.current.setBubble({ kind: 'info', text: keyed ? tr('python.run.gameOn') : tr('python.run.running') });
       if (step) stageRef.current?.step();
       else stageRef.current?.play();
     },
@@ -249,7 +250,7 @@ export function usePythonRun({ stageRef, logo, docKey, locked, setBubble, onStar
     if (!activeRef.current) return false;
     if (status === 'done') {
       setLine(null);
-      if (!pressingRef.current && !hadProblemRef.current) optionsRef.current.setBubble({ kind: 'success', text: 'That was real Python, running in your browser!' });
+      if (!pressingRef.current && !hadProblemRef.current) optionsRef.current.setBubble({ kind: 'success', text: tr('python.run.done') });
     }
     return true;
   }, [setLine]);

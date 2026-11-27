@@ -1,5 +1,7 @@
 import type { QuestAudience } from '../../logo/quests.js';
 import type { Friend } from './catalog';
+import { linePool, localizeFriend } from '../../i18n/content.js';
+import { translator, type Lang } from '../../i18n/index.js';
 
 export interface LinePools {
   greeting: readonly string[];
@@ -30,6 +32,14 @@ export const LINES: Record<QuestAudience, LinePools> = {
   },
 };
 
+/** Gio's words in a language. Pidgin, French and Spanish pools live in their locale files under gio.<mode>.<pool>. */
+export function linesFor(mode: QuestAudience, lang: Lang): LinePools {
+  const pools = LINES[mode];
+  if (lang === 'en') return pools;
+  const pool = (name: keyof LinePools) => linePool(`gio.${mode}.${name}`, pools[name], lang);
+  return { greeting: pool('greeting'), runStart: pool('runStart'), success: pool('success'), notYet: pool('notYet') };
+}
+
 /** Pick a line by counter, so the same step always gives the same line. */
 export function pickLine(pool: readonly string[], counter: number): string {
   const n = pool.length;
@@ -38,11 +48,12 @@ export function pickLine(pool: readonly string[], counter: number): string {
   return pool[((i % n) + n) % n] ?? '';
 }
 
-export function welcomeBackLine(): string {
-  return 'Welcome back! Your garden kept growing.';
+export function welcomeBackLine(lang: Lang = 'en'): string {
+  return translator(lang)('gio.welcomeBack');
 }
 
 /** One bubble message, so it is spoken once and never cut off. */
-export function friendIntro(friend: Friend): string {
-  return `Meet ${friend.name} the ${friend.species}, who loves ${friend.idea.toLowerCase()} and now lives in your garden.`;
+export function friendIntro(friend: Friend, lang: Lang = 'en'): string {
+  const f = localizeFriend(friend, lang);
+  return translator(lang)('gio.friendIntro', { name: f.name, species: f.species, idea: f.idea.toLowerCase() });
 }

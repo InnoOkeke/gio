@@ -1,4 +1,5 @@
 import { TurtleSprite } from './TurtleSprite';
+import { useT } from '../lang';
 
 export interface CertificateStage {
   number: number;
@@ -35,10 +36,11 @@ function nameSize(name: string): number {
  * it prints the same in black and white. The caller sizes it, and it keeps its shape.
  */
 export function CertificateArt({ name, total, stages, tally, date }: CertificateArtProps) {
+  const t = useT();
   const clean = name.trim();
   const gap = 44;
   const start = 550 - ((stages.length - 1) * gap) / 2;
-  const summary = `Logo Master certificate${clean ? ` for ${clean}` : ''}. Finished all ${total} stages of Logo with GIO. ${tally}.${date ? ` ${date}.` : ''}`;
+  const summary = t('certificate.summary', { for: clean ? t('certificate.for', { name: clean }) : '', n: total, tally, date: date ? ` ${date}.` : '' });
   return (
     <svg viewBox="0 0 1100 800" className="block h-auto w-full" role="img" aria-label={summary} data-testid="certificate-art" fontFamily={SANS}>
       <rect width="1100" height="800" fill="#ffffff" />
@@ -50,10 +52,10 @@ export function CertificateArt({ name, total, stages, tally, date }: Certificate
       </svg>
 
       <text x="550" y="256" textAnchor="middle" fontFamily={SERIF} fontSize="74" fontWeight="700" fill={INK}>
-        Logo Master
+        {t('certificate.title')}
       </text>
       <text x="550" y="298" textAnchor="middle" fontSize="23" fill="#44554c">
-        This certificate is proudly given to
+        {t('certificate.given')}
       </text>
       {clean && (
         <text x="550" y="376" textAnchor="middle" fontFamily={SERIF} fontSize={nameSize(clean)} fontStyle="italic" fontWeight="700" fill={INK}>
@@ -62,7 +64,7 @@ export function CertificateArt({ name, total, stages, tally, date }: Certificate
       )}
       <line x1="210" y1="392" x2="890" y2="392" stroke={INK} strokeWidth="1.6" />
       <text x="550" y="440" textAnchor="middle" fontSize="28" fontWeight="700" fill={INK}>
-        {`finished all ${total} stages of Logo with GIO`}
+        {t('certificate.finished', { n: total })}
       </text>
       <text x="550" y="478" textAnchor="middle" fontSize="22" fill="#44554c">
         {tally}
@@ -84,19 +86,19 @@ export function CertificateArt({ name, total, stages, tally, date }: Certificate
       </g>
 
       <text x="550" y="620" textAnchor="middle" fontFamily={SERIF} fontSize="18" fontStyle="italic" fill="#44554c">
-        Logo was made in 1967 by Seymour Papert and friends, so that children could learn
+        {t('certificate.history1')}
       </text>
       <text x="550" y="645" textAnchor="middle" fontFamily={SERIF} fontSize="18" fontStyle="italic" fill="#44554c">
-        by teaching a turtle to draw. GIO brings it back to life.
+        {t('certificate.history2')}
       </text>
 
       <line x1="150" y1="716" x2="450" y2="716" stroke={INK} strokeWidth="1.4" />
       <text x="300" y="738" textAnchor="middle" fontSize="15" fill="#44554c">
-        Parent or teacher
+        {t('certificate.parent')}
       </text>
       <line x1="650" y1="716" x2="950" y2="716" stroke={INK} strokeWidth="1.4" />
       <text x="800" y="738" textAnchor="middle" fontSize="15" fill="#44554c">
-        Date
+        {t('certificate.date')}
       </text>
     </svg>
   );

@@ -2,12 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import type { Hint } from '../api';
 import type { HintLadder, HintStep } from '../tutor/ladder';
 import type { TutorError } from '../tutor/useTutor';
+import { useT } from '../lang';
 import { CloseIcon, HelpIcon, SpeakerIcon } from './icons';
 
-const STEPS: { level: HintStep; label: string }[] = [
-  { level: 1, label: 'Think' },
-  { level: 2, label: 'Look' },
-  { level: 3, label: 'Fix' },
+const STEPS: { level: HintStep; key: string }[] = [
+  { level: 1, key: 'tutor.step.think' },
+  { level: 2, key: 'tutor.step.look' },
+  { level: 3, key: 'tutor.step.fix' },
 ];
 
 interface HintCardProps {
@@ -30,19 +31,20 @@ interface HintCardProps {
 }
 
 function Changes({ hint }: { hint: Hint }) {
+  const t = useT();
   if (!hint.changes?.length) return null;
   return (
-    <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5" aria-label="What changes">
+    <ul className="m-0 mt-3 p-0 list-none flex flex-col gap-1.5" aria-label={t('tutor.whatChanges')}>
       {hint.changes.map((c, k) => (
         <li key={k} className="rounded-[14px] bg-white/70 px-3 py-2 font-mono text-[14px] font-bold leading-snug break-words">
-          <span className="eyebrow mr-2">Line {c.line}</span>
+          <span className="eyebrow mr-2">{t('tutor.line', { line: c.line })}</span>
           {c.was !== null && (
-            <span className="block whitespace-pre-wrap break-words text-[#9b2419] line-through decoration-2" aria-label={`was: ${c.was || 'empty line'}`}>
+            <span className="block whitespace-pre-wrap break-words text-[#9b2419] line-through decoration-2" aria-label={t('tutor.was', { text: c.was || t('tutor.emptyLine') })}>
               {c.was || ' '}
             </span>
           )}
           {c.now !== null && (
-            <span className="block whitespace-pre-wrap break-words rounded-md bg-[#d3f3e1] px-1 text-[#08603e]" aria-label={`now: ${c.now || 'empty line'}`}>
+            <span className="block whitespace-pre-wrap break-words rounded-md bg-[#d3f3e1] px-1 text-[#08603e]" aria-label={t('tutor.now', { text: c.now || t('tutor.emptyLine') })}>
               {c.now || ' '}
             </span>
           )}
@@ -54,6 +56,7 @@ function Changes({ hint }: { hint: Hint }) {
 
 /** The "I'm stuck" card: one hint at a time, Think, then Look, then Fix. */
 export function HintCard({ open, loading, error, notice, ladder, shown, little, questTip, canSpeak, onMore, onShow, onRetry, onHear, onClose }: HintCardProps) {
+  const t = useT();
   const regionRef = useRef<HTMLElement>(null);
   const [tip, setTip] = useState(false);
 
@@ -79,7 +82,7 @@ export function HintCard({ open, loading, error, notice, ladder, shown, little, 
       ref={regionRef}
       tabIndex={-1}
       className="hint-card rounded-[24px] border-2 border-[#f2d674] bg-[#fff6d6] p-4 text-[#4a3000] outline-none focus-visible:ring-4 focus-visible:ring-[#ffc93c]"
-      aria-label="Help from the turtle"
+      aria-label={t('tutor.helpFromTurtle')}
       onKeyDown={(e) => {
         if (e.key === 'Escape') onClose();
       }}
@@ -88,7 +91,7 @@ export function HintCard({ open, loading, error, notice, ladder, shown, little, 
         <span className="hint-icon text-[#b86e00] shrink-0" aria-hidden="true">
           <HelpIcon size={26} />
         </span>
-        <div className="flex flex-1 flex-wrap items-center gap-1.5" role="group" aria-label="Hint steps">
+        <div className="flex flex-1 flex-wrap items-center gap-1.5" role="group" aria-label={t('tutor.hintSteps')}>
           {STEPS.map((s) => {
             const fetched = !!ladder?.hints[s.level];
             const current = showingHint ? shown === s.level : false;
@@ -99,15 +102,15 @@ export function HintCard({ open, loading, error, notice, ladder, shown, little, 
                 className={`hint-chip ${current ? 'hint-chip-on' : ''}`}
                 disabled={!fetched}
                 aria-current={current ? 'step' : undefined}
-                aria-label={`${s.label}, step ${s.level} of 3${fetched ? '' : ', not asked yet'}`}
+                aria-label={t('tutor.stepAria', { label: t(s.key), n: s.level }) + (fetched ? '' : t('tutor.notAsked'))}
                 onClick={() => onShow(s.level)}
               >
-                {s.label}
+                {t(s.key)}
               </button>
             );
           })}
         </div>
-        <button type="button" className="btn btn-ghost min-h-[48px] min-w-[48px] px-0" onClick={onClose} aria-label="Close hint">
+        <button type="button" className="btn btn-ghost min-h-[48px] min-w-[48px] px-0" onClick={onClose} aria-label={t('tutor.closeHint')}>
           <CloseIcon />
         </button>
       </div>
@@ -121,7 +124,7 @@ export function HintCard({ open, loading, error, notice, ladder, shown, little, 
               <span />
               <span />
             </span>
-            Thinking of a hint…
+            {t('tutor.thinkingHint')}
           </p>
         ) : (
           <div key={`${shown}-${text}`} className="hint-text" aria-live="polite">
@@ -135,26 +138,26 @@ export function HintCard({ open, loading, error, notice, ladder, shown, little, 
         {error ? (
           <>
             <button type="button" className="btn btn-primary min-h-[48px]" onClick={onRetry} disabled={loading}>
-              Try again
+              {t('tutor.tryAgain')}
             </button>
             {questTip && !tip && (
               <button type="button" className="btn btn-quiet min-h-[48px]" onClick={() => setTip(true)}>
-                Show the quest tip
+                {t('tutor.showQuestTip')}
               </button>
             )}
           </>
         ) : notice ? (
           <button type="button" className="btn btn-primary min-h-[48px]" onClick={onClose}>
-            Okay
+            {t('tutor.okay')}
           </button>
         ) : (
           <button type="button" className="btn btn-primary min-h-[48px]" onClick={last ? onClose : onMore} disabled={loading || !hint}>
-            {last ? "I've got it" : 'Show me more'}
+            {last ? t('tutor.gotIt') : t('tutor.showMore')}
           </button>
         )}
         {canSpeak && text && !loading && (
           <button type="button" className="btn btn-quiet min-h-[48px]" onClick={() => onHear(text)}>
-            <SpeakerIcon /> Hear it
+            <SpeakerIcon /> {t('tutor.hearIt')}
           </button>
         )}
       </div>

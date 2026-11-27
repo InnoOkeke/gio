@@ -2,6 +2,8 @@ import type { TurtleEvent } from '../../logo/index.js';
 import type { Feature } from '../../logo/quests.js';
 import { friendById, stickerById, type FriendId, type StickerId } from './catalog';
 import { friendIntro } from './lines';
+import { localizeSticker } from '../../i18n/content.js';
+import { translator, type Lang } from '../../i18n/index.js';
 
 /** What one learning moment added to the garden. */
 export interface Earned {
@@ -23,16 +25,16 @@ export function hasEarned(e: Earned): boolean {
 }
 
 /** Stickers worth naming, leaving out one the message already names (a quest badge). */
-export function stickerNames(e: Earned, skip: StickerId | null = null): string[] {
-  return e.newStickers.filter((s) => s !== skip).map((s) => stickerById(s).name);
+export function stickerNames(e: Earned, skip: StickerId | null = null, lang: Lang = 'en'): string[] {
+  return e.newStickers.filter((s) => s !== skip).map((s) => localizeSticker(stickerById(s), lang).name);
 }
 
 /** One bubble message: the base line, then any friend who arrived, then any new sticker. Spoken once. */
-export function announce(base: string, e: Earned, skipSticker: StickerId | null = null): string {
+export function announce(base: string, e: Earned, skipSticker: StickerId | null = null, lang: Lang = 'en'): string {
   const parts = [base];
-  for (const id of e.newFriends) parts.push(friendIntro(friendById(id)));
-  const names = stickerNames(e, skipSticker);
-  if (names.length) parts.push(`You earned the ${names.join(' and ')} sticker${names.length > 1 ? 's' : ''}!`);
+  for (const id of e.newFriends) parts.push(friendIntro(friendById(id), lang));
+  const names = stickerNames(e, skipSticker, lang);
+  if (names.length) parts.push(translator(lang)(names.length > 1 ? 'gio.earned.other' : 'gio.earned.one', { names: names.join(translator(lang)('word.and')) }));
   return parts.join('\n');
 }
 

@@ -4,6 +4,7 @@ import { Wordmark } from './components/GioMark';
 import { ModePicker } from './components/ModePicker';
 import { AppStatus } from './components/AppStatus';
 import { LangProvider } from './lang';
+import { tr } from './lang-state';
 import { ModeProvider, useMode } from './mode';
 import NotFound from './pages/NotFound';
 import Studio from './pages/Studio';
@@ -41,10 +42,10 @@ class AppErrorBoundary extends Component<{ children: ReactNode }, ErrorBoundaryS
       <div className="min-h-full flex items-center justify-center p-6">
         <div className="panel max-w-md w-full p-8 text-center flex flex-col items-center gap-4">
           <Wordmark />
-          <h1 className="text-[24px] font-black">Oops, the turtle tripped!</h1>
-          <p className="text-[16px] font-semibold text-ink-2">Something went wrong on this page. Your saved drawings are safe.</p>
+          <h1 className="text-[24px] font-black">{tr('error.boundary.title')}</h1>
+          <p className="text-[16px] font-semibold text-ink-2">{tr('error.boundary.body')}</p>
           <button type="button" className="btn btn-primary btn-lg" onClick={() => window.location.reload()}>
-            Try again
+            {tr('btn.tryAgain')}
           </button>
         </div>
       </div>

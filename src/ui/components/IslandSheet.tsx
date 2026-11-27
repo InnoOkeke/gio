@@ -4,7 +4,10 @@ import { CONCEPTS } from '../../logo/quests.js';
 import { friendById } from '../gio/catalog';
 import { islandByKey, questById, stageCount, stageNumber } from '../path/islands';
 import type { SkillChallenge } from '../path/skill';
-import { MASTER_RULE, UNIT_TIME, reviewInvite, say, MAP_LINES } from '../path/lines';
+import { reviewInvite, say, mapLinesFor } from '../path/lines';
+import { conceptText, localizeFriend, localizeQuest, localizeStage } from '../../i18n/content.js';
+import { pluralIn, type Translate } from '../../i18n/index.js';
+import { useLang, useT } from '../lang';
 import { GOLD_TO_MASTER, type IslandView, type QuestView, type UnitView } from '../path/state';
 import { FriendPicture } from './gio/FriendArt';
 import { IslandArt } from './IslandArt';
@@ -36,23 +39,26 @@ function Star({ star, size = 30 }: { star: QuestView['star']; size?: number }): 
   return <span aria-hidden="true" className="block rounded-full border-[3px] border-dashed border-[#c9c0ad]" style={{ width: size - 4, height: size - 4 }} />;
 }
 
-function stateWords(q: QuestView): string {
-  if (q.status === 'locked') return 'locked';
-  if (q.star === 'clean') return 'gold star';
-  if (q.star === 'helped') return 'silver star, you can try again for gold';
-  return 'ready to play';
+function stateWords(q: QuestView, t: Translate): string {
+  if (q.status === 'locked') return t('island.state.locked');
+  if (q.star === 'clean') return t('island.state.gold');
+  if (q.star === 'helped') return t('island.state.silver');
+  return t('island.state.ready');
 }
 
 function Tile({ q, position, bonus, isNext, color, onPlay }: { q: QuestView; position: number; bonus: boolean; isNext: boolean; color: string; onPlay(id: string): void }) {
-  const quest = questById(q.id);
+  const t = useT();
+  const { lang } = useLang();
+  const found = questById(q.id);
+  const quest = found && localizeQuest(found, lang);
   const locked = q.status === 'locked';
-  const caption = q.star === 'helped' ? 'Try for gold' : q.star === 'clean' ? 'Gold' : bonus ? 'Bonus' : locked ? '' : isNext ? 'Next' : '';
+  const caption = q.star === 'helped' ? t('island.cap.tryGold') : q.star === 'clean' ? t('island.cap.gold') : bonus ? t('island.cap.bonus') : locked ? '' : isNext ? t('island.cap.next') : '';
   return (
     <button
       type="button"
       disabled={locked}
       onClick={() => onPlay(q.id)}
-      aria-label={`${bonus ? 'Bonus quest' : `Quest ${position}`}: ${quest?.title ?? q.id}, ${stateWords(q)}`}
+      aria-label={t('island.tile.aria', { label: bonus ? t('island.tile.bonus') : t('island.tile.quest', { n: position }), title: quest?.title ?? q.id, state: stateWords(q, t) })}
       className={`qtile ${isNext ? 'is-next' : ''}`}
       data-state={locked ? 'locked' : (q.star ?? 'open')}
       style={isNext ? { borderColor: color } : undefined}
@@ -67,23 +73,24 @@ function Tile({ q, position, bonus, isNext, color, onPlay }: { q: QuestView; pos
 }
 
 function Unit({ unit, number, color, nextQuestId, onPlay }: { unit: UnitView; number: number; color: string; nextQuestId: string | null; onPlay(id: string): void }) {
+  const t = useT();
   const gold = Math.min(unit.gold, GOLD_TO_MASTER);
   const lockedUnit = unit.status === 'locked';
   return (
-    <section aria-label={`Unit ${number}`} className={`rounded-[24px] border border-line bg-white p-4 shadow-[var(--shadow-1)] ${lockedUnit ? 'opacity-90' : ''}`}>
+    <section aria-label={t('island.unit', { n: number })} className={`rounded-[24px] border border-line bg-white p-4 shadow-[var(--shadow-1)] ${lockedUnit ? 'opacity-90' : ''}`}>
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5">
-        <h4 className="m-0 text-[17px] font-black text-ink">Unit {number}</h4>
-        <div className="flex items-center gap-2" role="img" aria-label={`${gold} of ${GOLD_TO_MASTER} gold stars${unit.mastered ? ', unit mastered' : ''}`}>
+        <h4 className="m-0 text-[17px] font-black text-ink">{t('island.unit', { n: number })}</h4>
+        <div className="flex items-center gap-2" role="img" aria-label={t('island.unit.stars', { gold, max: GOLD_TO_MASTER }) + (unit.mastered ? t('island.unit.masteredSuffix') : '')}>
           {Array.from({ length: GOLD_TO_MASTER }, (_, i) => (
             <span key={i} className="inline-flex h-[26px] w-[26px] items-center justify-center rounded-full" style={{ background: i < gold ? '#fff0c2' : '#f2eee4' }}>
               <StarIcon size={18} className={i < gold ? 'text-[#f5a700]' : 'text-[#d6cebd]'} />
             </span>
           ))}
-          {unit.mastered && <span className="rounded-full bg-[#e1f7ec] px-2.5 py-1 text-[14px] font-black text-[#08603e]">Mastered</span>}
+          {unit.mastered && <span className="rounded-full bg-[#e1f7ec] px-2.5 py-1 text-[14px] font-black text-[#08603e]">{t('island.mastered')}</span>}
         </div>
       </div>
       <p className="m-0 mt-1 text-[14px] font-bold text-ink-2">
-        {lockedUnit ? `Master unit ${number - 1} to open this one.` : `${MASTER_RULE} ${UNIT_TIME}.`}
+        {lockedUnit ? t('island.unit.locked', { n: number - 1 }) : t('island.unit.rule', { rule: t('path.masterRule'), time: t('path.unitTime') })}
       </p>
       <div className="mt-3 grid grid-cols-3 gap-2.5">
         {unit.quests.map((q, i) => (
@@ -96,9 +103,12 @@ function Unit({ unit, number, color, nextQuestId, onPlay }: { unit: UnitView; nu
 
 /** One island: who lives there, its units of three quests with their stars, and the way back if it is still locked. */
 export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, skill, certificate, onPlay, onReview, onGoTo, onSkip }: IslandSheetProps) {
-  const { island } = view;
+  const t = useT();
+  const { lang } = useLang();
+  const island = localizeStage(view.island, lang);
   const color = CONCEPTS[island.concept].color;
-  const friend = friendById(island.resident);
+  const friend = localizeFriend(friendById(island.resident), lang);
+  const previousName = previous ? localizeStage(previous.island, lang).name : '';
   const locked = view.status === 'locked';
 
   return (
@@ -110,7 +120,7 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, s
             <span aria-hidden="true" className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-white px-1 text-[14px] font-black normal-case tracking-normal text-ink" style={{ boxShadow: `inset 0 0 0 3px ${island.stamp}` }}>
               {stageNumber(island)}
             </span>
-            Stage {stageNumber(island)} of {stageCount(island.audience)} · {CONCEPTS[island.concept].name}
+            {t('island.stageOf', { n: stageNumber(island), total: stageCount(island.audience), concept: conceptText(island.concept, CONCEPTS[island.concept], lang).name })}
           </p>
           <p className="m-0 text-[17px] font-bold leading-snug text-ink-2">{island.tagline}</p>
           <div className="mt-1 flex items-center gap-3 rounded-[20px] bg-paper-3 p-3">
@@ -120,11 +130,11 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, s
             <p className="m-0 text-[15px] font-bold leading-snug text-ink">
               {met ? (
                 <>
-                  {friend.name} the {friend.species} lives here and loves {friend.idea.toLowerCase()}.
+                  {t('island.friendMet', { name: friend.name, species: friend.species, idea: friend.idea.toLowerCase() })}
                 </>
               ) : (
                 <>
-                  {friend.name} the {friend.species} is asleep here. {friend.hint}
+                  {t('island.friendAsleep', { name: friend.name, species: friend.species, hint: friend.hint })}
                 </>
               )}
             </p>
@@ -138,25 +148,28 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, s
           <span className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-full bg-paper-3 text-[#44554c]" aria-hidden="true">
             <LockIcon size={26} />
           </span>
-          <p className="m-0 text-[18px] font-black text-ink">{previous ? say(MAP_LINES[island.audience].locked, 0, { island: island.name, prev: previous.island.name }) : `${island.name} is not open yet.`}</p>
+          <p className="m-0 text-[18px] font-black text-ink">{previous ? say(mapLinesFor(island.audience, lang).locked, 0, { island: island.name, prev: previousName }) : t('island.notOpen', { island: island.name })}</p>
           {previous && (
             <button type="button" className="btn btn-primary btn-lg mt-4" onClick={() => onGoTo(previous.island.key)}>
-              Go to {previous.island.name}
+              {t('island.goTo', { island: previousName })}
             </button>
           )}
         </div>
         {skill.length > 0 && (
           <section aria-labelledby="skill-title" className="rounded-[24px] border-2 border-[#2b9bf4] bg-[#e3f2ff] p-5 shadow-[var(--shadow-1)]">
             <h3 id="skill-title" className="m-0 text-[18px] font-black text-ink">
-              Already know this? Take a skill check
+              {t('island.skill.title')}
             </h3>
             <p className="m-0 mt-1.5 text-[15px] font-bold leading-snug text-ink-2">
-              Solve {skill.length} {skill.length === 1 ? 'quest' : 'quests'} on your own, with no hints, no Explain and no tutor:{' '}
-              {skill.map((c) => islandByKey(c.stageKey)?.name ?? c.stageKey).join(', ')}. Pass them all and {island.name} opens. The stages before it count as tested out, and you can still play them any time.
+              {t('island.skill.body', {
+                count: pluralIn(lang, 'island.skill.quests', skill.length),
+                list: skill.map((c) => { const s = islandByKey(c.stageKey); return s ? localizeStage(s, lang).name : c.stageKey; }).join(', '),
+                island: island.name,
+              })}
             </p>
-            <p className="m-0 mt-1.5 text-[14px] font-bold text-ink-2">You can try as often as you like. No stars are won in a skill check.</p>
+            <p className="m-0 mt-1.5 text-[14px] font-bold text-ink-2">{t('island.skill.often')}</p>
             <button type="button" className="btn btn-primary btn-lg mt-3" onClick={onSkip}>
-              Start the skill check
+              {t('island.skill.start')}
             </button>
           </section>
         )}
@@ -165,24 +178,24 @@ export function IslandSheet({ view, previous, met, nextQuestId, reviewWaiting, s
         <>
           {view.tested && !view.sailed && (
             <p className="m-0 rounded-[20px] bg-[#e1f7ec] px-4 py-3 text-[15px] font-extrabold text-[#08603e]">
-              You tested out of {island.name}. You can still play any quest here and sail it.
+              {t('island.tested', { island: island.name })}
             </p>
           )}
           {view.sailed && (
             <p className="m-0 rounded-[20px] bg-[#e1f7ec] px-4 py-3 text-[15px] font-extrabold text-[#08603e]">
-              You sailed {island.name}. Replay any quest to win a gold star.
+              {t('island.sailed', { island: island.name })}
             </p>
           )}
           {certificate && stageNumber(island) === stageCount(island.audience) && (
             <Link to="/certificate" className="btn btn-primary btn-lg w-full">
-              See my Logo Master certificate
+              {t('island.certificate')}
             </Link>
           )}
           {reviewWaiting && (
             <div className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] bg-[#fff4cc] px-4 py-3">
-              <p className="m-0 text-[15px] font-extrabold text-[#5a3b00]">{reviewInvite(island.name)}</p>
+              <p className="m-0 text-[15px] font-extrabold text-[#5a3b00]">{reviewInvite(island.name, lang)}</p>
               <button type="button" className="btn btn-quiet" onClick={onReview}>
-                Visit
+                {t('btn.visit')}
               </button>
             </div>
           )}

@@ -1,22 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getLocale, guessLang, isLang, t as format, type Lang, type Locale, type Params } from '../i18n/index.js';
-
-const KEY = 'gio.lang';
-
-/** A link can pick the language (`?lang=fr`); otherwise the remembered choice. Nothing stored means no choice yet. */
-function readStored(): Lang | null {
-  try {
-    const fromLink = new URLSearchParams(window.location.search).get('lang');
-    if (isLang(fromLink)) {
-      localStorage.setItem(KEY, fromLink);
-      return fromLink;
-    }
-    const v = localStorage.getItem(KEY);
-    return isLang(v) ? v : null;
-  } catch {
-    return null;
-  }
-}
+import { getLocale, guessLang, t as format, type Lang, type Locale, type Params } from '../i18n/index.js';
+import { LANG_KEY, readStoredLang, setActiveLang } from './lang-state';
 
 interface LangContextValue {
   lang: Lang;
@@ -29,11 +13,12 @@ interface LangContextValue {
 const LangContext = createContext<LangContextValue | null>(null);
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [stored, setStored] = useState<Lang | null>(readStored);
+  const [stored, setStored] = useState<Lang | null>(readStoredLang);
   const lang: Lang = stored ?? guessLang(typeof navigator === 'undefined' ? undefined : navigator.languages);
+  setActiveLang(lang);
   const setLang = useCallback((next: Lang) => {
     try {
-      localStorage.setItem(KEY, next);
+      localStorage.setItem(LANG_KEY, next);
     } catch {
       /* Private browsing can block storage; the choice still applies for this visit. */
     }

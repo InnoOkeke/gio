@@ -3,6 +3,7 @@ import { onStorageFull, storageFull } from '../api';
 import { getActivity, subscribeActivity } from '../offline/activity';
 import { decideInstallOffer, pickCard, platformOf, readPwaState, writePwaState } from '../offline/install';
 import { getSnapshot, subscribe } from '../offline/register';
+import { useT } from '../lang';
 import { GioMark } from './GioMark';
 
 /** The event Chrome and Edge on Android fire when GIO can be installed. TypeScript's DOM library does not include it. */
@@ -88,6 +89,7 @@ function Card({ title, children, actions }: { title: string; children?: ReactNod
  * running program.
  */
 export function AppStatus() {
+  const t = useT();
   const offline = useSyncExternalStore(subscribe, getSnapshot);
   const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine);
   const activity = useSyncExternalStore(subscribeActivity, getActivity);
@@ -149,82 +151,82 @@ export function AppStatus() {
       className="fixed inset-x-0 bottom-0 z-40 pointer-events-none flex flex-col items-center sm:items-start gap-2 px-3 pt-3 pb-[calc(env(safe-area-inset-bottom)+12px)] [@media(max-height:479px)]:bottom-auto [@media(max-height:479px)]:top-0 [@media(max-height:479px)]:items-center [@media(max-height:479px)]:pt-[calc(env(safe-area-inset-top)+8px)]"
     >
       {!online && (
-        <p className="pointer-events-auto m-0 rounded-full bg-ink text-white px-4 py-2 text-[15px] font-extrabold shadow-lg">No internet. Drawing and quests still work.</p>
+        <p className="pointer-events-auto m-0 rounded-full bg-ink text-white px-4 py-2 text-[15px] font-extrabold shadow-lg">{t('status.offline')}</p>
       )}
       {card === 'update' && (
         <Card
-          title="A new GIO is ready"
+          title={t('status.update.title')}
           actions={
             <>
               <button type="button" className={`${BUTTON} btn-primary`} onClick={offline.applyUpdate}>
-                Update now
+                {t('btn.updateNow')}
               </button>
               <button type="button" className={`${BUTTON} btn-quiet`} onClick={() => setUpdateLater(true)}>
-                Later
+                {t('btn.later')}
               </button>
             </>
           }
         >
-          <p className="m-0 text-[15px] font-semibold text-ink-2">Your code is kept.</p>
+          <p className="m-0 text-[15px] font-semibold text-ink-2">{t('status.update.note')}</p>
         </Card>
       )}
       {card === 'phone-full' && (
         <Card
-          title="This phone is full"
+          title={t('status.full.title')}
           actions={
             <button type="button" className={`${BUTTON} btn-quiet`} onClick={() => setPhoneFullDone(true)}>
-              OK
+              {t('btn.ok')}
             </button>
           }
         >
-          <p className="m-0 text-[15px] font-semibold text-ink-2">GIO can&rsquo;t keep your code on this phone right now. Save your drawing to keep it.</p>
+          <p className="m-0 text-[15px] font-semibold text-ink-2">{t('status.full.note')}</p>
         </Card>
       )}
       {card === 'quota' && (
         <Card
-          title="Not enough space for offline on this phone"
+          title={t('status.quota.title')}
           actions={
             <button type="button" className={`${BUTTON} btn-quiet`} onClick={() => setQuotaDone(true)}>
-              OK
+              {t('btn.ok')}
             </button>
           }
         >
-          <p className="m-0 text-[15px] font-semibold text-ink-2">GIO still works while you have internet.</p>
+          <p className="m-0 text-[15px] font-semibold text-ink-2">{t('status.quota.note')}</p>
         </Card>
       )}
-      {card === 'ready' && <Card title="GIO works offline now" />}
+      {card === 'ready' && <Card title={t('status.ready.title')} />}
       {card === 'android' && (
         <Card
-          title="Put GIO on this phone"
+          title={t('status.install.title')}
           actions={
             <>
               <button type="button" className={`${BUTTON} btn-primary`} onClick={() => void install()}>
-                Add to home screen
+                {t('btn.addHome')}
               </button>
               <button type="button" className={`${BUTTON} btn-quiet`} onClick={notNow}>
-                Not now
+                {t('btn.notNow')}
               </button>
             </>
           }
         >
-          <p className="m-0 text-[15px] font-semibold text-ink-2">Draw and do quests with no internet.</p>
+          <p className="m-0 text-[15px] font-semibold text-ink-2">{t('status.install.note')}</p>
         </Card>
       )}
       {card === 'ios' && (
         <Card
-          title="Put GIO on this phone"
+          title={t('status.install.title')}
           actions={
             <button type="button" className={`${BUTTON} btn-quiet`} onClick={notNow}>
-              Got it
+              {t('btn.gotIt')}
             </button>
           }
         >
           <ol className="m-0 pl-5 text-[15px] font-semibold text-ink-2 flex flex-col gap-1">
             <li>
-              Tap the Share button <ShareIcon /> in Safari.
+              {t('status.ios.1a')} <ShareIcon /> {t('status.ios.1b')}
             </li>
-            <li>Choose &ldquo;Add to Home Screen&rdquo;.</li>
-            <li>Tap &ldquo;Add&rdquo;. GIO then opens from its own icon.</li>
+            <li>{t('status.ios.2')}</li>
+            <li>{t('status.ios.3')}</li>
           </ol>
         </Card>
       )}

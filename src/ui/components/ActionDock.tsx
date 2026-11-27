@@ -1,5 +1,6 @@
 import type { RefObject } from 'react';
 import type { PlayerStatus } from '../runtime/player';
+import { useT } from '../lang';
 import { HelpIcon, PauseIcon, PlayIcon, SparkleIcon, StepIcon } from './icons';
 
 interface ActionDockProps {
@@ -19,24 +20,25 @@ interface ActionDockProps {
  * stage panel keeps its Save menu for pictures and movies, and the project Save is in the header's More sheet.
  */
 export function ActionDock({ status, onRun, onStep, onAsk, askOpen, onStuck, stuckRef, stuckDisabled }: ActionDockProps) {
+  const t = useT();
   const playing = status === 'playing';
   return (
-    <nav className="action-dock" aria-label="Actions">
+    <nav className="action-dock" aria-label={t('nav.actions')}>
       <button type="button" className={`btn dock-run ${playing ? 'btn-stop' : 'btn-primary'}`} onClick={onRun}>
         {playing ? <PauseIcon size={24} /> : <PlayIcon size={24} />}
-        {playing ? 'Pause' : status === 'paused' ? 'Keep going' : 'Run'}
+        {playing ? t('btn.pause') : status === 'paused' ? t('btn.keepGoing') : t('btn.run')}
       </button>
       <button type="button" className="btn btn-quiet dock-btn" onClick={onStep} disabled={playing}>
         <StepIcon size={22} />
-        <span>Step</span>
+        <span>{t('btn.step')}</span>
       </button>
-      <button type="button" className="btn btn-quiet dock-btn" onClick={onAsk} aria-label="Ask Gio" aria-haspopup="dialog" aria-expanded={askOpen}>
+      <button type="button" className="btn btn-quiet dock-btn" onClick={onAsk} aria-label={t('tutor.askGio')} aria-haspopup="dialog" aria-expanded={askOpen}>
         <SparkleIcon size={22} />
-        <span>Ask</span>
+        <span>{t('btn.ask')}</span>
       </button>
-      <button ref={stuckRef} type="button" className="btn btn-quiet dock-btn" onClick={onStuck} disabled={stuckDisabled} aria-label="I'm stuck">
+      <button ref={stuckRef} type="button" className="btn btn-quiet dock-btn" onClick={onStuck} disabled={stuckDisabled} aria-label={t('tutor.stuckAria')}>
         <HelpIcon size={22} className="text-[#e0861a]" />
-        <span>Stuck</span>
+        <span>{t('btn.stuck')}</span>
       </button>
     </nav>
   );

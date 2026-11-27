@@ -1,5 +1,6 @@
+import { useT } from '../lang';
 import { lazy, Suspense, useState } from 'react';
-import { PYTHON_OFFLINE_TEXT, type PythonControls } from '../python/usePythonRun';
+import { pythonOfflineText, type PythonControls } from '../python/usePythonRun';
 import { TranslatedCode } from './TranslatedCode';
 
 const PythonEditor = lazy(() => import('../editor/PythonEditor'));
@@ -19,24 +20,25 @@ const NOTE = 'text-[15px] font-semibold text-ink-2 m-0';
  * made theirs. Running it uses real Python in a locked box in the browser, and never earns rewards.
  */
 export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanelProps) {
+  const t = useT();
   const [confirming, setConfirming] = useState(false);
   const loading = py.phase === 'loading';
 
   const status = py.locked ? (
     <div className="px-4 py-3 border-b border-line bg-paper-2">
-      <p className={NOTE}>Python runs are for your own drawings. Finish the quest and I will run your Python here.</p>
+      <p className={NOTE}>{t('python.locked')}</p>
     </div>
   ) : !py.consented ? (
     <div className="px-4 py-3 border-b border-line bg-paper-2 flex flex-col gap-2">
       <p className={`${NOTE} text-ink`}>
-        <strong className="font-extrabold">Real Python lives in your browser.</strong> It downloads about 8 to 13 MB (a grown-up may want Wi-Fi) and needs the internet each time it starts.
-        {py.returning && <> You used Python before, so it will download again now.</>}
+        <strong className="font-extrabold">{t('python.consent.a')}</strong> {t('python.consent.b')}
+        {py.returning && <> {t('python.returning')}</>}
       </p>
       <div className="flex flex-wrap items-center gap-3">
         <button type="button" className="btn btn-primary min-h-[48px] px-5 text-[16px]" disabled={loading} onClick={() => void py.getReady()}>
-          {loading ? 'Getting Python ready…' : 'Get Python ready'}
+          {loading ? t('btn.pythonGetting') : t('btn.getPython')}
         </button>
-        {py.phase === 'failed' && <p className="m-0 text-[15px] font-bold text-[#b4236b]">{py.failure === PYTHON_OFFLINE_TEXT ? PYTHON_OFFLINE_TEXT : "I couldn't get Python. Check your connection, then try again."}</p>}
+        {py.phase === 'failed' && <p className="m-0 text-[15px] font-bold text-[#b4236b]">{py.failure === pythonOfflineText() ? pythonOfflineText() : t('python.failed')}</p>}
       </div>
     </div>
   ) : null;
@@ -49,7 +51,7 @@ export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanel
           <span className="h-2 w-2 rounded-full bg-[#12a36b] animate-pulse [animation-delay:150ms]" />
           <span className="h-2 w-2 rounded-full bg-[#12a36b] animate-pulse [animation-delay:300ms]" />
         </span>
-        Getting real Python ready…
+        {t('python.gettingReal')}
       </p>
     </div>
   ) : null;
@@ -61,14 +63,14 @@ export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanel
         {busy}
         <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-paper-2 border-b border-line">
           <button type="button" className="btn btn-primary min-h-[48px] px-4 text-[16px]" disabled={py.locked || !py.consented} onClick={() => void py.run()}>
-            Run my Python
+            {t('btn.runMine')}
           </button>
-          <p className="m-0 flex-1 min-w-[200px] text-[14px] font-bold text-ink-2">Your Python stays on this device. Share and Save keep your Logo.</p>
+          <p className="m-0 flex-1 min-w-[200px] text-[14px] font-bold text-ink-2">{t('python.mineNote')}</p>
         </div>
-        {py.tooBig && <p className="m-0 px-4 py-2 text-[14px] font-bold text-[#b4236b]">That is more Python than I can keep on this device, so the last changes are not saved.</p>}
+        {py.tooBig && <p className="m-0 px-4 py-2 text-[14px] font-bold text-[#b4236b]">{t('python.tooBig')}</p>}
         {py.logoChanged && (
           <div className="px-4 py-2 border-b border-line bg-[#fff8e1] flex flex-wrap items-center gap-2">
-            <p className="m-0 flex-1 min-w-[200px] text-[14px] font-bold text-ink-2">Your Logo has changed since you made this Python yours. Nothing was overwritten.</p>
+            <p className="m-0 flex-1 min-w-[200px] text-[14px] font-bold text-ink-2">{t('python.logoChanged')}</p>
             {confirming ? (
               <>
                 <button
@@ -79,25 +81,25 @@ export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanel
                     setConfirming(false);
                   }}
                 >
-                  Yes, replace my Python
+                  {t('btn.yesReplace')}
                 </button>
                 <button type="button" className="btn btn-quiet min-h-[48px] px-4 text-[15px]" onClick={() => setConfirming(false)}>
-                  Keep mine
+                  {t('btn.keepMine')}
                 </button>
               </>
             ) : (
               <button type="button" className="btn btn-quiet min-h-[48px] px-4 text-[15px]" disabled={!py.generated.ok} onClick={() => setConfirming(true)}>
-                Start again from my Logo
+                {t('btn.startAgain')}
               </button>
             )}
           </div>
         )}
         <div className="flex-1 min-h-0">
-          <Suspense fallback={<p className={`${NOTE} p-4`}>Opening the Python editor…</p>}>
+          <Suspense fallback={<p className={`${NOTE} p-4`}>{t('python.opening')}</p>}>
             <PythonEditor ref={py.editorRef} initialCode={py.mine.code} onChange={py.editMine} onRunShortcut={() => void py.run()} />
           </Suspense>
         </div>
-        <p className="m-0 px-4 py-2 border-t border-line bg-paper-2 text-[14px] font-semibold text-ink-3">Python can&rsquo;t turn back into Logo.</p>
+        <p className="m-0 px-4 py-2 border-t border-line bg-paper-2 text-[14px] font-semibold text-ink-3">{t('python.noBack')}</p>
       </div>
     );
   }
@@ -109,10 +111,10 @@ export function PythonPanel({ py, logo, logoRunningLine, onCopied }: PythonPanel
       {!py.locked && py.generated.ok && (
         <div className="flex flex-wrap items-center gap-2 px-4 py-2 bg-paper-2 border-b border-line">
           <button type="button" className="btn btn-primary min-h-[48px] px-4 text-[16px]" disabled={!py.consented} onClick={() => void py.run()}>
-            Run this Python
+            {t('btn.runThis')}
           </button>
           <button type="button" className="btn btn-quiet min-h-[48px] px-4 text-[16px]" onClick={py.makeMine}>
-            Make it mine
+            {t('btn.makeMine')}
           </button>
         </div>
       )}

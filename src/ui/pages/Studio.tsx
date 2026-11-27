@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom';
 import { blocksToLogo, check, execute, press, start, toBlocks, type Block, type GameKey, type GameSession, type TargetLanguage, type TurtleEvent } from '../../logo/index.js';
 import { TICK_MS } from '../../logo/primitives.js';
 import { checkQuest, CONCEPTS, features, playWithPresses, type Quest } from '../../logo/quests.js';
-import { api, ApiError, local, OFFLINE_MESSAGE, SLOW_MESSAGE, type AssistantStyle } from '../api';
+import { api, ApiError, local, offlineMessage, slowMessage, type AssistantStyle } from '../api';
 import { reportPlayerStatus } from '../offline/activity';
 import { AskTurtle } from '../components/AskTurtle';
 import { CommandShelf } from '../components/CommandShelf';
@@ -26,7 +26,7 @@ import { ExportMenu } from '../components/ExportMenu';
 import { SoundToggle } from '../components/SoundToggle';
 import { sound } from '../runtime/sound';
 import { hasDrawing, toSVG } from '../export/svg';
-import { FirstWinOffer, FirstWinYours, FIRST_WIN_TEXT, useFirstWin } from '../components/FirstWin';
+import { FirstWinOffer, FirstWinYours, firstWinText, useFirstWin } from '../components/FirstWin';
 import { AdventureMap, FriendDialog, GardenContent, GardenSheet, MasteryMoment, preloadMapWhenIdle } from '../components/lazy-overlays';
 import type { Moment } from '../components/MasteryMoment';
 import { QuestCard } from '../components/Quests';
@@ -53,13 +53,16 @@ import { friendById, type FriendId } from '../gio/catalog';
 import { GoldenShellContext } from '../gio/golden';
 import { announce, hasEarned, mergeEarned, NOTHING, runSignals, stickerNames, type Earned, type RunSignals } from '../gio/earned';
 import { DEFAULT_FIRST_COLOUR, firstWinProgram, markFirstWinShown, readFirstWin, shouldOfferFirstWin, type BlockColour } from '../first-win';
-import { LINES, pickLine, welcomeBackLine } from '../gio/lines';
+import { linesFor, pickLine, welcomeBackLine } from '../gio/lines';
+import { conceptText, localizeQuest, localizeStage } from '../../i18n/content.js';
+import { useLang, useT } from '../lang';
+import { currentLang, problemText, problemText as questFeedbackText, tr } from '../lang-state';
 import { moodFor, type GioMood } from '../gio/mood';
 import { daysAway, localDateKey } from '../gio/rewards';
 import type { LogoEditorHandle } from '../editor/LogoEditor';
 import { CommandKeyRow, applyKey } from '../components/CommandKeyRow';
 import { useKeyboardInset } from '../responsive/useKeyboardInset';
-import { MODE_LABEL, useMode, type AgeMode } from '../mode';
+import { useMode, type AgeMode } from '../mode';
 import { createDelayed } from '../path/delayed';
 import { useQuestHelp } from '../path/help';
 import { islandByKey, islandOf, placeOf } from '../path/islands';
@@ -72,17 +75,17 @@ import { useTutor } from '../tutor/useTutor';
 import { parseVoiceCommand, type VoiceCommand } from '../voice-commands';
 import type { PlayerStatus, Speed } from '../runtime/player';
 
+/** The English name of a new drawing. A new drawing gets the name in the child's language. */
 const DEFAULT_TITLE = 'My drawing';
+const defaultTitle = (): string => tr('studio.defaultTitle');
+const isDefaultTitle = (title: string): boolean => title === DEFAULT_TITLE || title === defaultTitle();
 
-const WELCOME: Record<AgeMode, BubbleMessage> = {
-  little: { kind: 'info', text: pickLine(LINES.little.greeting, 0) },
-  coder: { kind: 'info', text: pickLine(LINES.coder.greeting, 0) },
-};
+const welcome = (mode: AgeMode): BubbleMessage => ({ kind: 'info', text: pickLine(linesFor(mode, currentLang()).greeting, 0) });
 
-const SPEEDS: { id: Speed; label: string; Icon: typeof TurtleSpeedIcon }[] = [
-  { id: 'turtle', label: 'Slow', Icon: TurtleSpeedIcon },
-  { id: 'rabbit', label: 'Fast', Icon: RabbitSpeedIcon },
-  { id: 'rocket', label: 'Zoom', Icon: RocketSpeedIcon },
+const SPEEDS: { id: Speed; Icon: typeof TurtleSpeedIcon }[] = [
+  { id: 'turtle', Icon: TurtleSpeedIcon },
+  { id: 'rabbit', Icon: RabbitSpeedIcon },
+  { id: 'rocket', Icon: RocketSpeedIcon },
 ];
 
 type CodeTab = 'logo' | TargetLanguage;
@@ -119,7 +122,10 @@ const DailyDialog = lazy(() => import('../components/DailyDialog'));
 // Each editor loads only in the mode that uses it: dnd-kit with the blocks, CodeMirror with Coder code.
 const BlocksEditor = lazy(() => import('../editor/BlocksEditor').then((m) => ({ default: m.BlocksEditor })));
 const LogoEditor = lazy(() => import('../editor/LogoEditor').then((m) => ({ default: m.LogoEditor })));
-const EditorSkeleton = () => <div className="h-full min-h-[240px] bg-paper-2 animate-pulse" aria-busy="true" aria-label="Loading the editor" />;
+function EditorSkeleton() {
+  const t = useT();
+  return <div className="h-full min-h-[240px] bg-paper-2 animate-pulse" aria-busy="true" aria-label={t('studio.loadingEditor')} />;
+}
 
 interface ReviewRun {
   islandKey: string;
@@ -136,6 +142,7 @@ export default function Studio() {
   const navigate = useNavigate();
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const t = useT();
 
   useEffect(() => {
     let cancelled = false;
@@ -143,7 +150,7 @@ export default function Studio() {
     setLoadError(null);
     if (!routeSlug) {
       const draft = local.loadDraft();
-      setLoaded({ title: draft?.title || DEFAULT_TITLE, code: draft?.code ?? '', slug: null, editKey: null });
+      setLoaded({ title: draft?.title || defaultTitle(), code: draft?.code ?? '', slug: null, editKey: null });
       return;
     }
     api
@@ -163,18 +170,20 @@ export default function Studio() {
   if (loadError) {
     return (
       <CenteredMessage
-        title={loadError === OFFLINE_MESSAGE || loadError === SLOW_MESSAGE ? 'This drawing needs the internet' : "I couldn't find that drawing"}
-        text={loadError === 'Project not found' ? 'The link might be wrong, or the drawing was never saved.' : loadError}
-        action={{ label: 'Start a new drawing', run: () => navigate('/') }}
+        title={loadError === offlineMessage() || loadError === slowMessage() ? t('studio.load.needsNet') : t('studio.load.notFound')}
+        text={loadError === 'Project not found' ? t('studio.load.badLink') : loadError}
+        action={{ label: t('studio.load.startNew'), run: () => navigate('/') }}
       />
     );
   }
-  if (!loaded) return <CenteredMessage title="Getting the turtle ready…" />;
+  if (!loaded) return <CenteredMessage title={t('studio.load.getting')} />;
   return <StudioView key={loaded.slug ?? 'new'} initial={loaded} />;
 }
 
 function StudioView({ initial }: { initial: Loaded }) {
   const { mode: chosenMode, chooseAgain } = useMode();
+  const t = useT();
+  const { lang } = useLang();
   const mode: AgeMode = chosenMode ?? 'coder';
   const little = mode === 'little';
   const style: AssistantStyle = little ? 'blocks' : 'code';
@@ -210,7 +219,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [savedSnapshot, setSavedSnapshot] = useState(initial.saved ?? (initial.slug ? `${initial.title}\n${initial.code}` : ''));
   const [status, setStatus] = useState<PlayerStatus>('idle');
   const [speed, setSpeed] = useState<Speed>(little ? 'turtle' : 'rabbit');
-  const [bubble, setBubble] = useState<BubbleMessage>(initial.code ? { kind: 'info', text: 'Press Run to watch me draw it!' } : offerFirstWin ? { kind: 'info', text: FIRST_WIN_TEXT[mode].offer } : cameBack ? { kind: 'info', text: welcomeBackLine() } : WELCOME[mode]);
+  const [bubble, setBubble] = useState<BubbleMessage>(initial.code ? { kind: 'info', text: tr('studio.pressRun') } : offerFirstWin ? { kind: 'info', text: firstWinText(mode, tr).offer } : cameBack ? { kind: 'info', text: welcomeBackLine(currentLang()) } : welcome(mode));
   const [prints, setPrints] = useState<string[]>([]);
   const [asking, setAsking] = useState(false);
   const [explaining, setExplaining] = useState(false);
@@ -289,9 +298,9 @@ function StudioView({ initial }: { initial: Loaded }) {
   const blockView = useMemo((): { ok: true; blocks: Block[] } | { ok: false; reason: string } => {
     if (!code.trim()) return { ok: true, blocks: [] };
     const parsed = check(code);
-    if (!parsed.ok) return { ok: false, reason: parsed.problem.message };
+    if (!parsed.ok) return { ok: false, reason: problemText(parsed.problem) };
     return toBlocks(parsed.program);
-  }, [code]);
+  }, [code, lang]);
 
   /** Replace the whole program (AI answers, quest starters, blocks) in whichever editor is showing. */
   const replaceCode = useCallback((next: string) => {
@@ -339,7 +348,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       lastRunRef.current = null;
       failedCodeRef.current = source;
       editorRef.current?.setProblemLine(res.problem.line);
-      setBubble({ kind: 'problem', text: res.problem.message, line: res.problem.line });
+      setBubble({ kind: 'problem', text: problemText(res.problem), line: res.problem.line });
       if (res.partial) {
         stageRef.current?.load(res.partial);
         stageRef.current?.finish();
@@ -352,18 +361,18 @@ function StudioView({ initial }: { initial: Loaded }) {
     if (sessionRef.current) {
       // Let the arrow keys reach the game instead of the code editor.
       (document.activeElement as HTMLElement | null)?.blur?.();
-      setBubble({ kind: 'info', text: sessionRef.current.keys.length ? 'Game on! Press the arrow keys to play.' : 'Game on! Watch it go.' });
+      setBubble({ kind: 'info', text: sessionRef.current.keys.length ? tr('studio.game.keys') : tr('studio.game.watch') });
       stageRef.current?.load(res.result);
       stageRef.current?.play();
       return;
     }
     if (!res.result.events.length) {
       lastRunRef.current = null;
-      setBubble({ kind: 'info', text: 'There are no commands for me yet. Add one, then press Run.' });
+      setBubble({ kind: 'info', text: tr('studio.noCommands') });
       stageRef.current?.reset();
       return;
     }
-    setBubble({ kind: 'info', text: pickLine(LINES[modeRef.current].runStart, runCountRef.current) });
+    setBubble({ kind: 'info', text: pickLine(linesFor(modeRef.current, currentLang()).runStart, runCountRef.current) });
     stageRef.current?.load(res.result);
     stageRef.current?.play();
   }, []);
@@ -393,7 +402,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     }
     if (!r.ok) {
       editorRef.current?.setProblemLine(r.problem.line);
-      setBubble({ kind: 'problem', text: r.problem.message, line: r.problem.line });
+      setBubble({ kind: 'problem', text: problemText(r.problem), line: r.problem.line });
     }
   }, []);
 
@@ -409,7 +418,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   const onGameOver = useCallback(() => {
     endGame();
-    setBubble({ kind: 'success', text: 'Game over! Press Run to play again.' });
+    setBubble({ kind: 'success', text: tr('studio.gameOver') });
   }, [endGame]);
 
   useEffect(() => {
@@ -448,7 +457,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     if (little) setSpeed('turtle');
     replaceCode(program);
     run(program);
-    setBubble({ kind: 'info', text: FIRST_WIN_TEXT[mode].drawing });
+    setBubble({ kind: 'info', text: firstWinText(mode, tr).drawing });
   };
 
   /** A colour the child picked is the child's own change, so it is credited by the normal rewards path. */
@@ -462,7 +471,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   const skipFirstWin = () => {
     finishFirstWin();
-    setBubble(WELCOME[mode]);
+    setBubble(welcome(mode));
   };
 
   const askAfterFirstWin = () => {
@@ -501,7 +510,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     const target = q.target ? playWithPresses(q.target, q.presses) : null;
     py.release();
     stageRef.current?.setGuide(target?.ok ? target.result : null);
-    setBubble({ kind: 'info', text: q.starter ? 'This code has a bug. Press Run to see what goes wrong!' : q.goal });
+    setBubble({ kind: 'info', text: q.starter ? tr('studio.questBug') : localizeQuest(q, currentLang()).goal });
   };
 
   const leaveQuest = () => {
@@ -512,7 +521,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     setQuest(null);
     setQuestFeedback(null);
     stageRef.current?.setGuide(null);
-    setBubble(WELCOME[mode]);
+    setBubble(welcome(mode));
   };
 
   /** Follow the path: the next quest, a review visit, or the end of the map. */
@@ -522,7 +531,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     if (next) startQuest(next);
     else {
       leaveQuest();
-      toast.show({ text: 'You sailed every island! Amazing!' }, 6000);
+      toast.show({ text: tr('studio.allSailed') }, 6000);
     }
   };
 
@@ -578,12 +587,13 @@ function StudioView({ initial }: { initial: Loaded }) {
       const q = questRef.current;
       if (!q) return;
       const result = checkQuest(q, codeRef.current);
-      setQuestFeedback(result.message);
+      const feedback = questFeedbackText(result);
+      setQuestFeedback(feedback);
       if (!result.pass) {
         setFriendQueue((f) => [...f, ...earned.newFriends]);
-        setBubble(hasEarned(earned) ? { kind: 'info', text: announce(result.message, earned), mood: 'cheer' } : { kind: 'info', text: result.message });
-        const names = stickerNames(earned);
-        if (names.length) toast.show({ text: `New sticker: ${names.join(' and ')}!` }, 5000);
+        setBubble(hasEarned(earned) ? { kind: 'info', text: announce(feedback, earned, null, currentLang()), mood: 'cheer' } : { kind: 'info', text: feedback });
+        const names = stickerNames(earned, null, currentLang());
+        if (names.length) toast.show({ text: tr('studio.newSticker', { names: names.join(tr('word.and')) }) }, 5000);
         return;
       }
       setQuestDone(true);
@@ -606,9 +616,9 @@ function StudioView({ initial }: { initial: Loaded }) {
           const passed = step.passed ? progress.passSkillCheck(step.targetKey) : null;
           if (passed?.masterEarned) record({ kind: 'logo-master' });
           const moment: Moment = passed?.masterEarned ? { kind: 'master', islandKey: step.targetKey } : { kind: 'skill', islandKey: step.targetKey, passed: step.passed };
-          setBubble({ kind: 'success', text: step.passed ? 'Skill check passed!' : 'Not yet. You used help, so this check cannot be passed this time.' });
+          setBubble({ kind: 'success', text: step.passed ? tr('studio.skill.passed') : tr('studio.skill.notYet') });
           momentTimer.current.schedule(() => setMasteryMoment(moment), 800);
-        } else setBubble({ kind: 'success', text: 'Challenge solved! Press Next challenge when you are ready.' });
+        } else setBubble({ kind: 'success', text: tr('studio.skill.solved') });
         return;
       }
       const { newBadge, star, unitMastered, islandSailed, opened, masterEarned } = progress.complete(q.id, helped);
@@ -629,12 +639,14 @@ function StudioView({ initial }: { initial: Loaded }) {
         record({ kind: 'quest-done', questId: q.id, features: credited ? run.features : [], colours: credited ? run.colours : 0, newBadge }),
       );
       setFriendQueue((f) => [...f, ...all.newFriends]);
-      const starLine = star === 'clean' ? ' Gold star!' : ' Silver star. Try it again without a hint for gold.';
-      const headline = masterEarned ? 'You are a Logo Master!' : newBadge ? `You earned the ${CONCEPTS[newBadge].badge} badge!` : islandSailed && island ? `You sailed ${island.name}!` : unitMastered ? 'Unit mastered!' : 'Quest complete! You did it!';
+      const lang = currentLang();
+      const badgeName = newBadge ? conceptText(newBadge, CONCEPTS[newBadge], lang).badge : '';
+      const starLine = star === 'clean' ? tr('studio.star.gold') : tr('studio.star.silver');
+      const headline = masterEarned ? tr('studio.head.master') : newBadge ? tr('studio.head.badge', { badge: badgeName }) : islandSailed && island ? tr('studio.head.sailed', { island: localizeStage(island, lang).name }) : unitMastered ? tr('studio.head.unit') : tr('studio.head.quest');
       const base = `${headline}${starLine}`;
-      setBubble({ kind: 'success', text: announce(base, all, newBadge), mood: hasEarned(all) ? 'cheer' : undefined });
-      const names = stickerNames(all, newBadge);
-      toast.show({ text: newBadge ? `New badge: ${CONCEPTS[newBadge].badge}!${names.length ? ` New sticker: ${names.join(' and ')}!` : ''}` : names.length ? `New sticker: ${names.join(' and ')}!` : `Quest complete: ${q.title}` }, 5000);
+      setBubble({ kind: 'success', text: announce(base, all, newBadge, lang), mood: hasEarned(all) ? 'cheer' : undefined });
+      const names = stickerNames(all, newBadge, lang).join(tr('word.and'));
+      toast.show({ text: newBadge ? tr('studio.toast.badge', { badge: badgeName, stickers: names ? tr('studio.toast.stickersAfter', { names }) : '' }) : names ? tr('studio.newSticker', { names }) : tr('studio.toast.quest', { title: localizeQuest(q, lang).title }) }, 5000);
     },
     [progress, record, toast],
   );
@@ -649,7 +661,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       // A finished key press in a game is not the end of the program.
       if (s === 'done' && pressingRef.current) return;
       if (s === 'done' && lastRunRef.current && stageRef.current?.events().some((e) => e.type === 'frame')) {
-        toast.show({ text: 'Your movie is ready! Use Picture, then Movie, to keep it.' }, 6000);
+        toast.show({ text: tr('studio.movieReady') }, 6000);
       }
       if (s === 'done') {
         const { earned, run } = creditRun();
@@ -659,19 +671,19 @@ function StudioView({ initial }: { initial: Loaded }) {
           const cheer = hasEarned(earned);
           // A game keeps its "Game on!" message while it is being played, unless something new arrived.
           if (!sessionRef.current || cheer) {
-            const base = sessionRef.current ? 'Your game works!' : pickLine(LINES[modeRef.current].success, runCountRef.current);
-            setBubble((b) => (b.kind === 'problem' ? b : { kind: 'success', text: announce(base, earned), mood: cheer ? 'cheer' : undefined }));
+            const base = sessionRef.current ? tr('studio.gameWorks') : pickLine(linesFor(modeRef.current, currentLang()).success, runCountRef.current);
+            setBubble((b) => (b.kind === 'problem' ? b : { kind: 'success', text: announce(base, earned, null, currentLang()), mood: cheer ? 'cheer' : undefined }));
           }
-          const names = stickerNames(earned);
-          if (names.length) toast.show({ text: `New sticker: ${names.join(' and ')}!` }, 5000);
+          const names = stickerNames(earned, null, currentLang());
+          if (names.length) toast.show({ text: tr('studio.newSticker', { names: names.join(tr('word.and')) }) }, 5000);
         }
         // The first star is finished: invite the child to make it their own.
         if (firstWinPhase.current === 'drawing') {
           showFirstWinYours();
-          setBubble({ kind: 'success', text: FIRST_WIN_TEXT[modeRef.current].yours, mood: 'cheer' });
+          setBubble({ kind: 'success', text: firstWinText(modeRef.current, tr).yours, mood: 'cheer' });
         }
       }
-      if (s === 'paused') setBubble((b) => (b.kind === 'problem' ? b : { kind: 'info', text: 'Paused. Press Step to go one command at a time.' }));
+      if (s === 'paused') setBubble((b) => (b.kind === 'problem' ? b : { kind: 'info', text: tr('studio.paused') }));
     },
     [checkActiveQuest, creditRun, toast, firstWinPhase, showFirstWinYours],
   );
@@ -706,7 +718,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       if (!res.ok) return run(code);
       stageRef.current?.load(res.result);
     }
-    setBubble({ kind: 'info', text: little ? 'One step at a time. Watch the glowing block!' : 'One step at a time. The yellow line shows what I\u2019m doing.' });
+    setBubble({ kind: 'info', text: little ? tr('studio.step.little') : tr('studio.step.coder') });
     stageRef.current?.step();
   };
 
@@ -718,7 +730,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     stageRef.current?.reset();
     editorRef.current?.setProblemLine(null);
     setPrints([]);
-    setBubble({ kind: 'info', text: 'All clean! Press Run when you\u2019re ready.' });
+    setBubble({ kind: 'info', text: tr('studio.allClean') });
   };
 
   /* ---------------- voice and typed commands ---------------- */
@@ -726,12 +738,12 @@ function StudioView({ initial }: { initial: Loaded }) {
   const undo = () => {
     const previous = undoStack.current.pop();
     if (previous === undefined) {
-      setBubble({ kind: 'info', text: 'There is nothing to undo.' });
+      setBubble({ kind: 'info', text: tr('studio.nothingUndo') });
       return;
     }
     setCode(previous);
     editorRef.current?.replaceAll(previous);
-    setBubble({ kind: 'info', text: 'Undone!' });
+    setBubble({ kind: 'info', text: tr('studio.undone') });
   };
 
   const SLOWER: Record<Speed, Speed> = { rocket: 'rabbit', rabbit: 'turtle', turtle: 'turtle' };
@@ -752,15 +764,15 @@ function StudioView({ initial }: { initial: Loaded }) {
         return;
       case 'slower':
         setSpeed((s) => SLOWER[s]);
-        setBubble({ kind: 'info', text: 'Okay, I\u2019ll go slower.' });
+        setBubble({ kind: 'info', text: tr('studio.slower') });
         return;
       case 'faster':
         setSpeed((s) => FASTER[s]);
-        setBubble({ kind: 'info', text: 'Okay, I\u2019ll go faster!' });
+        setBubble({ kind: 'info', text: tr('studio.faster') });
         return;
       case 'zoom':
         setSpeed('rocket');
-        setBubble({ kind: 'info', text: 'Zoom! Super fast.' });
+        setBubble({ kind: 'info', text: tr('studio.zoom') });
         return;
       case 'explain':
         void explain();
@@ -803,7 +815,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       return true;
     }
     setAsking(true);
-    setBubble({ kind: 'info', text: 'Hmm, let me think about how to draw that…' });
+    setBubble({ kind: 'info', text: tr('studio.thinkDraw') });
     const before = code;
     try {
       const { code: aiCode } = await api.askTurtle(prompt, code.trim() ? code : undefined, style);
@@ -811,18 +823,18 @@ function StudioView({ initial }: { initial: Loaded }) {
       const next = little ? withoutComments(aiCode) : aiCode;
       borrowedRef.current.add(next.trim());
       replaceCode(next);
-      if (suggested && (title === DEFAULT_TITLE || !project)) setTitle(suggested);
+      if (suggested && (isDefaultTitle(title) || !project)) setTitle(suggested);
       run(next);
       if (before.trim()) {
-        toast.show({ text: 'I changed your drawing.', action: { label: 'Undo', run: undo } }, 6000);
+        toast.show({ text: tr('studio.changed'), action: { label: tr('btn.undo'), run: undo } }, 6000);
       }
       return true;
     } catch (err) {
       if (err instanceof ApiError && err.redirect) {
         setBubble({ kind: 'info', text: err.message, mood: 'calm' });
-        toast.show({ text: "Let's draw something else!" });
+        toast.show({ text: tr('studio.somethingElse') });
       } else {
-        setBubble({ kind: 'problem', text: err instanceof Error ? err.message : 'Something went wrong. Try again?' });
+        setBubble({ kind: 'problem', text: err instanceof Error ? err.message : tr('studio.wentWrong') });
       }
       return false;
     } finally {
@@ -859,7 +871,7 @@ function StudioView({ initial }: { initial: Loaded }) {
 
   const explain = async () => {
     if (!code.trim()) {
-      setBubble({ kind: 'info', text: little ? 'Add some blocks first, then I can tell you what they do!' : 'Write some code first, then I can explain it.' });
+      setBubble({ kind: 'info', text: little ? tr('studio.explain.noBlocks') : tr('studio.explain.noCode') });
       return;
     }
     if (quest && !questDone) {
@@ -867,13 +879,13 @@ function StudioView({ initial }: { initial: Loaded }) {
       if (skill.isActive(quest.id)) setHinted(true);
     }
     setExplaining(true);
-    setBubble({ kind: 'info', text: 'Let me look at your code…' });
+    setBubble({ kind: 'info', text: tr('studio.explain.looking') });
     try {
       const { text } = await api.explain(code, style);
       setBubble({ kind: 'info', text });
     } catch (err) {
       const redirect = err instanceof ApiError && err.redirect;
-      setBubble({ kind: redirect ? 'info' : 'problem', text: err instanceof Error ? err.message : 'I could not explain that right now.', mood: redirect ? 'calm' : undefined });
+      setBubble({ kind: redirect ? 'info' : 'problem', text: err instanceof Error ? err.message : tr('studio.explain.failed'), mood: redirect ? 'calm' : undefined });
     } finally {
       setExplaining(false);
     }
@@ -882,13 +894,13 @@ function StudioView({ initial }: { initial: Loaded }) {
   /* ---------------- save & share ---------------- */
 
   const save = async (): Promise<string | null> => {
-    const cleanTitle = title.trim() || DEFAULT_TITLE;
+    const cleanTitle = title.trim() || defaultTitle();
     setSaving(true);
     try {
       if (project && owned) {
         await api.updateProject(project.slug, project.editKey!, { title: cleanTitle, code });
         setSavedSnapshot(`${cleanTitle}\n${code}`);
-        toast.show({ text: 'Saved!' });
+        toast.show({ text: tr('studio.saved') });
         return project.slug;
       }
       const created = await api.createProject(cleanTitle, code);
@@ -898,10 +910,10 @@ function StudioView({ initial }: { initial: Loaded }) {
       setSavedSnapshot(`${cleanTitle}\n${code}`);
       // Update the address bar in place so the drawing on stage isn't reloaded.
       window.history.replaceState(null, '', `/p/${created.slug}`);
-      toast.show({ text: project ? 'Saved your own copy!' : 'Saved!' });
+      toast.show({ text: project ? tr('studio.savedCopy') : tr('studio.saved') });
       return created.slug;
     } catch (err) {
-      toast.show({ text: err instanceof Error ? err.message : 'Could not save. Try again?' });
+      toast.show({ text: err instanceof Error ? err.message : tr('studio.saveFailed') });
       return null;
     } finally {
       setSaving(false);
@@ -914,13 +926,13 @@ function StudioView({ initial }: { initial: Loaded }) {
     const url = `${window.location.origin}/p/${slug}`;
     try {
       if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
-        await navigator.share({ title: `${title} · GIO`, text: 'Look what I drew with code!', url });
+        await navigator.share({ title: `${title} · GIO`, text: tr('studio.shareText'), url });
         return;
       }
       await navigator.clipboard.writeText(url);
-      toast.show({ text: 'Link copied! Send it to a friend.' });
+      toast.show({ text: tr('studio.linkCopied') });
     } catch {
-      toast.show({ text: `Your link: ${url}` }, 8000);
+      toast.show({ text: tr('studio.yourLink', { url }) }, 8000);
     }
   };
 
@@ -931,7 +943,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     a.href = url;
     a.download = fileName(title, 'png');
     a.click();
-    toast.show({ text: 'Saved your picture!' });
+    toast.show({ text: tr('studio.savedPicture') });
   };
   /** One tap: a WhatsApp-ready sticker. Shared with the phone's share menu where files can be shared, saved otherwise. */
   const makeWhatsAppSticker = async () => {
@@ -964,7 +976,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     }
   };
   const exportSvg = () => {
-    const svg = toSVG(stageRef.current?.events() ?? [], { title: title || 'GIO drawing' });
+    const svg = toSVG(stageRef.current?.events() ?? [], { title: title || tr('studio.svgTitle') });
     if (!svg) return;
     const url = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
     const a = document.createElement('a');
@@ -972,7 +984,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     a.download = fileName(title, 'svg');
     a.click();
     window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
-    toast.show({ text: 'Saved your drawing file!' });
+    toast.show({ text: tr('studio.savedFile') });
   };
   const openMovie = () => {
     const stage = stageRef.current;
@@ -1005,9 +1017,9 @@ function StudioView({ initial }: { initial: Loaded }) {
     }
     if (quest) leaveQuest();
     replaceCode('');
-    setTitle(DEFAULT_TITLE);
+    setTitle(defaultTitle());
     onReset();
-    setBubble(WELCOME[mode]);
+    setBubble(welcome(mode));
   };
 
   const win = useWindowClass();
@@ -1032,32 +1044,32 @@ function StudioView({ initial }: { initial: Loaded }) {
     <section className="studio-code panel flex flex-col" aria-labelledby="code-title">
       <div className="panel-header">
         <h2 id="code-title" className="text-[20px] font-black">
-          My blocks
+          {t('studio.myBlocks')}
         </h2>
         <button type="button" className="btn btn-ghost min-h-[var(--touch)] px-3 text-[14px]" onClick={() => setShowLogoUnderBlocks((v) => !v)} aria-pressed={showLogoUnderBlocks}>
-          {showLogoUnderBlocks ? 'Hide the code' : 'See the code'}
+          {showLogoUnderBlocks ? t('studio.hideCode') : t('studio.seeCode')}
         </button>
       </div>
       {showLogoUnderBlocks && (
-        <pre className="m-0 px-5 py-3 max-h-[160px] overflow-auto bg-paper-2 border-b border-line font-mono text-[15px] font-bold text-[#0b7a4f]" aria-label="Your blocks as Logo code">
-          {code.trim() || '(no code yet)'}
+        <pre className="m-0 px-5 py-3 max-h-[160px] overflow-auto bg-paper-2 border-b border-line font-mono text-[15px] font-bold text-[#0b7a4f]" aria-label={t('studio.blocksAsLogo')}>
+          {code.trim() || t('studio.noCodeYet')}
         </pre>
       )}
       <div className="flex-1 min-h-0">
         {blockView.ok ? (
           <Suspense fallback={<EditorSkeleton />}>
-            <BlocksEditor blocks={blockView.blocks} runningLine={runningLine} onChange={(b) => replaceCode(blocksToLogo(b))} />
+            <BlocksEditor blocks={blockView.blocks} runningLine={runningLine} onChange={(b) => replaceCode(blocksToLogo(b, lang))} />
           </Suspense>
         ) : (
           <div className="h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
-            <p className="m-0 text-[20px] font-black">This drawing uses big-kid code</p>
-            <p className="m-0 text-[16px] font-semibold text-ink-2">It can't be shown as blocks because {blockView.reason}. You can still press Run to watch it!</p>
+            <p className="m-0 text-[20px] font-black">{t('studio.bigKid')}</p>
+            <p className="m-0 text-[16px] font-semibold text-ink-2">{t('studio.bigKidWhy', { reason: blockView.reason })}</p>
             <div className="flex flex-wrap justify-center gap-2">
               <button type="button" className="btn btn-primary" onClick={startNew}>
-                Start with blocks
+                {t('studio.startBlocks')}
               </button>
               <button type="button" className="btn btn-quiet" onClick={chooseAgain}>
-                Switch to {MODE_LABEL.coder}
+                {t('studio.switchTo', { mode: t('mode.coder') })}
               </button>
             </div>
           </div>
@@ -1068,12 +1080,12 @@ function StudioView({ initial }: { initial: Loaded }) {
     <section className="studio-code panel flex flex-col" aria-labelledby="code-title">
       <div className="panel-header flex-wrap">
         <h2 id="code-title" className="text-[18px] font-black">
-          Your code
+          {t('studio.yourCode')}
         </h2>
-        <div className="segmented" role="tablist" aria-label="Code language">
-          {CODE_TABS.map((t) => (
-            <button key={t.id} type="button" role="tab" id={`tab-${t.id}`} aria-selected={codeTab === t.id} aria-controls={`panel-${t.id}`} onClick={() => setCodeTab(t.id)}>
-              {t.label}
+        <div className="segmented" role="tablist" aria-label={t('studio.codeLanguage')}>
+          {CODE_TABS.map((tab) => (
+            <button key={tab.id} type="button" role="tab" id={`tab-${tab.id}`} aria-selected={codeTab === tab.id} aria-controls={`panel-${tab.id}`} onClick={() => setCodeTab(tab.id)}>
+              {tab.label}
             </button>
           ))}
         </div>
@@ -1086,9 +1098,9 @@ function StudioView({ initial }: { initial: Loaded }) {
       {codeTab !== 'logo' && (
         <div id={`panel-${codeTab}`} role="tabpanel" aria-labelledby={`tab-${codeTab}`} className="flex-1 min-h-0">
           {codeTab === 'python' ? (
-            <PythonPanel py={py} logo={code} logoRunningLine={runningLine} onCopied={() => toast.show({ text: 'Copied!' })} />
+            <PythonPanel py={py} logo={code} logoRunningLine={runningLine} onCopied={() => toast.show({ text: t('studio.copied') })} />
           ) : (
-            <TranslatedCode language={codeTab} logo={code} runningLine={runningLine} onCopied={() => toast.show({ text: 'Copied!' })} />
+            <TranslatedCode language={codeTab} logo={code} runningLine={runningLine} onCopied={() => toast.show({ text: t('studio.copied') })} />
           )}
         </div>
       )}
@@ -1113,7 +1125,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         sailed={sailedCount}
         islands={progress.islands.length}
         reviewDue={Boolean(progress.reviewDue)}
-        saveLabel={project && !owned ? 'Save a copy' : 'Save'}
+        saveLabel={project && !owned ? t('btn.saveCopy') : t('btn.save')}
         saveDisabled={saving || (!dirty && owned)}
         onSave={() => void save()}
         sharing={saving}
@@ -1124,24 +1136,24 @@ function StudioView({ initial }: { initial: Loaded }) {
       <main className="studio-main flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
         {skill.run && quest && (
           <SkillCheckBanner
-            stageName={islandByKey(skill.run.targetKey)?.name ?? 'the stage'}
+            stageName={((s) => (s ? localizeStage(s, lang).name : t('studio.theStage')))(islandByKey(skill.run.targetKey))}
             position={skill.run.index + 1}
             total={skill.run.plan.length}
             helped={hinted}
             onStop={() => {
               leaveQuest();
-              toast.show({ text: 'Skill check stopped. Nothing was lost.' });
+              toast.show({ text: t('studio.skill.stopped') });
             }}
           />
         )}
         {quest ? (
-          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted && !skill.run} review={review ? { index: review.index, total: review.ids.length } : null} eyebrow={quest.id.startsWith('daily-') ? FUN_TEXT.dailyEyebrow((dailyPlayRef.current ?? todaysPuzzle(mode)).number) : undefined} nextLabel={quest.id.startsWith('daily-') ? FUN_TEXT.dailySeeResult : skill.run ? 'Next challenge' : review ? (review.index + 1 < review.ids.length ? 'Next review quest' : 'Finish review') : 'Next quest'} onHint={() => void askForHint()} onNext={quest.id.startsWith('daily-') ? openDaily : nextQuest} onLeave={leaveQuest} onVoice={(text) => {
+          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted && !skill.run} review={review ? { index: review.index, total: review.ids.length } : null} eyebrow={quest.id.startsWith('daily-') ? FUN_TEXT.dailyEyebrow((dailyPlayRef.current ?? todaysPuzzle(mode)).number) : undefined} nextLabel={quest.id.startsWith('daily-') ? FUN_TEXT.dailySeeResult : skill.run ? t('btn.nextChallenge') : review ? (review.index + 1 < review.ids.length ? t('btn.nextReview') : t('btn.finishReview')) : t('btn.nextQuest')} onHint={() => void askForHint()} onNext={quest.id.startsWith('daily-') ? openDaily : nextQuest} onLeave={leaveQuest} onVoice={(text) => {
             const command = parseVoiceCommand(text);
             if (command) doCommand(command);
-            else setBubble({ kind: 'info', text: 'In a quest you write the code yourself! You can say run, hint, explain or step.' });
+            else setBubble({ kind: 'info', text: tr('studio.questVoice') });
           }} />
         ) : (
-          <AskFold widthClass={win.widthClass} layout={win.layout} open={askOpen} onOpen={setAskOpen} label={little ? 'Tell me what to draw!' : 'Describe a drawing and I will write the Logo'}>
+          <AskFold widthClass={win.widthClass} layout={win.layout} open={askOpen} onOpen={setAskOpen} label={little ? t('studio.ask.little') : t('studio.ask.coder')}>
             <AskTurtle mode={mode} hasCode={code.trim().length > 0} busy={asking} onAsk={askAndFold} />
           </AskFold>
         )}
@@ -1149,7 +1161,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         <div className="studio-shell">
           {codePanel}
 
-          <section ref={paneRef} data-focus={focus.active} className="studio-stage-pane panel p-4 sm:p-5 flex flex-col gap-4" aria-label="Turtle stage">
+          <section ref={paneRef} data-focus={focus.active} className="studio-stage-pane panel p-4 sm:p-5 flex flex-col gap-4" aria-label={t('studio.stagePane')}>
             {/* The square stage is sized in CSS from its pane, so the Run button stays on screen. */}
             <div className="studio-stage-slot">
             <div className="studio-stage-box relative">
@@ -1168,24 +1180,24 @@ function StudioView({ initial }: { initial: Loaded }) {
               <>
               <button type="button" className={`btn btn-lg ${playing ? 'btn-stop' : 'btn-primary'} min-w-[150px]`} onClick={onRunPress}>
                 {playing ? <PauseIcon size={22} /> : <PlayIcon size={22} />}
-                {playing ? 'Pause' : status === 'paused' ? 'Keep going' : 'Run'}
+                {playing ? t('btn.pause') : status === 'paused' ? t('btn.keepGoing') : t('btn.run')}
               </button>
               <button type="button" className="btn btn-quiet btn-lg" onClick={onStep} disabled={playing}>
-                <StepIcon /> <span className="step-label">Step</span>
+                <StepIcon /> <span className="step-label">{t('btn.step')}</span>
               </button>
               </>
               )}
-              <div className="segmented studio-speed" role="radiogroup" aria-label="Turtle speed">
+              <div className="segmented studio-speed" role="radiogroup" aria-label={t('studio.speedGroup')}>
                 {SPEEDS.map((s) => (
                   <button key={s.id} type="button" role="radio" aria-checked={speed === s.id} onClick={() => setSpeed(s.id)}>
                     <span className="inline-flex items-center gap-1.5">
-                      <s.Icon size={18} /> <span className="speed-label">{s.label}</span>
+                      <s.Icon size={18} /> <span className="speed-label">{t(`studio.speed.${s.id}`)}</span>
                     </span>
                   </button>
                 ))}
               </div>
               <div className="studio-secondary flex items-center gap-1">
-                <button type="button" className="btn btn-ghost btn-icon" onClick={onReset} aria-label="Clear the drawing" title="Clear the drawing">
+                <button type="button" className="btn btn-ghost btn-icon" onClick={onReset} aria-label={t('studio.clear')} title={t('studio.clear')}>
                   <ResetIcon />
                 </button>
                 <SoundToggle />
@@ -1205,7 +1217,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                 ladder={tutor.ladder}
                 shown={tutor.shown}
                 little={little}
-                questTip={quest?.hint}
+                questTip={quest ? localizeQuest(quest, lang).hint : undefined}
                 canSpeak={readAloud.supported}
                 onMore={moreHint}
                 onShow={tutor.show}
@@ -1223,25 +1235,25 @@ function StudioView({ initial }: { initial: Loaded }) {
                     className="btn btn-quiet min-h-[48px]"
                     onClick={() => readAloud.setEnabled(!readAloud.enabled)}
                     aria-pressed={readAloud.enabled}
-                    title={readAloud.enabled ? 'Stop reading messages aloud' : 'Read messages aloud'}
+                    title={readAloud.enabled ? t('studio.readStop') : t('studio.readStart')}
                   >
-                    {readAloud.enabled ? <SpeakerIcon /> : <SpeakerOffIcon />} {readAloud.enabled ? 'Reading aloud' : 'Read aloud'}
+                    {readAloud.enabled ? <SpeakerIcon /> : <SpeakerOffIcon />} {readAloud.enabled ? t('btn.readingAloud') : t('btn.readAloud')}
                   </button>
                 )}
                 <button type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void explain()} disabled={explaining || asking}>
-                  <BulbIcon className="text-[#f4a72c]" /> {explaining ? 'Thinking…' : little ? 'What did I make?' : 'Explain my code'}
+                  <BulbIcon className="text-[#f4a72c]" /> {explaining ? t('btn.thinking') : little ? t('btn.whatMade') : t('btn.explainCode')}
                 </button>
                 {!compact && (
                   <button ref={stuckRef} type="button" className="btn btn-quiet min-h-[48px]" onClick={() => void askForHint()} disabled={tutor.loading || asking || explaining}>
-                    <HelpIcon className="text-[#e0861a]" /> I&rsquo;m stuck
+                    <HelpIcon className="text-[#e0861a]" /> {t('btn.imStuck')}
                   </button>
                 )}
               </div>
             </div>
 
             {prints.length > 0 && (
-              <div className="studio-extras rounded-[20px] bg-paper-3 px-4 py-3" aria-label="Messages from PRINT">
-                <span className="eyebrow">The turtle says</span>
+              <div className="studio-extras rounded-[20px] bg-paper-3 px-4 py-3" aria-label={t('studio.prints')}>
+                <span className="eyebrow">{t('studio.turtleSays')}</span>
                 <ul className="mt-1 flex flex-col gap-0.5 font-mono text-[15px] font-bold text-ink">
                   {prints.map((p, k) => (
                     <li key={k}>{p}</li>
@@ -1253,10 +1265,10 @@ function StudioView({ initial }: { initial: Loaded }) {
         </div>
 
         <footer className="studio-footer pt-2 pb-6 text-center text-[14px] font-semibold text-ink-3">
-          <span className="studio-footer-note">GIO brings back Logo (1967), the language Seymour Papert and friends made so kids could learn by teaching a turtle.
-          {!little && ' Its turtle still lives on in Python today.'}{' '}</span>
+          <span className="studio-footer-note">{t('studio.footer')}
+          {!little && t('studio.footerPython')}{' '}</span>
           <Link to="/privacy" className="inline-flex min-h-[48px] items-center px-2 underline underline-offset-4 font-extrabold">
-            Privacy for parents
+            {t('studio.privacy')}
           </Link>
         </footer>
       </main>
@@ -1345,9 +1357,9 @@ function StudioView({ initial }: { initial: Loaded }) {
           <ReplayDialog
             events={movie.events}
             background={movie.background}
-            title={title || 'My GIO drawing'}
+            title={title || t('studio.movieTitle')}
             fileName={fileName(title, 'gif')}
-            onSaved={() => toast.show({ text: 'Saved your movie!' })}
+            onSaved={() => toast.show({ text: t('studio.savedMovie') })}
             onClose={() => setMovie(null)}
           />
         </Suspense>

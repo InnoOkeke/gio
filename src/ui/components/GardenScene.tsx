@@ -4,6 +4,8 @@ import type { Badge } from '../progress';
 import { FRIEND_ART } from './gio/FriendArt';
 import { Flower, Tree } from './gio/GardenArt';
 import { TurtleSprite } from './TurtleSprite';
+import { useLang, useT } from '../lang';
+import { pluralIn } from '../../i18n/index.js';
 
 interface GardenSceneProps {
   /** The quests for the current mode, in order. Each completed one grows a flower. */
@@ -30,12 +32,11 @@ const SPOTS: Record<FriendId, { x: number; y: number; s: number }> = {
   hop: { x: 72, y: 152, s: 38 },
 };
 
-function plural(n: number, one: string, many: string): string {
-  return `${n} ${n === 1 ? one : many}`;
-}
 
 /** The garden, drawn from what the child has really done. It is never stored, so it cannot drift from their progress. */
 export function GardenScene({ quests, completed, badges, friends, golden = false }: GardenSceneProps) {
+  const t = useT();
+  const { lang } = useLang();
   const done = quests.map((q, i) => ({ q, i })).filter(({ q }) => completed.includes(q.id));
   const trees = badges.filter((b) => b.earned);
   const empty = done.length === 0 && trees.length === 0 && friends.length === 0;
@@ -52,8 +53,14 @@ export function GardenScene({ quests, completed, badges, friends, golden = false
 
   const names = friends.map((id) => friendById(id).name);
   const label = empty
-    ? 'Your garden is empty for now. Gio is waiting for you to learn something new.'
-    : `Your garden has ${plural(done.length, 'flower', 'flowers')}, ${plural(trees.length, 'tree', 'trees')} and ${plural(friends.length, 'friend', 'friends')}${names.length ? `: ${names.join(', ')}` : ''}.${golden ? ' Gio has a golden shell.' : ''}`;
+    ? t('garden.scene.empty')
+    : t('garden.scene.has', {
+        flowers: pluralIn(lang, 'garden.flowers', done.length),
+        trees: pluralIn(lang, 'garden.trees', trees.length),
+        friends: pluralIn(lang, 'garden.friendsN', friends.length),
+        names: names.length ? t('garden.scene.names', { names: names.join(', ') }) : '',
+        golden: golden ? t('garden.scene.golden') : '',
+      });
 
   return (
     <div className="relative">
@@ -111,7 +118,7 @@ export function GardenScene({ quests, completed, badges, friends, golden = false
             <TurtleSprite mood="happy" />
           </div>
           <p className="m-0 rounded-full bg-white/90 px-4 py-1.5 text-[15px] font-extrabold text-ink shadow-[var(--shadow-1)]">
-            Learn something new and I will plant it here!
+            {t('garden.plant')}
           </p>
         </div>
       )}

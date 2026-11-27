@@ -26,9 +26,35 @@ export const LANGS: readonly LangInfo[] = [
  */
 export type WordTable = Readonly<Record<string, readonly string[]>>;
 
-/** Everything one language owns. FEAT-002 and FEAT-003 add content, Logo errors, voice and AI fields. */
+/** The text of one quest. A missing `hint` keeps the English hint, for hints that are only Logo code. */
+export interface QuestText {
+  title: string;
+  goal: string;
+  hint?: string;
+}
+/**
+ * Text that lives in data files (quests, stages, friends, adventure levels), keyed by the data's own ids.
+ * English is not repeated: the data files hold it, and a missing entry falls back to it.
+ */
+export interface Content {
+  quests: Readonly<Record<string, QuestText>>;
+  /** Concept name and sticker badge, by concept id. */
+  concepts: Readonly<Record<string, { name: string; badge: string }>>;
+  /** Stage (island) name and tagline, by island key. */
+  stages: Readonly<Record<string, { name: string; tagline: string }>>;
+  friends: Readonly<Record<string, { species: string; idea: string; hint: string }>>;
+  stickers: Readonly<Record<string, { name: string; hint: string }>>;
+  /** Pools of lines Gio says, by pool id (for example `little.greeting`). */
+  lines: Readonly<Record<string, readonly string[]>>;
+  /** Adventure text by id: realm names, level titles, intro lines, hints. */
+  adventure: Readonly<Record<string, string>>;
+}
+/** Everything one language owns. FEAT-003 adds voice and AI fields. */
 export interface Locale {
   lang: Lang;
   messages: Messages;
   words: WordTable;
+  content: Content;
+  /** Logo error text by error key, with {placeholders}. Empty for English: src/i18n/logo-errors.ts holds it. */
+  logoErrors: Readonly<Record<string, string>>;
 }

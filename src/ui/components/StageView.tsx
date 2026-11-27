@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import { useT } from '../lang';
 import { clampPan, clampZoom, MAX_ZOOM, MIN_ZOOM, pinchCenter, pinchDistance, zoomAbout, type Point, type ZoomView } from '../responsive/zoom';
 
 export interface StageViewHandle {
@@ -26,6 +27,7 @@ const STEP = 1.5;
  * one finger pans the picture instead.
  */
 export const StageView = forwardRef<StageViewHandle, StageViewProps>(function StageView({ isGame, onSettle, children }, ref) {
+  const t = useT();
   const layerRef = useRef<HTMLDivElement>(null);
   const [view, setViewState] = useState<ZoomView>(FIT);
   const viewRef = useRef<ZoomView>(FIT);
@@ -165,15 +167,15 @@ export const StageView = forwardRef<StageViewHandle, StageViewProps>(function St
           {children}
         </div>
       </div>
-      <div className="zoom-control" role="group" aria-label="Zoom the drawing">
-        <button type="button" className="zoom-btn" aria-label="Zoom in" onClick={() => zoomTo(clampZoom(viewRef.current.scale * STEP))} disabled={view.scale >= MAX_ZOOM}>
+      <div className="zoom-control" role="group" aria-label={t('stage.zoom.group')}>
+        <button type="button" className="zoom-btn" aria-label={t('stage.zoom.in')} onClick={() => zoomTo(clampZoom(viewRef.current.scale * STEP))} disabled={view.scale >= MAX_ZOOM}>
           +
         </button>
-        <button type="button" className="zoom-btn" aria-label="Zoom out" onClick={() => zoomTo(clampZoom(viewRef.current.scale / STEP))} disabled={!zoomed}>
+        <button type="button" className="zoom-btn" aria-label={t('stage.zoom.out')} onClick={() => zoomTo(clampZoom(viewRef.current.scale / STEP))} disabled={!zoomed}>
           &minus;
         </button>
-        <button type="button" className="zoom-btn zoom-fit" aria-label="Fit the whole drawing" onClick={() => setView(FIT)} disabled={!zoomed}>
-          Fit
+        <button type="button" className="zoom-btn zoom-fit" aria-label={t('stage.zoom.fit')} onClick={() => setView(FIT)} disabled={!zoomed}>
+          {t('btn.fit')}
         </button>
       </div>
     </>

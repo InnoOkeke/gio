@@ -1,13 +1,11 @@
 import { useState, type FormEvent } from 'react';
 import type { AgeMode } from '../mode';
+import { useT } from '../lang';
 import { useVoice } from '../voice';
 import { MicIcon, SparkleIcon } from './icons';
 import { TurtleSprite } from './TurtleSprite';
 
-const IDEAS: Record<AgeMode, string[]> = {
-  little: ['a big square', 'a star', 'a rainbow', 'a flower', 'a house', 'stairs'],
-  coder: ['a rainbow flower', 'a smiling sun', 'a spiral of squares', 'a snowflake', 'a house with a tree', 'a starry night'],
-};
+const IDEA_COUNT = 6;
 
 interface AskTurtleProps {
   mode: AgeMode;
@@ -18,6 +16,7 @@ interface AskTurtleProps {
 }
 
 export function AskTurtle({ mode, hasCode, busy, onAsk }: AskTurtleProps) {
+  const t = useT();
   const [prompt, setPrompt] = useState('');
   const little = mode === 'little';
 
@@ -35,14 +34,15 @@ export function AskTurtle({ mode, hasCode, busy, onAsk }: AskTurtleProps) {
     send(text);
   };
 
-  const title = hasCode ? (little ? 'Change my drawing!' : 'What should I change?') : 'What should I draw?';
+  const ideas = Array.from({ length: IDEA_COUNT }, (_, k) => t(`tutor.idea.${mode}.${k}`));
+  const title = hasCode ? (little ? t('tutor.ask.title.changeLittle') : t('tutor.ask.title.change')) : t('tutor.ask.title.draw');
   const subtitle = little
     ? voice.supported
-      ? 'Tap the microphone and tell me!'
-      : 'Type it, or tap an idea!'
+      ? t('tutor.ask.sub.littleVoice')
+      : t('tutor.ask.sub.littleType')
     : hasCode
-      ? 'Tell me in your own words, and I\u2019ll update your code.'
-      : 'Say it in your own words. I\u2019ll write the Logo code, and you can change it.';
+      ? t('tutor.ask.sub.change')
+      : t('tutor.ask.sub.new');
 
   return (
     <section className="ask px-5 py-5 sm:px-7 sm:py-6" aria-labelledby="ask-title">
@@ -67,21 +67,21 @@ export function AskTurtle({ mode, hasCode, busy, onAsk }: AskTurtleProps) {
               onClick={() => (voice.listening ? voice.stop() : voice.start())}
               disabled={busy}
               aria-pressed={voice.listening}
-              aria-label={voice.listening ? 'Stop listening' : 'Talk to the turtle'}
+              aria-label={voice.listening ? t('tutor.ask.stopListening') : t('tutor.ask.talk')}
             >
               <MicIcon size={little ? 30 : 24} />
-              {little && <span className="sm:hidden">{voice.listening ? 'Listening…' : 'Talk to me'}</span>}
+              {little && <span className="sm:hidden">{voice.listening ? t('tutor.ask.listening') : t('tutor.ask.talkToMe')}</span>}
             </button>
           )}
           <label htmlFor="ask-input" className="sr-only">
-            Describe a drawing
+            {t('tutor.ask.describe')}
           </label>
           <input
             id="ask-input"
             className="ask-input flex-1"
             value={voice.listening ? voice.heard : prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder={voice.listening ? 'I\u2019m listening…' : hasCode ? 'e.g. make it rainbow coloured' : little ? 'e.g. a big star' : 'e.g. a flower with 8 petals'}
+            placeholder={voice.listening ? t('tutor.ask.ph.listening') : hasCode ? t('tutor.ask.ph.change') : little ? t('tutor.ask.ph.little') : t('tutor.ask.ph.coder')}
             maxLength={500}
             autoComplete="off"
             disabled={busy || voice.listening}
@@ -95,13 +95,13 @@ export function AskTurtle({ mode, hasCode, busy, onAsk }: AskTurtleProps) {
                   <span />
                 </span>
                 <span className="sr-only" role="status">
-                  Thinking
+                  {t('tutor.ask.thinking')}
                 </span>
               </>
             ) : (
               <>
                 <SparkleIcon size={22} />
-                {hasCode ? 'Change it' : 'Draw it'}
+                {hasCode ? t('tutor.ask.changeIt') : t('tutor.ask.drawIt')}
               </>
             )}
           </button>
@@ -114,8 +114,8 @@ export function AskTurtle({ mode, hasCode, busy, onAsk }: AskTurtleProps) {
         )}
 
         {!hasCode && (
-          <div className="flex flex-wrap gap-2" aria-label="Ideas">
-            {IDEAS[mode].map((idea) => (
+          <div className="flex flex-wrap gap-2" aria-label={t('tutor.ask.ideas')}>
+            {ideas.map((idea) => (
               <button key={idea} type="button" className="chip chip-suggestion" disabled={busy} onClick={() => send(idea)}>
                 {idea}
               </button>

@@ -1,6 +1,6 @@
 import { useId, useRef, useState, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
-import { MODE_LABEL, type AgeMode } from '../mode';
+import type { AgeMode } from '../mode';
 import { useSheetDrag } from '../responsive/useSheetDrag';
 import { useDialog } from '../useDialog';
 import { LANGS } from '../../i18n/index.js';
@@ -34,10 +34,11 @@ export interface StudioHeaderProps {
 }
 
 function TitleInput({ title, onTitle, className }: Pick<StudioHeaderProps, 'title' | 'onTitle'> & { className: string }) {
+  const t = useT();
   return (
     <>
       <label htmlFor="title" className="sr-only">
-        Drawing name
+        {t('studio.titleLabel')}
       </label>
       <input id="title" value={title} onChange={(e) => onTitle(e.target.value)} maxLength={80} className={className} />
     </>
@@ -120,18 +121,19 @@ function MoreSheet({ p, panelRef, firstRef, titleId, close, pick, onLanguage }: 
 
 /** The studio header. Phones get icon buttons and a More menu, tablets and up get labelled buttons. */
 export function StudioHeader(p: StudioHeaderProps) {
+  const t = useT();
   const count = (
     <span className="rounded-full bg-paper-3 px-2 py-0.5 text-[14px] font-black tabular-nums">
       {p.sailed}/{p.islands}
     </span>
   );
   const dot = p.reviewDue && <span className="absolute -right-0.5 -top-0.5 h-3.5 w-3.5 rounded-full bg-[#ffc93c] ring-2 ring-white" aria-hidden="true" />;
-  const mapLabel = `Quest map, ${p.sailed} of ${p.islands} islands sailed${p.reviewDue ? ', a review is waiting' : ''}`;
+  const mapLabel = t('studio.map.aria', { sailed: p.sailed, islands: p.islands }) + (p.reviewDue ? t('studio.map.review') : '');
   return (
     <>
       <header className="studio-header sticky top-0 z-30 backdrop-blur-xl bg-[rgba(245,242,234,0.82)] border-b border-line">
         <div className="studio-header-bar mx-auto max-w-[1360px] px-4 sm:px-6 flex items-center gap-2 sm:gap-3">
-          <a href="/" onClick={(e) => (e.preventDefault(), p.onHome())} aria-label="GIO home" className="studio-logo shrink-0 rounded-2xl">
+          <a href="/" onClick={(e) => (e.preventDefault(), p.onHome())} aria-label={t('nav.home')} className="studio-logo shrink-0 rounded-2xl">
             <Wordmark />
           </a>
           <div className="flex-1 flex justify-center min-w-0">
@@ -146,14 +148,14 @@ export function StudioHeader(p: StudioHeaderProps) {
           <div className={`flex items-center ${p.compact ? 'gap-2' : 'gap-1 sm:gap-2'} shrink-0`}>
             {p.compact ? (
               <>
-                <button type="button" className="btn btn-quiet px-3 studio-icon-btn" onClick={p.onGarden} aria-label="Gio's garden">
+                <button type="button" className="btn btn-quiet px-3 studio-icon-btn" onClick={p.onGarden} aria-label={t('nav.garden.aria')}>
                   <LeafIcon className="text-[#12a36b]" />
                 </button>
                 <button type="button" className="btn btn-quiet px-3 relative" onClick={p.onMap} aria-label={mapLabel}>
                   <MapIcon className="text-[#0f8fa6]" /> {count}
                   {dot}
                 </button>
-                <button type="button" className="btn btn-quiet px-3 studio-icon-btn" onClick={p.onPlay} aria-label="Play Gio's Adventure">
+                <button type="button" className="btn btn-quiet px-3 studio-icon-btn" onClick={p.onPlay} aria-label={t('nav.play.aria')}>
                   <GamepadIcon className="text-[#7a4cf0]" />
                 </button>
                 <MoreMenu p={p} />
@@ -161,28 +163,28 @@ export function StudioHeader(p: StudioHeaderProps) {
             ) : (
               <>
                 <LanguageButton className="btn btn-quiet min-w-[48px] px-0 xl:px-3" codeClass="hidden xl:inline text-[14px] font-black" />
-                <button type="button" className="btn btn-ghost hidden xl:inline-flex" onClick={p.onChooseAgain} title="Switch age mode">
-                  {MODE_LABEL[p.mode]}
+                <button type="button" className="btn btn-ghost hidden xl:inline-flex" onClick={p.onChooseAgain} title={t('studio.switchMode.title')}>
+                  {t(`mode.${p.mode}`)}
                 </button>
-                <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onGarden} aria-label="Gio's garden">
-                  <LeafIcon className="text-[#12a36b]" /> <span className="hidden lg:inline">Garden</span>
+                <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onGarden} aria-label={t('nav.garden.aria')}>
+                  <LeafIcon className="text-[#12a36b]" /> <span className="hidden lg:inline">{t('nav.garden')}</span>
                 </button>
                 <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3 relative" onClick={p.onMap} aria-label={mapLabel}>
-                  <MapIcon className="text-[#0f8fa6]" /> <span className="hidden lg:inline">Map</span>
+                  <MapIcon className="text-[#0f8fa6]" /> <span className="hidden lg:inline">{t('nav.map')}</span>
                   {count}
                   {dot}
                 </button>
-                <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onPlay} aria-label="Play Gio's Adventure">
-                  <GamepadIcon className="text-[#7a4cf0]" /> <span className="hidden lg:inline">Play</span>
+                <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onPlay} aria-label={t('nav.play.aria')}>
+                  <GamepadIcon className="text-[#7a4cf0]" /> <span className="hidden lg:inline">{t('nav.play')}</span>
                 </button>
                 <button type="button" className="btn btn-ghost hidden lg:inline-flex" onClick={p.onNew}>
-                  <PlusIcon /> New
+                  <PlusIcon /> {t('btn.new')}
                 </button>
                 <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={p.onSave} disabled={p.saveDisabled} aria-label={p.saveLabel}>
                   <SaveIcon /> <span className="hidden md:inline">{p.saveLabel}</span>
                 </button>
-                <button type="button" className="btn btn-primary min-w-[48px] max-sm:px-3" onClick={p.onShare} disabled={p.sharing} aria-label="Share">
-                  <ShareIcon /> <span className="hidden sm:inline">Share</span>
+                <button type="button" className="btn btn-primary min-w-[48px] max-sm:px-3" onClick={p.onShare} disabled={p.sharing} aria-label={t('btn.share')}>
+                  <ShareIcon /> <span className="hidden sm:inline">{t('btn.share')}</span>
                 </button>
               </>
             )}

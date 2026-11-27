@@ -1,3 +1,4 @@
+import { useT } from '../lang';
 import { useEffect, useMemo, useRef } from 'react';
 import { playWithPresses, type Quest } from '../../logo/quests.js';
 import { WORLD_HALF } from '../runtime/player';
@@ -6,6 +7,7 @@ const SIZE = 160;
 
 /** A small picture of the quest's target drawing, so it can be read next to the stage on wide screens. */
 export function TargetPreview({ quest }: { quest: Quest }) {
+  const t = useT();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const result = useMemo(() => {
     if (!quest.target) return null;
@@ -41,9 +43,9 @@ export function TargetPreview({ quest }: { quest: Quest }) {
 
   if (!result) return null;
   return (
-    <figure className="quest-preview m-0" aria-label="The drawing to copy">
-      <canvas ref={canvasRef} style={{ width: SIZE, height: SIZE }} role="img" aria-label="Picture of the target drawing" />
-      <figcaption className="text-[14px] font-extrabold text-[#0b6fc2]">Copy this</figcaption>
+    <figure className="quest-preview m-0" aria-label={t('quest.target.figure')}>
+      <canvas ref={canvasRef} style={{ width: SIZE, height: SIZE }} role="img" aria-label={t('quest.target.img')} />
+      <figcaption className="text-[14px] font-extrabold text-[#0b6fc2]">{t('quest.target.caption')}</figcaption>
     </figure>
   );
 }

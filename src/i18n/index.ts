@@ -7,8 +7,9 @@ import { LANGS, type Lang, type Locale } from './types.js';
 export { LANGS } from './types.js';
 export type { Lang, LangInfo, Locale, WordTable } from './types.js';
 export type { Messages } from './locales/en.js';
-export { t, plural } from './format.js';
-export type { Params } from './format.js';
+import { t, plural, type Params } from './format.js';
+export { t, plural };
+export type { Params };
 
 const LOCALES: Record<Lang, Locale> = { en, pcm, fr, es };
 
@@ -32,4 +33,15 @@ export function guessLang(navigatorLanguages: readonly string[] | undefined): La
     if (base === 'en') return 'en';
   }
   return 'en';
+}
+/** A message function bound to one language: `tr('btn.close')`, `tr('keys.type', { label })`. */
+export type Translate = (key: string, params?: Params) => string;
+/** The message function of a language, for code outside React. */
+export function translator(lang: Lang): Translate {
+  const { messages } = getLocale(lang);
+  return (key, params) => t(messages, key, params);
+}
+/** The count message (`key.one` / `key.other`) of a language. */
+export function pluralIn(lang: Lang, key: string, n: number): string {
+  return plural(getLocale(lang).messages, key, n, lang);
 }

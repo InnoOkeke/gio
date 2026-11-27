@@ -1,5 +1,7 @@
 import type { QuestAudience } from '../../logo/quests.js';
 import { pickLine } from '../gio/lines';
+import { linePool } from '../../i18n/content.js';
+import { translator, type Lang } from '../../i18n/index.js';
 
 /**
  * The words of the adventure map. Plain text only: no emoji, because Gio's bubble reads them aloud once.
@@ -47,14 +49,23 @@ export const MAP_LINES: Record<QuestAudience, MapLines> = {
   },
 };
 
+/** The map's words in a language. Other languages' pools live in their locale files under map.<mode>.<pool>. */
+export function mapLinesFor(mode: QuestAudience, lang: Lang): MapLines {
+  const pools = MAP_LINES[mode];
+  if (lang === 'en') return pools;
+  const out = {} as Record<keyof MapLines, readonly string[]>;
+  for (const name of Object.keys(pools) as (keyof MapLines)[]) out[name] = linePool(`map.${mode}.${name}`, pools[name], lang);
+  return out;
+}
+
 /** Pick a line by counter and fill in the island names. */
 export function say(pool: readonly string[], counter: number, vars: { island?: string; prev?: string } = {}): string {
   return pickLine(pool, counter).replace('{island}', vars.island ?? '').replace('{prev}', vars.prev ?? '');
 }
 
 /** The quiet invitation to revisit an island. */
-export function reviewInvite(islandName: string): string {
-  return `${islandName} misses you. A 3 minute visit?`;
+export function reviewInvite(islandName: string, lang: Lang = 'en'): string {
+  return translator(lang)('path.reviewInvite', { island: islandName });
 }
 
 /** The small print under an island's unit: how mastery works. */

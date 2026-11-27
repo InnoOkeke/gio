@@ -1,24 +1,25 @@
 import { useEffect, useRef } from 'react';
 import type { GameKey } from '../../logo/index.js';
 import { haptic } from '../haptics';
+import { useT } from '../lang';
 import { ArrowDownIcon, ArrowUpIcon } from './icons';
 
 const REPEAT_MS = 140;
 
-const LABEL: Record<GameKey, string> = { UP: 'Up', DOWN: 'Down', LEFT: 'Left', RIGHT: 'Right', SPACE: 'Space', TICK: 'Tick' };
 
 function PadButton({ k, onPress, className = '' }: { k: GameKey; onPress(key: GameKey): void; className?: string }) {
+  const t = useT();
   const timer = useRef<number>();
   const stop = () => window.clearInterval(timer.current);
   useEffect(() => stop, []);
 
   const icon =
-    k === 'UP' ? <ArrowUpIcon size={32} /> : k === 'DOWN' ? <ArrowDownIcon size={32} /> : k === 'LEFT' ? <ArrowUpIcon size={32} className="-rotate-90" /> : k === 'RIGHT' ? <ArrowUpIcon size={32} className="rotate-90" /> : <span className="text-[18px] font-black">Space</span>;
+    k === 'UP' ? <ArrowUpIcon size={32} /> : k === 'DOWN' ? <ArrowDownIcon size={32} /> : k === 'LEFT' ? <ArrowUpIcon size={32} className="-rotate-90" /> : k === 'RIGHT' ? <ArrowUpIcon size={32} className="rotate-90" /> : <span className="text-[18px] font-black">{t('game.key.SPACE')}</span>;
 
   return (
     <button
       type="button"
-      aria-label={`${LABEL[k]} key`}
+      aria-label={t('game.keyAria', { key: t(`game.key.${k}`) })}
       className={`btn btn-quiet pad-btn ${k === 'SPACE' ? 'pad-space px-6' : 'btn-icon pad-arrow'} ${className}`}
       onPointerDown={(e) => {
         e.preventDefault();
@@ -52,13 +53,14 @@ function PadButton({ k, onPress, className = '' }: { k: GameKey; onPress(key: Ga
  * On touch screens it docks at the bottom with the arrows under the left thumb and Space under the right.
  */
 export function GamePad({ keys, onPress }: { keys: GameKey[]; onPress(key: GameKey): void }) {
+  const t = useT();
   const has = (k: GameKey) => keys.includes(k);
   const arrows = (['UP', 'DOWN', 'LEFT', 'RIGHT'] as GameKey[]).some(has);
   return (
-    <div className="gamepad rounded-[22px] bg-[#e6f8f5] px-4 py-3" aria-label="Game controls">
+    <div className="gamepad rounded-[22px] bg-[#e6f8f5] px-4 py-3" aria-label={t('game.controls')}>
       <p className="gamepad-hint m-0 text-[15px] font-black text-[#0f6d63]">
-        Game on! <span className="hint-fine">Use the arrow keys or these buttons.</span>
-        <span className="hint-coarse">Tap the arrows.</span>
+        {t('game.on')} <span className="hint-fine">{t('game.fine')}</span>
+        <span className="hint-coarse">{t('game.coarse')}</span>
       </p>
       {arrows && (
         <div className="gamepad-dpad grid grid-cols-3" style={{ gridTemplateAreas: '". up ." "left down right"' }}>

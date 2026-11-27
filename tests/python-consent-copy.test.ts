@@ -6,8 +6,10 @@ const read = (...parts: string[]) => fs.readFileSync(path.join(__dirname, '..', 
 
 /** The consent box, the privacy page and the README must tell a child the same thing about Python and data. */
 describe('Python consent copy matches what the app does', () => {
-  const panel = read('src', 'ui', 'components', 'PythonPanel.tsx');
-  const privacy = read('src', 'ui', 'pages', 'Privacy.tsx');
+  // The words live in the English catalogue since the screens were translated; the files still choose which ones show.
+  const english = read('src', 'i18n', 'locales', 'en.ts');
+  const panel = read('src', 'ui', 'components', 'PythonPanel.tsx') + english;
+  const privacy = read('src', 'ui', 'pages', 'Privacy.tsx') + english;
 
   it('the consent box says Python needs the internet each time it starts', () => {
     expect(panel).toContain('needs the internet each time it starts');

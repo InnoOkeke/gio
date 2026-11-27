@@ -4,10 +4,13 @@ import type { QuestAudience } from '../../logo/quests.js';
 import type { FriendId, StickerId } from '../gio/catalog';
 import type { GioMood } from '../gio/mood';
 import { islandByKey, questById, stageCount, stageNumber } from '../path/islands';
-import { MAP_LINES, reviewInvite, say } from '../path/lines';
+import { mapLinesFor, reviewInvite, say } from '../path/lines';
+import { localizeQuest, localizeStage } from '../../i18n/content.js';
+import type { Translate } from '../../i18n/index.js';
+import { useLang, useT } from '../lang';
 import type { SkillChallenge } from '../path/skill';
 import type { IslandView, NextStop } from '../path/state';
-import { worldStartingAt } from '../path/worlds';
+import { CODER_WORLDS, worldStartingAt } from '../path/worlds';
 import { useTwoPane } from '../responsive/useMedia';
 import { useSheetDrag } from '../responsive/useSheetDrag';
 import { IslandArt, isGoldArt } from './IslandArt';
@@ -51,14 +54,14 @@ function currentKey(islands: readonly IslandView[], next: NextStop): string {
   return (sailed[sailed.length - 1] ?? islands[0])!.island.key;
 }
 
-function statusWords(view: IslandView, here: boolean, review: boolean, previousName: string | null): string {
-  const parts: string[] = [`Stage ${stageNumber(view.island)}`];
-  if (view.sailed) parts.push('sailed');
-  else if (view.tested) parts.push('tested out, you can still sail it');
-  else if (view.status === 'locked') parts.push(previousName ? `locked, sail ${previousName} first` : 'locked');
-  else parts.push(`open, ${view.units.filter((u) => u.mastered).length} of ${view.units.length} units mastered`);
-  if (here && !view.sailed && view.status === 'open') parts.push('Gio is here');
-  if (review) parts.push('a review is waiting');
+function statusWords(view: IslandView, here: boolean, review: boolean, previousName: string | null, t: Translate): string {
+  const parts: string[] = [t('map.status.stage', { n: stageNumber(view.island) })];
+  if (view.sailed) parts.push(t('map.status.sailed'));
+  else if (view.tested) parts.push(t('map.status.tested'));
+  else if (view.status === 'locked') parts.push(previousName ? t('map.status.lockedPrev', { prev: previousName }) : t('island.state.locked'));
+  else parts.push(t('map.status.open', { n: view.units.filter((u) => u.mastered).length, total: view.units.length }));
+  if (here && !view.sailed && view.status === 'open') parts.push(t('map.status.here'));
+  if (review) parts.push(t('map.status.review'));
   return parts.join(', ');
 }
 
@@ -87,7 +90,10 @@ export function AdventureMap(props: AdventureMapProps) {
   return props.open ? <MapDialog {...props} /> : null;
 }
 
-function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skillPlan, certificate, onPlay, onSkip, onGo, onReview, onGarden, onClose, renderGarden }: AdventureMapProps) {
+function MapDialog({ mode, islands: rawIslands, friends, next, reviewKey, mood, shell, skillPlan, certificate, onPlay, onSkip, onGo, onReview, onGarden, onClose, renderGarden }: AdventureMapProps) {
+  const t = useT();
+  const { lang } = useLang();
+  const islands = rawIslands.map((v) => ({ ...v, island: localizeStage(v.island, lang) }));
   const layerRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const twoPane = useTwoPane() && !!renderGarden;
@@ -130,15 +136,17 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
   const selectedAt = selectedView ? islands.indexOf(selectedView) : -1;
 
   const stopQuest = next.kind === 'quest' || next.kind === 'retry' || next.kind === 'bonus' ? questById(next.questId) : undefined;
-  const reviewName = reviewKey ? islandByKey(reviewKey)?.name : undefined;
+  const stopTitle = stopQuest ? localizeQuest(stopQuest, lang).title : undefined;
+  const islandName = (key: string) => { const s = islandByKey(key); return s ? localizeStage(s, lang).name : undefined; };
+  const reviewName = reviewKey ? islandName(reviewKey) : undefined;
   const go =
     next.kind === 'review'
-      ? { label: 'Go!', text: reviewInvite(islandByKey(next.islandKey)?.name ?? 'An island'), run: () => onReview(next.islandKey) }
+      ? { label: t('map.go'), text: reviewInvite(islandName(next.islandKey) ?? t('map.anIsland'), lang), run: () => onReview(next.islandKey) }
       : next.kind === 'done'
-        ? { label: "Gio's garden", text: say(MAP_LINES[mode].allDone, 0), run: onGarden }
+        ? { label: t('nav.garden.aria'), text: say(mapLinesFor(mode, lang).allDone, 0), run: onGarden }
         : {
-            label: 'Go!',
-            text: next.kind === 'retry' ? `Try ${stopQuest?.title ?? 'it'} again for a gold star` : next.kind === 'bonus' ? `Bonus quest: ${stopQuest?.title ?? ''}` : `Next: ${stopQuest?.title ?? ''}`,
+            label: t('map.go'),
+            text: next.kind === 'retry' ? t('map.retry', { title: stopTitle ?? t('map.it') }) : next.kind === 'bonus' ? t('map.bonus', { title: stopTitle ?? '' }) : t('map.next', { title: stopTitle ?? '' }),
             run: onGo,
           };
 
@@ -148,7 +156,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
         <div className="border-b border-line bg-[rgba(245,242,234,0.92)] backdrop-blur-xl" style={{ paddingTop: 'env(safe-area-inset-top)' }}>
         <div className="flex items-center gap-2 px-4 py-3 sm:px-6 sm:py-4">
           {selectedView && (
-            <button ref={backRef} type="button" className="btn btn-quiet btn-icon min-h-[48px] min-w-[48px] shrink-0" onClick={() => setSelected(null)} aria-label="Back to the map">
+            <button ref={backRef} type="button" className="btn btn-quiet btn-icon min-h-[48px] min-w-[48px] shrink-0" onClick={() => setSelected(null)} aria-label={t('map.back')}>
               <ArrowLeftIcon />
             </button>
           )}
@@ -157,25 +165,25 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
               <span className="truncate">{selectedView.island.name}</span>
             ) : (
               <>
-                <MapIcon size={28} className="hidden shrink-0 text-[#0f8fa6] sm:block" /> <span className="truncate">Quest map</span>
+                <MapIcon size={28} className="hidden shrink-0 text-[#0f8fa6] sm:block" /> <span className="truncate">{t('map.title')}</span>
               </>
             )}
           </h2>
           <span className="shrink-0 rounded-full bg-paper-3 px-3 py-1.5 text-[14px] font-black tabular-nums text-ink">
             <span aria-hidden="true">
               {sailedCount}/{total}
-              <span className="hidden sm:inline"> sailed</span>
+              <span className="hidden sm:inline">{t('map.sailedShort')}</span>
             </span>
             <span className="sr-only">
-              {sailedCount} of {total} stages sailed
+              {t('map.sailedSr', { n: sailedCount, total })}
             </span>
           </span>
           {!twoPane && (
-            <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={onGarden} aria-label="Gio's garden">
-              <LeafIcon className="text-[#12a36b]" /> <span className="hidden sm:inline">Garden</span>
+            <button type="button" className="btn btn-quiet min-w-[48px] max-sm:px-3" onClick={onGarden} aria-label={t('nav.garden.aria')}>
+              <LeafIcon className="text-[#12a36b]" /> <span className="hidden sm:inline">{t('nav.garden')}</span>
             </button>
           )}
-          <button ref={closeRef} type="button" className="btn btn-quiet btn-icon shrink-0" onClick={onClose} aria-label="Close the map">
+          <button ref={closeRef} type="button" className="btn btn-quiet btn-icon shrink-0" onClick={onClose} aria-label={t('map.close')}>
             <CloseIcon />
           </button>
         </div>
@@ -231,12 +239,12 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                 <div className="mb-4 flex flex-wrap gap-2">
                   {firstSkippable && (
                     <button type="button" className="btn btn-quiet" onClick={() => setSelected(firstSkippable)}>
-                      Skip ahead
+                      {t('map.skip')}
                     </button>
                   )}
                   {certificate && (
                     <Link to="/certificate" className="btn btn-quiet">
-                      My certificate
+                      {t('map.certificate')}
                     </Link>
                   )}
                 </div>
@@ -245,10 +253,10 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-[22px] bg-[#fff4cc] px-4 py-3 shadow-[var(--shadow-1)]">
                   <p className="m-0 flex items-center gap-2.5 text-[16px] font-extrabold text-[#5a3b00]">
                     <span aria-hidden="true" className="inline-block h-3.5 w-3.5 rounded-full bg-[#ffc93c] shadow-[0_0_0_4px_rgba(255,201,60,0.35)]" />
-                    {reviewInvite(reviewName)}
+                    {reviewInvite(reviewName, lang)}
                   </p>
                   <button type="button" className="btn btn-quiet" onClick={() => onReview(reviewKey)}>
-                    Visit
+                    {t('btn.visit')}
                   </button>
                 </div>
               )}
@@ -271,7 +279,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                       <div className="mb-3 mt-1 flex items-center gap-3">
                         <span className="h-px flex-1 bg-[#b9ae96]" aria-hidden="true" />
                         <h3 className="m-0 text-[14px] font-black uppercase tracking-[0.08em] text-ink-2">
-                          {world.title} <span className="font-extrabold normal-case tracking-normal">· Stages {world.from} to {world.to}</span>
+                          {t(`path.world.${CODER_WORLDS.indexOf(world)}`)} <span className="font-extrabold normal-case tracking-normal">{t('map.worldRange', { from: world.from, to: world.to })}</span>
                         </h3>
                         <span className="h-px flex-1 bg-[#b9ae96]" aria-hidden="true" />
                       </div>
@@ -284,7 +292,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                         }}
                         type="button"
                         onClick={() => setSelected(key)}
-                        aria-label={`${view.island.name}. ${statusWords(view, isHere, review, previousName)}`}
+                        aria-label={`${view.island.name}. ${statusWords(view, isHere, review, previousName, t)}`}
                         className={`isle-card ${isHere ? 'is-here' : ''}`}
                         data-locked={locked}
                         data-gold={gold}
@@ -298,13 +306,13 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                           )}
                           {view.tested && !view.sailed && (
                             <span className="absolute left-3 top-3 rounded-full bg-white px-2.5 py-1 text-[14px] font-black text-[#08603e] shadow-[0_0_0_2px_#12a36b]" aria-hidden="true">
-                              Tested out
+                              {t('map.testedOut')}
                             </span>
                           )}
                           {review && <span className="absolute right-3 top-3 h-4 w-4 rounded-full bg-[#ffc93c] shadow-[0_0_0_5px_rgba(255,201,60,0.4)]" aria-hidden="true" />}
                         </span>
                         <span className="flex flex-col gap-1 px-3 pb-3 pt-2 text-left">
-                          <span className="text-[14px] font-black uppercase tracking-[0.08em] text-ink-2">Stage {stage}</span>
+                          <span className="text-[14px] font-black uppercase tracking-[0.08em] text-ink-2">{t('map.status.stage', { n: stage })}</span>
                           <span className="text-[18px] font-black leading-tight text-ink">{view.island.name}</span>
                           <span
                             className="inline-flex w-fit items-center gap-1.5 rounded-full px-2.5 py-1 text-[14px] font-black"
@@ -317,15 +325,15 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
                             }
                           >
                             {locked && <LockIcon size={14} />}
-                            {view.sailed ? 'Sailed' : locked ? 'Locked' : isHere ? 'You are here' : view.tested ? 'Tested out' : `${mastered} of ${view.units.length} units`}
+                            {view.sailed ? t('map.chip.sailed') : locked ? t('map.chip.locked') : isHere ? t('map.chip.here') : view.tested ? t('map.testedOut') : t('map.chip.units', { n: mastered, total: view.units.length })}
                           </span>
                         </span>
                       </button>
                     </div>
                     {locked && skillPlan(key).length > 0 && (
                       <div className={`mt-2 flex ${side === 'left' ? 'justify-start' : 'justify-end'}`}>
-                        <button type="button" className="isle-skip btn btn-quiet w-[68%] max-w-[300px]" onClick={() => setSelected(key)} aria-label={`Skip ahead to ${view.island.name}: take a skill check`}>
-                          Skip ahead
+                        <button type="button" className="isle-skip btn btn-quiet w-[68%] max-w-[300px]" onClick={() => setSelected(key)} aria-label={t('map.skipAria', { island: view.island.name })}>
+                          {t('map.skip')}
                         </button>
                       </div>
                     )}
@@ -354,7 +362,7 @@ function MapDialog({ mode, islands, friends, next, reviewKey, mood, shell, skill
         {twoPane && renderGarden && (
           <aside className="map-garden" aria-labelledby="map-garden-title">
             <h2 id="map-garden-title" className="m-0 mb-4 flex items-center gap-2 text-[22px] font-black">
-              <LeafIcon size={24} className="text-[#12a36b]" /> Gio&rsquo;s garden
+              <LeafIcon size={24} className="text-[#12a36b]" /> {t('garden.title')}
             </h2>
             {renderGarden()}
           </aside>

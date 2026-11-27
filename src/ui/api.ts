@@ -1,3 +1,5 @@
+import { en } from '../i18n/locales/en.js';
+import { tr } from './lang-state';
 interface Envelope<T> {
   success: boolean;
   data?: T;
@@ -38,18 +40,21 @@ function readError(error: unknown, status: number): string {
   if (error && typeof error === 'object' && typeof (error as { message?: unknown }).message === 'string') {
     return (error as { message: string }).message;
   }
-  return status === 429 ? 'Too many tries. Please wait a moment.' : `Something went wrong (${status}).`;
+  return status === 429 ? tr('error.tooMany') : tr('error.generic', { status });
 }
 
-export const OFFLINE_MESSAGE = 'Gio needs the internet for this one. Drawing and quests still work, and your code is safe on this phone.';
-export const SLOW_MESSAGE = 'Gio is taking too long. Check your connection and try again.';
+/** English texts, kept for tests and scripts. What a child sees comes from offlineMessage() and slowMessage(), in their language. */
+export const OFFLINE_MESSAGE = en.messages['error.offline'];
+export const SLOW_MESSAGE = en.messages['error.slow'];
+export const offlineMessage = (): string => tr('error.offline');
+export const slowMessage = (): string => tr('error.slow');
 /** API Gateway gives up after 30 s, so a request still open after 35 s is not coming back. */
 export const REQUEST_TIMEOUT_MS = 35_000;
 
 /** The request never reached GIO: no internet, a dropped connection, or no answer in time (`slow`). */
 export class OfflineError extends Error {
   constructor(readonly reason: 'offline' | 'slow' = 'offline') {
-    super(reason === 'slow' ? SLOW_MESSAGE : OFFLINE_MESSAGE);
+    super(reason === 'slow' ? slowMessage() : offlineMessage());
     this.name = 'OfflineError';
   }
 }

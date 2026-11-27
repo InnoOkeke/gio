@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_FIRST_COLOUR, FIRST_WIN_COLOURS, type BlockColour } from '../first-win';
+import { useT } from '../lang';
 import type { AgeMode } from '../mode';
 import { CheckIcon, SparkleIcon } from './icons';
 import { TurtleSprite } from './TurtleSprite';
@@ -8,18 +9,9 @@ import { TurtleSprite } from './TurtleSprite';
 export type FirstWinPhase = 'off' | 'offer' | 'drawing' | 'yours';
 
 /** What Gio says in each phase. These go through the speech bubble, so Little Turtles hear them. */
-export const FIRST_WIN_TEXT: Record<AgeMode, { offer: string; drawing: string; yours: string }> = {
-  little: {
-    offer: 'Hello! Tap the big button and I will draw you a star.',
-    drawing: 'Watch me draw a star!',
-    yours: 'Now make it yours! Pick a colour.',
-  },
-  coder: {
-    offer: 'Welcome! One tap and I will draw your first picture. The code appears right here for you to change.',
-    drawing: 'Watch me draw a star!',
-    yours: 'Now make it yours! Pick a colour, or change the code yourself.',
-  },
-};
+export function firstWinText(mode: AgeMode, t: (key: string) => string): { offer: string; drawing: string; yours: string } {
+  return { offer: t(`firstwin.${mode}.offer`), drawing: t('firstwin.drawing'), yours: t(`firstwin.${mode}.yours`) };
+}
 
 /** The first win's phases and the colour the child has chosen. */
 export function useFirstWin(offered: boolean) {
@@ -42,6 +34,7 @@ interface OfferProps {
 
 /** One huge button laid over the empty stage. Nothing to type, nothing to choose. */
 export function FirstWinOffer({ mode, onStart, onSkip }: OfferProps) {
+  const t = useT();
   const buttonRef = useRef<HTMLButtonElement>(null);
   const little = mode === 'little';
 
@@ -52,7 +45,7 @@ export function FirstWinOffer({ mode, onStart, onSkip }: OfferProps) {
   return (
     <div
       role="group"
-      aria-label="Your first drawing"
+      aria-label={t('firstwin.aria')}
       className="first-win-offer absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[rgba(255,255,255,0.88)] p-4 backdrop-blur-[3px]"
       onKeyDown={(e) => {
         if (e.key === 'Escape') onSkip();
@@ -70,11 +63,11 @@ export function FirstWinOffer({ mode, onStart, onSkip }: OfferProps) {
           onClick={onStart}
         >
           <SparkleIcon size={30} />
-          {little ? 'Draw a star!' : 'Make your first drawing'}
+          {little ? t('firstwin.drawStar') : t('firstwin.makeFirst')}
         </button>
       </div>
       <button type="button" className="btn btn-ghost min-h-[48px] min-w-[48px] px-4 text-[16px] font-extrabold text-ink-2" onClick={onSkip}>
-        Skip
+        {t('btn.skip')}
       </button>
     </div>
   );
@@ -90,6 +83,7 @@ interface YoursProps {
 
 /** After the star is drawn: six colours, a way to ask for something else, and Done. */
 export function FirstWinYours({ mode, colour, onPick, onAsk, onDone }: YoursProps) {
+  const t = useT();
   const regionRef = useRef<HTMLElement>(null);
   const little = mode === 'little';
 
@@ -109,9 +103,9 @@ export function FirstWinYours({ mode, colour, onPick, onAsk, onDone }: YoursProp
       }}
     >
       <h3 id="first-win-yours" className="m-0 text-[22px] font-black text-[var(--green-deep)]">
-        Now make it yours!
+        {t('firstwin.yours')}
       </h3>
-      <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6" role="group" aria-label="Pick a colour for your star">
+      <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-6" role="group" aria-label={t('firstwin.pickColour')}>
         {FIRST_WIN_COLOURS.map((c) => {
           const on = c.name === colour;
           return (
@@ -119,7 +113,7 @@ export function FirstWinYours({ mode, colour, onPick, onAsk, onDone }: YoursProp
               key={c.name}
               type="button"
               aria-pressed={on}
-              aria-label={`${c.name} star`}
+              aria-label={t('firstwin.starAria', { colour: t(`colour.${c.name}`) })}
               onClick={() => onPick(c.name)}
               className={`first-win-swatch grid h-14 w-14 justify-self-center place-items-center rounded-full border-4 ${on ? 'border-[#17261f]' : 'border-white'}`}
               style={{ backgroundColor: c.hex }}
@@ -131,10 +125,10 @@ export function FirstWinYours({ mode, colour, onPick, onAsk, onDone }: YoursProp
       </div>
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button type="button" className="btn btn-quiet min-h-[48px]" onClick={onAsk}>
-          {little ? 'Or tell me what to draw' : 'Or change the code yourself'}
+          {little ? t('firstwin.orTell') : t('firstwin.orChange')}
         </button>
         <button type="button" className="btn btn-primary min-h-[48px] ml-auto" onClick={onDone}>
-          Done
+          {t('btn.done')}
         </button>
       </div>
     </section>

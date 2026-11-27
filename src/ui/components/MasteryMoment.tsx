@@ -3,7 +3,9 @@ import { CONCEPTS, type Concept, type QuestAudience } from '../../logo/quests.js
 import type { StickerId } from '../gio/catalog';
 import { friendById } from '../gio/catalog';
 import { islandByKey, stageCount, stageNumber } from '../path/islands';
-import { MAP_LINES, say } from '../path/lines';
+import { mapLinesFor, say } from '../path/lines';
+import { conceptText, localizeFriend, localizeStage } from '../../i18n/content.js';
+import { useLang, useT } from '../lang';
 import { GOLD_TO_MASTER } from '../path/state';
 import { FriendPicture } from './gio/FriendArt';
 import { StickerPicture } from './gio/StickerArt';
@@ -64,25 +66,28 @@ function Confetti() {
 
 /** The celebration. Silent on purpose, like FriendDialog: Gio's bubble already told the story once, aloud. */
 export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose, onCertificate, onGarden }: MasteryMomentProps) {
+  const t = useT();
+  const { lang } = useLang();
   const primaryRef = useRef<HTMLButtonElement>(null);
 
-  const island = islandByKey(moment.islandKey);
-  const name = island?.name ?? 'the island';
-  const lines = MAP_LINES[mode];
+  const found = islandByKey(moment.islandKey);
+  const island = found && localizeStage(found, lang);
+  const name = island?.name ?? t('moment.island');
+  const lines = mapLinesFor(mode, lang);
   const counter = (island?.key.length ?? 0) + (moment.kind === 'unit' ? moment.unitIndex : 0);
 
   let eyebrow = '';
   let title = '';
   let body = '';
   let extra: ReactNode = null;
-  let primary = 'Keep going';
-  let secondary = 'See the map';
+  let primary = t('btn.keepGoing');
+  let secondary = t('moment.seeMap');
   let primaryRun = moment.kind === 'review' ? onClose : onContinue;
   let secondaryRun = onMap;
 
   if (moment.kind === 'unit') {
-    eyebrow = 'Unit mastered';
-    title = `Unit ${moment.unitIndex + 1} mastered!`;
+    eyebrow = t('moment.unit.eyebrow');
+    title = t('moment.unit.title', { n: moment.unitIndex + 1 });
     body = say(lines.unitMastered, counter);
     extra = (
       <div className="flex justify-center gap-2" aria-hidden="true">
@@ -92,31 +97,32 @@ export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose,
       </div>
     );
   } else if (moment.kind === 'island') {
-    const opened = moment.opened ? islandByKey(moment.opened) : undefined;
-    eyebrow = 'Island sailed';
-    title = `You sailed ${name}!`;
+    const openedIsland = moment.opened ? islandByKey(moment.opened) : undefined;
+    const opened = openedIsland && localizeStage(openedIsland, lang);
+    eyebrow = t('moment.island.eyebrow');
+    title = t('moment.island.title', { island: name });
     body = [say(lines.islandSailed, counter, { island: name }), opened ? say(lines.opened, counter, { island: opened.name }) : ''].filter(Boolean).join(' ');
-    primary = 'Sail on!';
+    primary = t('btn.sailOn');
     extra = island && (
       <div className="flex items-end justify-center gap-4">
         <FriendPicture id={island.resident} size={92} />
         <div className="flex flex-col items-center gap-1">
           <StickerPicture id={island.concept} size={64} className="moment-star" />
-          {moment.badge && <span className="text-[14px] font-black text-ink-2">{CONCEPTS[moment.badge].badge} badge</span>}
+          {moment.badge && <span className="text-[14px] font-black text-ink-2">{t('moment.badge', { badge: conceptText(moment.badge, CONCEPTS[moment.badge], lang).badge })}</span>}
         </div>
       </div>
     );
   } else if (moment.kind === 'skill') {
     const stage = island ? stageNumber(island) : 0;
-    eyebrow = 'Skill check';
+    eyebrow = t('stage.skill.aria');
     if (moment.passed) {
-      title = `Stage ${stage} is open!`;
-      body = stage > 2 ? `Stages 1 to ${stage - 1} are sailed or tested out.` : 'The stage before it is tested out.';
-      primary = `Start Stage ${stage}`;
+      title = t('moment.skill.passTitle', { n: stage });
+      body = stage > 2 ? t('moment.skill.passMany', { last: stage - 1 }) : t('moment.skill.passOne');
+      primary = t('moment.skill.start', { n: stage });
     } else {
-      title = 'Not yet';
-      body = 'A skill check has no hints, so it cannot be passed after using help. That is fine! Practise the stage with all the help you like, then try again.';
-      primary = 'Practise';
+      title = t('moment.skill.failTitle');
+      body = t('moment.skill.failBody');
+      primary = t('btn.practise');
     }
     extra = island && (
       <div className="flex justify-center">
@@ -124,18 +130,18 @@ export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose,
       </div>
     );
   } else if (moment.kind === 'master') {
-    eyebrow = 'Logo Master';
-    title = 'You are a Logo Master!';
-    body = `You finished all ${stageCount(mode)} stages of Logo. Gio has a golden shell now, and your certificate is ready to print.`;
-    primary = 'See my certificate';
-    secondary = 'Gio\u2019s garden';
+    eyebrow = t('moment.master.eyebrow');
+    title = t('moment.master.title');
+    body = t('moment.master.body', { n: stageCount(mode) });
+    primary = t('moment.master.cert');
+    secondary = t('moment.master.garden');
     primaryRun = onCertificate ?? onContinue;
     secondaryRun = onGarden ?? onMap;
   } else {
-    eyebrow = 'Review';
-    title = moment.helped ? 'Nice visit!' : 'Review done!';
+    eyebrow = t('moment.review.eyebrow');
+    title = moment.helped ? t('moment.review.helped') : t('moment.review.done');
     body = say(moment.helped ? lines.reviewHelped : lines.reviewDone, counter, { island: name });
-    primary = 'Done';
+    primary = t('btn.done');
     extra = island && (
       <div className="flex justify-center">
         <FriendPicture id={island.resident} size={96} />
@@ -143,7 +149,7 @@ export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose,
     );
   }
 
-  const friendLabel = island && moment.kind === 'island' ? friendById(island.resident).name : null;
+  const friendLabel = island && moment.kind === 'island' ? localizeFriend(friendById(island.resident), lang).name : null;
 
   return (
     <Sheet open variant="page" labelledBy="moment-title" onClose={onClose} initialFocus={primaryRef} className="sheet-white moment-panel" overlay={<Confetti />}>
@@ -157,7 +163,7 @@ export function MasteryMoment({ moment, mode, shell, onContinue, onMap, onClose,
         </h2>
         <p className="mx-0 mb-4 mt-2 text-[17px] font-bold leading-snug text-ink-2">{body}</p>
         {extra && (
-          <div className="mb-5" role={friendLabel ? 'img' : undefined} aria-label={friendLabel ? `${friendLabel} and the ${CONCEPTS[island!.concept].badge} sticker` : undefined}>
+          <div className="mb-5" role={friendLabel ? 'img' : undefined} aria-label={friendLabel ? t('moment.friendAria', { friend: friendLabel, badge: conceptText(island!.concept, CONCEPTS[island!.concept], lang).badge }) : undefined}>
             {extra}
           </div>
         )}

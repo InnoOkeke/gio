@@ -1,6 +1,7 @@
 import { QUESTS, type Concept, type Feature, type QuestAudience } from '../../logo/quests.js';
 import { FRIEND_IDS, SHELL_SLOTS, friendById, STICKER_IDS, type FriendId, type StickerId } from './catalog';
 import { LEGACY_QUEST_IDS } from '../path/legacy';
+import { pluralIn, translator, type Lang } from '../../i18n/index.js';
 
 export interface RewardsState {
   v: 1;
@@ -102,24 +103,25 @@ export function totalDays(days: readonly string[]): number {
 }
 
 /** The words on the garden's "Your learning days" card. Never says "0 days", and never scolds a quiet week. */
-export function weekCopy(state: RewardsState, today: string): { headline: string; footer: string } {
+export function weekCopy(state: RewardsState, today: string, lang: Lang = 'en'): { headline: string; footer: string } {
+  const t = translator(lang);
   const total = totalDays(state.days);
   const week = daysThisWeek(state.days, today);
-  const plural = (n: number) => `${n} ${n === 1 ? 'day' : 'days'}`;
+  const plural = (n: number) => pluralIn(lang, 'garden.days', n);
   if (total === 0) {
     return state.friends.length > 0 || state.stickers.length > 0
       ? {
-          headline: 'Your garden is already growing!',
-          footer: 'You started before we counted days. Learn something today and your first dot will light up.',
+          headline: t('garden.week.growing.h'),
+          footer: t('garden.week.growing.f'),
         }
-      : { headline: 'Your first dot is waiting for you.', footer: 'Learn something today to fill your first dot.' };
+      : { headline: t('garden.week.first.h'), footer: t('garden.week.first.f') };
   }
   if (week === 0) {
-    return { headline: 'A fresh week is starting.', footer: `${plural(total)} so far. Learn something today to light up a new dot.` };
+    return { headline: t('garden.week.fresh.h'), footer: t('garden.week.fresh.f', { days: plural(total) }) };
   }
   return {
-    headline: `You learned on ${plural(week)} this week.`,
-    footer: `${plural(total)} in total. Every day counts, and your garden keeps what it grew.`,
+    headline: t('garden.week.learned.h', { days: plural(week) }),
+    footer: t('garden.week.learned.f', { days: plural(total) }),
   };
 }
 

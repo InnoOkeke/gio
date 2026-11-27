@@ -1,3 +1,5 @@
+import { useT } from '../lang';
+import { tr } from '../lang-state';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { TurtleEvent } from '../../logo/index.js';
 import { encodeGif } from '../export/gif';
@@ -39,6 +41,7 @@ function toDataUrl(blob: Blob): Promise<string> {
 
 /** Makes the "watch me draw" movie on this device and offers to save or share it. */
 export default function ReplayDialog({ events, background, title, fileName, onSaved, onClose }: ReplayDialogProps) {
+  const t = useT();
   const panelRef = useRef<HTMLDivElement>(null);
   const [phase, setPhase] = useState<Phase>({ kind: 'working', progress: 0 });
   const [attempt, setAttempt] = useState(0);
@@ -48,7 +51,7 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
     setPhase({ kind: 'working', progress: 0 });
     const frames = planReplay(events, REPLAY_LIMITS);
     if (frames.length === 0) {
-      setPhase({ kind: 'error', message: 'There is nothing to put in a movie yet. Draw something first.' });
+      setPhase({ kind: 'error', message: tr('replay.empty') });
       return;
     }
     void (async () => {
@@ -65,7 +68,7 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
         setPhase({ kind: 'done', blob, file: new File([blob], fileName, { type: 'image/gif' }), preview });
       } catch (err) {
         if (controller.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) return;
-        setPhase({ kind: 'error', message: 'The movie did not work this time. Let\u2019s try again.' });
+        setPhase({ kind: 'error', message: tr('replay.failed') });
       }
     })();
     return () => controller.abort();
@@ -94,7 +97,7 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
       await navigator.share({ files: [phase.file], title });
     } catch (err) {
       if (!(err instanceof DOMException && err.name === 'AbortError')) {
-        setPhase({ kind: 'error', message: 'Sharing did not work. You can still save the movie.' });
+        setPhase({ kind: 'error', message: tr('replay.shareFailed') });
       }
     }
   }, [phase, title]);
@@ -108,16 +111,16 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
       <div ref={panelRef} className="replay-body flex flex-col gap-4 px-5 pb-1 pt-1 sm:p-5">
         <div className="flex items-center justify-between gap-3" data-sheet-header>
           <h2 id="replay-title" className="m-0 text-[24px] font-black">
-            {phase.kind === 'done' ? 'Your movie is ready!' : phase.kind === 'error' ? 'Oh no' : 'Making your movie'}
+            {phase.kind === 'done' ? t('replay.ready') : phase.kind === 'error' ? t('replay.oops') : t('replay.making')}
           </h2>
-          <button type="button" className="btn btn-quiet btn-icon min-h-[48px] min-w-[48px]" onClick={onClose} aria-label="Close">
+          <button type="button" className="btn btn-quiet btn-icon min-h-[48px] min-w-[48px]" onClick={onClose} aria-label={t('btn.close')}>
             <CloseIcon />
           </button>
         </div>
 
         {phase.kind === 'working' && (
           <>
-            <div className="relative pt-11" role="progressbar" aria-label="Making your movie" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+            <div className="relative pt-11" role="progressbar" aria-label={t('replay.making')} aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
               <div className="crawl-track">
                 <div className="crawl-fill" style={{ width: `${percent}%` }} />
                 <div className="crawl-gio" style={{ left: `${percent}%` }}>
@@ -128,10 +131,10 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
               </div>
             </div>
             <p className="m-0 text-[17px] font-bold text-ink-2" role="status" aria-live="polite">
-              Making your movie&hellip; {percent}%
+              {t('replay.makingPct', { percent })}
             </p>
             <button type="button" data-autofocus className="btn btn-quiet btn-lg" onClick={onClose}>
-              Cancel
+              {t('btn.cancel')}
             </button>
           </>
         )}
@@ -140,21 +143,21 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
           <>
             <img
               src={phase.preview}
-              alt="Your drawing being drawn, as a moving picture"
+              alt={t('replay.alt')}
               width={SIZE}
               height={SIZE}
               className="replay-preview mx-auto aspect-square w-full max-w-[400px] rounded-[20px] border border-line bg-white"
             />
             <p className="m-0 text-center text-[15px] font-bold text-ink-2">
-              {readableSize(phase.blob.size)}. It plays again and again.
+              {t('replay.size', { size: readableSize(phase.blob.size) })}
             </p>
             <div className="flex flex-col gap-2">
               <button type="button" data-autofocus className="btn btn-primary btn-lg" onClick={save}>
-                <DownloadIcon size={22} /> Save movie
+                <DownloadIcon size={22} /> {t('btn.saveMovie')}
               </button>
               {canShare && (
                 <button type="button" className="btn btn-quiet btn-lg" onClick={() => void share()}>
-                  Share
+                  {t('btn.share')}
                 </button>
               )}
             </div>
@@ -168,10 +171,10 @@ export default function ReplayDialog({ events, background, title, fileName, onSa
             </p>
             <div className="flex flex-col gap-2">
               <button type="button" data-autofocus className="btn btn-primary btn-lg" onClick={() => setAttempt((n) => n + 1)}>
-                Try again
+                {t('btn.tryAgain')}
               </button>
               <button type="button" className="btn btn-quiet btn-lg" onClick={onClose}>
-                Close
+                {t('btn.close')}
               </button>
             </div>
           </>

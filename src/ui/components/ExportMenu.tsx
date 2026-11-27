@@ -1,3 +1,4 @@
+import { useT } from '../lang';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useSheetDrag } from '../responsive/useSheetDrag';
 import { FUN_TEXT } from '../i18n-fun';
@@ -34,6 +35,7 @@ interface Row {
 
 /** One "Picture" button that opens the ways to keep a drawing: picture, movie, drawing file and colouring page. */
 export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, onColouring, onSticker, onDaily, dailySolved }: ExportMenuProps) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   /** Tablets: the menu opens above the button, or below it when there is no room above. */
   const [below, setBelow] = useState(false);
@@ -81,28 +83,28 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
     return () => window.removeEventListener('keydown', onKey);
   }, [open, close]);
 
-  const reason = 'Draw something first';
+  const reason = t('export.reason');
   const rows: Row[] = [
     {
       id: 'picture',
-      title: 'Picture',
-      help: 'A PNG you can print or send',
+      title: t('btn.picture'),
+      help: t('export.picture.help'),
       tile: 'bg-[var(--sky-soft)] text-[#0b4f86]',
       icon: <DownloadIcon size={24} />,
       run: onPicture,
     },
     {
       id: 'movie',
-      title: 'Movie',
-      help: 'Watch me draw, as a moving picture',
+      title: t('export.movie.title'),
+      help: t('export.movie.help'),
       tile: 'bg-[var(--sun-soft)] text-[#8a5a00]',
       icon: <MovieIcon size={24} />,
       run: onMovie,
     },
     {
       id: 'file',
-      title: 'Drawing file',
-      help: little ? 'For a grown-up\u2019s printer or cutter' : 'SVG for printers, plotters and cutters',
+      title: t('export.file.title'),
+      help: little ? t('export.file.helpLittle') : t('export.file.help'),
       tile: 'bg-[var(--green-soft)] text-[var(--green-ink)]',
       icon: <ShapesIcon size={24} />,
       run: onDrawingFile,
@@ -150,7 +152,7 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        <DownloadIcon /> <span className="export-label">Picture</span>
+        <DownloadIcon /> <span className="export-label">{t('btn.picture')}</span>
       </button>
       {open && (
         <>
@@ -173,10 +175,10 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
             </div>
             <div className="mb-2 flex items-center justify-between gap-2" data-sheet-header>
               <h2 id={titleId} className="m-0 px-3 pt-1 pb-1 text-[15px] font-black text-ink-2">
-                Save your drawing
+                {t('export.save')}
               </h2>
               <button type="button" className="btn btn-quiet min-h-[48px]" onClick={close}>
-                Close
+                {t('btn.close')}
               </button>
             </div>
             <div className="flex flex-col gap-2">

@@ -1,3 +1,4 @@
+import { useT } from '../lang';
 import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
 import { enterFullscreen, exitFullscreen, fullscreenSupported, isNativeFullscreen, type FullscreenDoc, type FullscreenTarget } from '../responsive/fullscreen';
 import type { WidthClass } from '../responsive/window-class';
@@ -112,12 +113,13 @@ export function useFocusMode(paneRef: RefObject<HTMLElement>, gameActive: boolea
 
 /** The Full screen button on the stage, or the Exit button while the stage fills the screen. */
 export function FocusToggle({ focus }: { focus: FocusMode }) {
+  const t = useT();
   return focus.active ? (
-    <button ref={focus.exitRef} type="button" className="focus-btn focus-exit" onClick={focus.exit} aria-label="Exit full screen">
-      Exit
+    <button ref={focus.exitRef} type="button" className="focus-btn focus-exit" onClick={focus.exit} aria-label={t('focus.exitAria')}>
+      {t('btn.exit')}
     </button>
   ) : (
-    <button ref={focus.buttonRef} type="button" className="focus-btn" onClick={focus.enter} aria-label="Full screen">
+    <button ref={focus.buttonRef} type="button" className="focus-btn" onClick={focus.enter} aria-label={t('focus.enterAria')}>
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" />
       </svg>
@@ -127,15 +129,16 @@ export function FocusToggle({ focus }: { focus: FocusMode }) {
 
 /** A small card that suggests full screen when a game starts on a phone or small tablet. */
 export function FocusOffer({ focus }: { focus: FocusMode }) {
+  const t = useT();
   if (!focus.offered || focus.active) return null;
   return (
     <div className="focus-offer" role="status">
-      <span className="focus-offer-text">Play full screen?</span>
+      <span className="focus-offer-text">{t('focus.offer')}</span>
       <button type="button" className="btn btn-primary focus-offer-go" onClick={focus.enter}>
-        Full screen
+        {t('btn.fullScreen')}
       </button>
-      <button type="button" className="btn btn-quiet" onClick={focus.dismissOffer} aria-label="Not now">
-        Not now
+      <button type="button" className="btn btn-quiet" onClick={focus.dismissOffer} aria-label={t('btn.notNow')}>
+        {t('btn.notNow')}
       </button>
     </div>
   );

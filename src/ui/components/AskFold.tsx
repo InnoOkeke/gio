@@ -1,6 +1,7 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import type { LayoutMode, WidthClass } from '../responsive/window-class';
 import { useSheetDrag } from '../responsive/useSheetDrag';
+import { useT } from '../lang';
 import { SparkleIcon } from './icons';
 
 interface AskFoldProps {
@@ -20,6 +21,7 @@ interface AskFoldProps {
  * typing is kept when the screen rotates or the box is closed.
  */
 export function AskFold({ widthClass, layout, open, onOpen, label, children }: AskFoldProps) {
+  const t = useT();
   const barRef = useRef<HTMLButtonElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const mode = widthClass === 'large' ? 'always' : widthClass === 'compact' ? 'sheet' : layout === 'split' ? 'popover' : 'inline';
@@ -46,7 +48,7 @@ export function AskFold({ widthClass, layout, open, onOpen, label, children }: A
         <button ref={barRef} type="button" className="ask-bar" aria-expanded={open} aria-controls="ask-fold-body" onClick={() => onOpen(!open)}>
           <SparkleIcon size={22} />
           <span className="ask-bar-text">{label}</span>
-          <span className="ask-bar-cta">{open ? 'Close' : 'Ask Gio'}</span>
+          <span className="ask-bar-cta">{open ? t('btn.close') : t('tutor.askGio')}</span>
         </button>
       )}
       {mode === 'sheet' && open && <div className="sheet-backdrop save-fade" onClick={() => onOpen(false)} aria-hidden="true" />}
@@ -57,13 +59,13 @@ export function AskFold({ widthClass, layout, open, onOpen, label, children }: A
         hidden={!shown}
         role={mode === 'sheet' ? 'dialog' : undefined}
         aria-modal={mode === 'sheet' ? true : undefined}
-        aria-label={mode === 'sheet' ? 'Ask Gio' : undefined}
+        aria-label={mode === 'sheet' ? t('tutor.askGio') : undefined}
       >
         {mode === 'sheet' && (
           <div className="bottom-sheet-head">
             <div className="bottom-sheet-grip" aria-hidden="true" />
             <button type="button" className="btn btn-quiet sheet-close" onClick={() => onOpen(false)}>
-              Close
+              {t('btn.close')}
             </button>
           </div>
         )}

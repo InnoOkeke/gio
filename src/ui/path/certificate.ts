@@ -1,3 +1,4 @@
+import { pluralIn, translator, type Lang } from '../../i18n/index.js';
 /**
  * The Logo Master certificate keeps one thing in the browser: the name a child or grown-up types onto it.
  * It lives in localStorage under `gio.certificate`, is never sent anywhere and never goes into a link.
@@ -37,9 +38,9 @@ export function stageTally(views: readonly { sailed: boolean; tested: boolean }[
 }
 
 /** "20 stages sailed" or "18 stages sailed, 2 tested out". */
-export function tallyLine(tally: { sailed: number; tested: number }): string {
-  const sailed = `${tally.sailed} ${tally.sailed === 1 ? 'stage' : 'stages'} sailed`;
-  return tally.tested > 0 ? `${sailed}, ${tally.tested} tested out` : sailed;
+export function tallyLine(tally: { sailed: number; tested: number }, lang: Lang = 'en'): string {
+  const sailed = pluralIn(lang, 'certificate.stages', tally.sailed);
+  return tally.tested > 0 ? translator(lang)('certificate.tested', { sailed, n: tally.tested }) : sailed;
 }
 
 /** A date key such as 2026-06-14 as a long date. An invalid key gives an empty string. */

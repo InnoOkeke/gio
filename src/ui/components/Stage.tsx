@@ -1,3 +1,4 @@
+import { useT } from '../lang';
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { DEFAULT_BACKGROUND, type RunResult, type TurtleEvent } from '../../logo/index.js';
 import { Player, WORLD_HALF, type PlayerStatus, type Speed, type SpriteState } from '../runtime/player';
@@ -48,6 +49,7 @@ const NOTE_GLYPHS = ['\u266a', '\u266b', '\u2669'];
 const BURST_COLORS = ['#ffc93c', '#12a36b', '#2b9bf4', '#ec3f86', '#7a4cf0', '#ef5a4c'];
 
 export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine, onPrint, onStatus, onGameOver, mood, stickers }, ref) {
+  const t = useT();
   const stageRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const guideRef = useRef<HTMLCanvasElement>(null);
@@ -306,7 +308,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
   }));
 
   return (
-    <div ref={stageRef} className="stage" role="img" aria-label="Turtle drawing area">
+    <div ref={stageRef} className="stage" role="img" aria-label={t('stage.area')}>
       <StageView
         ref={viewRef}
         isGame={() => gameRef.current}
@@ -324,7 +326,7 @@ export const Stage = forwardRef<StageHandle, StageProps>(function Stage({ onLine
           <TurtleSprite mood={mood} stickers={stickers} />
         </div>
       </StageView>
-      {picture !== null && <div className="picture-chip">Picture {picture}</div>}
+      {picture !== null && <div className="picture-chip">{t('stage.picture', { n: picture })}</div>}
       {keysOn ? (
         <div className="note-keys" aria-hidden="true">
           {NOTE_KEYS.map((key, k) => (
