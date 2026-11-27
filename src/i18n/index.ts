@@ -45,3 +45,7 @@ export function translator(lang: Lang): Translate {
 export function pluralIn(lang: Lang, key: string, n: number): string {
   return plural(getLocale(lang).messages, key, n, lang);
 }
+/** `one` or `other` for a count, by the language's plural rule (Pidgin counts like English). */
+export function pluralForm(lang: Lang, n: number): 'one' | 'other' {
+  return new Intl.PluralRules(lang === 'pcm' ? 'en' : lang).select(n) === 'one' ? 'one' : 'other';
+}

@@ -1,4 +1,5 @@
 import { getLocale, guessLang, isLang, t, type Lang, type Params } from '../i18n/index.js';
+import { translateText } from '../i18n/say.js';
 export const LANG_KEY = 'gio.lang';
 /** A link can pick the language (`?lang=fr`); otherwise the remembered choice. Nothing stored means no choice yet. */
 export function readStoredLang(): Lang | null {
@@ -29,13 +30,16 @@ export function setActiveLang(lang: Lang): void {
 /** Translate outside React, in the current language. */
 export function tr(key: string, params?: Params): string {
   return t(getLocale(currentLang()).messages, key, params);
-}/** A Logo problem (or a quest checker message) in the current language. English is always the original message. */
-export function problemText(problem: { message: string; key?: string; params?: Params }): string {
-  const lang = currentLang();
-  if (lang === 'en' || !problem.key) return problem.message;
-  const locale = getLocale(lang);
-  const template = locale.logoErrors[problem.key] ?? (locale.messages as Record<string, string>)[problem.key];
-  if (!template) return problem.message;
-  const params = Object.fromEntries(Object.entries(problem.params ?? {}).map(([k, v]) => [k, typeof v === 'string' && v.startsWith('@') ? problemText({ message: v, key: v.slice(1) }) : v]));
-  return template.replace(/\{(\w+)\}/g, (whole, name: string) => (name in params ? String(params[name]) : whole));
+}/** A Logo problem, quest checker note or adventure sentence in the current language. English is the original text. */
+export function problemText(problem: { message: string }): string {
+  return translateText(problem.message, currentLang());
+}
+/** Engine text (narration, results) in the current language. */
+export function sayText(text: string): string {
+  return translateText(text, currentLang());
+}
+/** An English UI word that has a message under `prefix.<English>` (block names, group titles), in the current language. */
+export function trWord(prefix: string, english: string): string {
+  const key = `${prefix}.${english}`;
+  return key in (getLocale('en').messages as Record<string, string>) ? tr(key) : english;
 }

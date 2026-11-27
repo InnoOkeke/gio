@@ -1,6 +1,8 @@
 import type { AgeModeId, Level, RealmId } from '../../logo/adventure/index.js';
 import type { FriendId } from '../gio/catalog';
 import { gateLevel, realmsFor } from './state';
+import { adventureText } from '../../i18n/content.js';
+import { pluralIn, translator, type Lang } from '../../i18n/index.js';
 
 /** What a child reads about a world: its name, a line for the world map and a story for the first visit. */
 export interface RealmInfo {
@@ -66,26 +68,31 @@ export const REALMS: Record<RealmId, RealmInfo> = {
   },
 };
 
-export const realmName = (realm: RealmId): string => REALMS[realm].name;
+export const realmName = (realm: RealmId, lang: Lang = 'en'): string => adventureText(`realm.${realm}.name`, REALMS[realm].name, lang);
+
+/** A world's name, line and story in a language. Other languages live in each locale under `realm.<id>.*`. */
+export function realmInfo(realm: RealmId, lang: Lang): RealmInfo {
+  const info = REALMS[realm];
+  if (lang === 'en') return info;
+  return { ...info, name: realmName(realm, lang), blurb: adventureText(`realm.${realm}.blurb`, info.blurb, lang), story: adventureText(`realm.${realm}.story`, info.story, lang) };
+}
 
 /** What a closed world says it needs, in kid words ("Win Maze Meadow's boss to open"). */
-export function lockedText(realm: RealmId, mode: AgeModeId, levels?: readonly Level[]): string {
+export function lockedText(realm: RealmId, mode: AgeModeId, levels?: readonly Level[], lang: Lang = 'en'): string {
   const order = realmsFor(mode, levels);
   const before = order[order.indexOf(realm) - 1];
   if (!before) return '';
   const gate = gateLevel(before, mode, levels);
-  const what = gate?.kind === 'boss' ? `${realmName(before)}'s boss` : `the last level of ${realmName(before)}`;
-  return `Win ${what} to open`;
+  return translator(lang)(gate?.kind === 'boss' ? 'adv.lockedText.boss' : 'adv.lockedText.last', { realm: realmName(before, lang) });
 }
 
 /** What the child still needs for the next star, in words. Null for three stars. */
-export function nextStarRule(stars: number, commands: number, par: number): string | null {
-  if (stars <= 1) return 'Collect every gem for a second star.';
+export function nextStarRule(stars: number, commands: number, par: number, lang: Lang = 'en'): string | null {
+  if (stars <= 1) return translator(lang)('adv.rule.gems');
   if (stars === 2) {
     const over = commands - par;
-    return over > 0
-      ? `Use ${par} ${par === 1 ? 'command' : 'commands'} or fewer for a third star. You used ${commands}.`
-      : `Use ${par} ${par === 1 ? 'command' : 'commands'} or fewer for a third star.`;
+    const rule = pluralIn(lang, 'adv.rule.par', par);
+    return over > 0 ? rule + translator(lang)('adv.rule.used', { n: commands }) : rule;
   }
   return null;
 }

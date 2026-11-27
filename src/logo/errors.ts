@@ -1,3 +1,5 @@
+import { logoErrorText, type LogoErrorKey } from '../i18n/logo-errors.js';
+import type { Params } from '../i18n/format.js';
 export interface SourcePos {
   line: number;
   column: number;
@@ -10,13 +12,23 @@ export interface SourcePos {
 export class LogoError extends Error {
   readonly line: number;
   readonly column: number;
+  /** Which error this is (src/i18n/logo-errors.ts), so the UI can show it in the child's language. */
+  readonly key?: LogoErrorKey;
+  readonly params?: Params;
 
-  constructor(message: string, pos: SourcePos) {
+  constructor(message: string, pos: SourcePos, key?: LogoErrorKey, params?: Params) {
     super(message);
     this.name = 'LogoError';
     this.line = pos.line;
     this.column = pos.column;
+    if (key) this.key = key;
+    if (params) this.params = params;
   }
+}
+
+/** A LogoError whose English message comes from its key's template. */
+export function logoError(key: LogoErrorKey, params: Params, pos: SourcePos): LogoError {
+  return new LogoError(logoErrorText(key, params), pos, key, params);
 }
 
 export function levenshtein(a: string, b: string): number {

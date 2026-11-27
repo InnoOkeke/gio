@@ -9,6 +9,10 @@ import { variantMaps } from './playback';
 import { nextStarRule, realmName } from './realms';
 import { sceneAt } from './scene-state';
 import { StarRow } from './StarRow';
+import { localizeLevel } from '../../i18n/content.js';
+import { pluralForm, pluralIn } from '../../i18n/index.js';
+import { useLang, useT } from '../lang';
+import { sayText } from '../lang-state';
 
 export interface ResultCardProps {
   level: Level;
@@ -36,24 +40,27 @@ export interface ResultCardProps {
 }
 
 /** What a finished run says: stars and the rule for the next one after a win, one kind sentence after a miss. */
-export function ResultCard({ level, number, outcome, stars, runStars, par, next, opened, friendLine, stickers, offerHint, onHint, onTryAgain, onClose }: ResultCardProps) {
+export function ResultCard({ level: source, number, outcome, stars, runStars, par, next, opened, friendLine, stickers, offerHint, onHint, onTryAgain, onClose }: ResultCardProps) {
+  const t = useT();
+  const { lang } = useLang();
+  const level = localizeLevel(source, lang);
   const won = outcome.status === 'won';
   const primary = useRef<HTMLAnchorElement & HTMLButtonElement>(null);
-  const nextRule = won ? nextStarRule(runStars ?? stars, outcome.commands, par) : null;
+  const nextRule = won ? nextStarRule(runStars ?? stars, outcome.commands, par, lang) : null;
   const boss = level.kind === 'boss' && level.boss ? level.boss.name : null;
-  const others = won ? variantMaps(level, outcome) : [];
-  const title = won ? (boss ? `You beat ${boss}!` : 'You did it!') : outcome.status === 'unfinished' ? 'Almost there!' : 'Oops!';
+  const others = won ? variantMaps(source, outcome) : [];
+  const title = won ? (boss ? t('adv.result.beat', { boss }) : t('adv.result.won')) : outcome.status === 'unfinished' ? t('adv.result.almost') : t('adv.result.oops');
   return (
     <Sheet open variant="dialog" labelledBy="adv-result-title" onClose={onClose} initialFocus={primary} className="sheet-white adv-result">
       <div className="adv-result-body" data-sheet-header data-result={won ? 'won' : outcome.status}>
-        <button type="button" className="btn btn-ghost btn-icon adv-result-close" onClick={onClose} aria-label="Close">
+        <button type="button" className="btn btn-ghost btn-icon adv-result-close" onClick={onClose} aria-label={t('btn.close')}>
           <CloseIcon />
         </button>
         <div className="adv-result-gio" aria-hidden="true">
           <TurtleSprite mood={won ? 'cheer' : 'curious'} />
         </div>
         <p className="eyebrow m-0">
-          Level {number ?? level.n}: {level.title}
+          {t('adv.levelTitle', { n: number ?? level.n, title: level.title })}
         </p>
         <h2 id="adv-result-title" className="adv-result-title">
           {title}
@@ -62,27 +69,27 @@ export function ResultCard({ level, number, outcome, stars, runStars, par, next,
           <>
             <StarRow stars={stars} size={40} pop />
             <p className="adv-result-line">
-              {outcome.gems} of {outcome.gemsTotal} {outcome.gemsTotal === 1 ? 'gem' : 'gems'}. {outcome.commands} {outcome.commands === 1 ? 'command' : 'commands'}.
+              {t(`adv.result.gems.${pluralForm(lang, outcome.gemsTotal)}`, { n: outcome.gems, total: outcome.gemsTotal })} {pluralIn(lang, 'adv.result.commands', outcome.commands)}
             </p>
-            {nextRule ? <p className="adv-result-rule">{nextRule}</p> : <p className="adv-result-rule">Three stars! That plan is as short as it gets.</p>}
+            {nextRule ? <p className="adv-result-rule">{nextRule}</p> : <p className="adv-result-rule">{t('adv.result.three')}</p>}
             {friendLine && <p className="adv-result-friend">{friendLine}</p>}
-            {opened && <p className="adv-result-friend">{realmName(opened)} is open!</p>}
+            {opened && <p className="adv-result-friend">{t('adv.result.opened', { realm: realmName(opened, lang) })}</p>}
             {stickers.map((s) => (
               <p key={s} className="adv-result-friend">
-                New sticker: {s}
+                {t('adv.result.sticker', { name: s })}
               </p>
             ))}
             {others.length > 0 && (
-              <div className="adv-others" aria-label="Your plan on the other maps">
-                <p className="adv-result-line m-0">Your plan on the other maps</p>
+              <div className="adv-others" aria-label={t('adv.result.others')}>
+                <p className="adv-result-line m-0">{t('adv.result.others')}</p>
                 <ul className="adv-others-row">
                   {others.map((o, i) => (
                     <li key={i} className="adv-other">
                       <div className="adv-other-scene">
-                        <AdventureScene level={level} scene={sceneAt(level, o.map, o.trace, o.trace.length)} />
+                        <AdventureScene level={source} scene={sceneAt(source, o.map, o.trace, o.trace.length)} />
                       </div>
                       <span>
-                        Map {i + 2}: {o.won ? 'works' : 'needs work'}
+                        {t('adv.result.map', { n: i + 2, state: o.won ? t('adv.result.works') : t('adv.result.needsWork') })}
                       </span>
                     </li>
                   ))}
@@ -91,39 +98,39 @@ export function ResultCard({ level, number, outcome, stars, runStars, par, next,
             )}
           </>
         ) : (
-          <p className="adv-result-line">{outcome.message}</p>
+          <p className="adv-result-line">{sayText(outcome.message)}</p>
         )}
         <div className="adv-result-actions">
           {won ? (
             <>
               {next ? (
                 <Link ref={primary} to={`/adventure/${next.id}`} className="btn btn-primary btn-lg">
-                  Next level
+                  {t('adv.result.next')}
                 </Link>
               ) : (
                 <Link ref={primary} to="/adventure" className="btn btn-primary btn-lg">
-                  Back to the map
+                  {t('adv.backMap')}
                 </Link>
               )}
               {stars < 3 && (
                 <button type="button" className="btn btn-quiet btn-lg" onClick={onTryAgain}>
-                  Try for 3 stars
+                  {t('adv.result.try3')}
                 </button>
               )}
               {next && (
                 <Link to="/adventure" className="btn btn-ghost btn-lg">
-                  Back to the map
+                  {t('adv.backMap')}
                 </Link>
               )}
             </>
           ) : (
             <>
               <button ref={primary} type="button" className="btn btn-primary btn-lg" onClick={onTryAgain}>
-                Try again
+                {t('btn.tryAgain')}
               </button>
               {offerHint && (
                 <button type="button" className="btn btn-quiet btn-lg" onClick={onHint}>
-                  Want a hint?
+                  {t('adv.result.wantHint')}
                 </button>
               )}
             </>

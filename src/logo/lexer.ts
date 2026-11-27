@@ -1,4 +1,4 @@
-import { LogoError, type SourcePos } from './errors.js';
+import { LogoError, logoError, type SourcePos } from './errors.js';
 import { foldWord } from './word-table.js';
 
 export type TokenType = 'number' | 'word' | 'quoted' | 'var' | 'lbracket' | 'rbracket' | 'lparen' | 'rparen' | 'op';
@@ -86,7 +86,7 @@ export function tokenize(source: string): Token[] {
       while (i < source.length && /[0-9.]/.test(source[i]!)) text += advance();
       const value = Number(text);
       if (!Number.isFinite(value) || text.split('.').length > 2) {
-        throw new LogoError(`"${text}" doesn't look like a number.`, pos);
+        throw logoError('lex.number', { text }, pos);
       }
       push({ type: 'number', text, raw: text, value, pos });
       continue;
@@ -97,7 +97,7 @@ export function tokenize(source: string): Token[] {
       let text = '';
       // A quoted word runs to the next space or bracket, so "Score: works as a label.
       while (i < source.length && (WORD_CHAR.test(source[i]!) || (text && source[i] === ':'))) text += advance();
-      if (!text) throw new LogoError('A quote mark (") needs a word right after it, like "red.', pos);
+      if (!text) throw logoError('lex.quote', {}, pos);
       push({ type: 'quoted', text: text.toUpperCase(), raw: text, pos });
       continue;
     }
@@ -106,7 +106,7 @@ export function tokenize(source: string): Token[] {
       advance();
       let text = '';
       while (i < source.length && WORD_CHAR.test(source[i]!)) text += advance();
-      if (!text) throw new LogoError('A colon (:) needs a name right after it, like :size.', pos);
+      if (!text) throw logoError('lex.colon', {}, pos);
       push({ type: 'var', text: text.toUpperCase(), raw: text, pos });
       continue;
     }
@@ -118,7 +118,7 @@ export function tokenize(source: string): Token[] {
       continue;
     }
 
-    throw new LogoError(`I don't understand the character "${ch}".`, pos);
+    throw logoError('lex.char', { ch }, pos);
   }
 
   const last = tokens[tokens.length - 1];

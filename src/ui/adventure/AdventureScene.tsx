@@ -5,6 +5,7 @@ import type { GioMood } from '../gio/mood';
 import { CagedFriend, FriendInTile, GrumbleArt } from './art/creatures';
 import { REALM_PALETTES, symbolId, TILE, TileDefs, tileFor } from './art/tiles';
 import { describeScene } from './describe';
+import { useLang } from '../lang';
 import { cellPercent, sceneBox, type SceneState } from './scene-state';
 
 export interface AdventureSceneProps {
@@ -28,6 +29,7 @@ export interface AdventureSceneProps {
  * CSS transform. There is no canvas. The picture is described by the `aria-label` (see `describeScene`).
  */
 export function AdventureScene({ level, scene, mood = 'idle', tween = false, seconds = 0.2, highlight = null, trail = [] }: AdventureSceneProps): ReactElement {
+  const { lang } = useLang();
   const uid = useId().replace(/:/g, '');
   const palette = REALM_PALETTES[level.realm];
   const { cols, rows } = scene;
@@ -51,7 +53,7 @@ export function AdventureScene({ level, scene, mood = 'idle', tween = false, sec
   return (
     <div
       role="img"
-      aria-label={describeScene(scene)}
+      aria-label={describeScene(scene, lang)}
       data-realm={level.realm}
       data-cols={cols}
       data-rows={rows}

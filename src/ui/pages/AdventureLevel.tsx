@@ -11,6 +11,10 @@ import { HintSheet } from '../adventure/HintSheet';
 import { IntroCard } from '../adventure/IntroCard';
 import { adventureKeys, keySnippet, type AdventureKey } from '../adventure/keys';
 import { realmName } from '../adventure/realms';
+import { localizeFriend, localizeLevel, localizeSticker } from '../../i18n/content.js';
+import { translator, type Lang } from '../../i18n/index.js';
+import { useLang, useT } from '../lang';
+import { sayText } from '../lang-state';
 import { ResultCard } from '../adventure/ResultCard';
 import { cellAhead } from '../adventure/scene-state';
 import { StarRow } from '../adventure/StarRow';
@@ -36,14 +40,14 @@ import { useWatchMode } from '../adventure/useWatchMode';
 const AdventureEditor = lazy(() => import('../adventure/AdventureEditor').then((m) => ({ default: m.AdventureEditor })));
 const AdventureBlocks = lazy(() => import('../adventure/AdventureBlocks').then((m) => ({ default: m.AdventureBlocks })));
 
-const SPEEDS: { id: Speed; label: string; Icon: typeof RabbitSpeedIcon }[] = [
-  { id: 'turtle', label: 'Slow', Icon: TurtleSpeedIcon },
-  { id: 'rabbit', label: 'Normal', Icon: RabbitSpeedIcon },
-  { id: 'rocket', label: 'Fast', Icon: RocketSpeedIcon },
+const SPEEDS: { id: Speed; Icon: typeof RabbitSpeedIcon }[] = [
+  { id: 'turtle', Icon: TurtleSpeedIcon },
+  { id: 'rabbit', Icon: RabbitSpeedIcon },
+  { id: 'rocket', Icon: RocketSpeedIcon },
 ];
 
 /** What each feature teaches, for the cage that opened without its friend coming home. */
-const FEATURE_WORDS: Record<string, string> = { REPEAT: 'REPEAT', IF: 'IF', TO: 'TO', MAKE: 'MAKE', RECURSION: 'a command that calls itself' };
+const FEATURE_WORDS: Record<string, string> = { REPEAT: 'REPEAT', IF: 'IF', TO: 'TO', MAKE: 'MAKE' };
 const OWN_WORD = /^\s*TO\s+(SWIM|JUMP|FREE|REST|AHEAD|HERE|GEMS)\b/im;
 
 /** A level's page: the map, the plan, and a dock to run it. */
@@ -54,25 +58,27 @@ export default function AdventureLevel() {
   const level = levelId ? levelById(levelId) : undefined;
   const adventure = useAdventure();
   const { state } = adventure;
-  if (!level) return <LevelMessage title="That level is not here" text="Pick a level from the map." />;
+  const t = useT();
+  if (!level) return <LevelMessage title={t('adv.level.missing')} text={t('adv.level.pick')} />;
   if (!level.modes.includes(m)) {
-    return <LevelMessage title="This level is for Turtle Coders" text="Little Turtles have their own levels. Pick one from the map." />;
+    return <LevelMessage title={t('adv.level.coders')} text={t('adv.level.coders.text')} />;
   }
   const status = levelStatus(state, m, level);
   if (!status.open) {
-    return <LevelMessage title="This level is still locked" text="Win the level before it to open this one." />;
+    return <LevelMessage title={t('adv.level.locked')} text={t('adv.level.locked.text')} />;
   }
   return <LevelPlay key={`${m}:${level.id}`} level={level} mode={m} adventure={adventure} />;
 }
 
 function LevelMessage({ title, text }: { title: string; text: string }) {
+  const t = useT();
   return (
     <div className="adv-root">
       <main className="adv-message">
         <h1 className="adv-result-title">{title}</h1>
         <p className="adv-result-line">{text}</p>
         <Link to="/adventure" className="btn btn-primary btn-lg">
-          Back to the map
+          {t('adv.backMap')}
         </Link>
       </main>
     </div>
@@ -87,7 +93,11 @@ interface Finished {
 }
 
 /** One progress store per page: the lock check and a win read and write the same state. */
-function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; adventure: ReturnType<typeof useAdventure> }) {
+function LevelPlay({ level: source, mode, adventure }: { level: Level; mode: AgeModeId; adventure: ReturnType<typeof useAdventure> }) {
+  const t = useT();
+  const { lang } = useLang();
+  /** The level with its words in the child's language; its map, code and checks are the same. */
+  const level = useMemo(() => localizeLevel(source, lang), [source, lang]);
   const rewards = useRewards();
   const compact = useIsCompact();
   const reduced = useMedia('(prefers-reduced-motion: reduce)');
@@ -134,21 +144,21 @@ function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; 
         const owned = rewards.state.friends;
         const earned = result.reward ? rewards.record(result.reward) : { newFriends: [] as FriendId[], newStickers: [] as StickerId[] };
         if (earned.newFriends.length) setFriendQueue((q) => [...q, ...earned.newFriends]);
-        for (const id of earned.newStickers) stickers.push(stickerById(id).name);
+        for (const id of earned.newStickers) stickers.push(localizeSticker(stickerById(id), lang).name);
         const art = level.friend?.art;
         if (art === 'critter' && outcome.friendsFreed > 0) {
-          friendLine = `A critter is free! Friends rescued: ${result.state.critters}`;
+          friendLine = t('adv.critter', { n: result.state.critters });
         } else if (art && art !== 'critter' && outcome.friendsFreed > 0) {
-          friendLine = friendStory(art, level.friend?.feature, earned.newFriends.includes(art), owned.includes(art));
+          friendLine = friendStory(art, level.friend?.feature, earned.newFriends.includes(art), owned.includes(art), lang);
         }
       }
       setFinished({ outcome, result, friendLine, stickers });
       setFailStreak((n) => (outcome.status === 'won' ? 0 : n + 1));
-      if (outcome.status !== 'won') speech.speak(outcome.message);
+      if (outcome.status !== 'won') speech.speak(sayText(outcome.message));
       window.clearTimeout(timer.current);
       timer.current = window.setTimeout(() => setResultOpen(true), outcome.status === 'won' ? 900 : 450);
     },
-    [adventure, level, mode, rewards, speech],
+    [adventure, level, mode, rewards, speech, lang, t],
   );
 
   const play = usePlay(level, mode, { speed, reducedMotion: reduced, onProblem, onFinished });
@@ -258,30 +268,30 @@ function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; 
   const own = OWN_WORD.exec(code)?.[1];
 
   const say = problem
-    ? { kind: 'problem' as const, text: problem.text }
+    ? { kind: 'problem' as const, text: sayText(problem.text) }
     : finished && play.status === 'done'
-      ? { kind: finished.outcome.status === 'won' ? ('success' as const) : ('problem' as const), text: finished.outcome.status === 'won' ? 'You did it!' : finished.outcome.message }
+      ? { kind: finished.outcome.status === 'won' ? ('success' as const) : ('problem' as const), text: finished.outcome.status === 'won' ? t('adv.result.won') : sayText(finished.outcome.message) }
       : play.narration && play.status !== 'idle'
-        ? { kind: 'info' as const, text: play.narration }
+        ? { kind: 'info' as const, text: sayText(play.narration) }
         : { kind: 'info' as const, text: level.story };
 
   const dockButtons = (
     <>
       <button type="button" className={compact ? `btn dock-run ${playing ? 'btn-stop' : 'btn-primary'}` : `btn btn-lg adv-go ${playing ? 'btn-stop' : 'btn-primary'}`} onClick={go}>
         {playing ? <PauseIcon size={24} /> : <PlayIcon size={24} />}
-        {playing ? 'Pause' : play.status === 'paused' ? 'Keep going' : 'Go'}
+        {playing ? t('btn.pause') : play.status === 'paused' ? t('btn.keepGoing') : t('adv.go')}
       </button>
       <button type="button" className={compact ? 'btn btn-quiet dock-btn' : 'btn btn-quiet btn-lg adv-dock-btn'} onClick={step} disabled={playing}>
         <StepIcon size={22} />
-        <span>Step</span>
+        <span>{t('btn.step')}</span>
       </button>
       <button type="button" className={compact ? 'btn btn-quiet dock-btn' : 'btn btn-quiet btn-lg adv-dock-btn'} onClick={reset} disabled={play.status === 'idle' && !problem}>
         <ResetIcon size={22} />
-        <span>Reset</span>
+        <span>{t('adv.reset')}</span>
       </button>
       <button type="button" className={compact ? 'btn btn-quiet dock-btn' : 'btn btn-quiet btn-lg adv-dock-btn'} onClick={openHint} aria-haspopup="dialog">
         <BulbIcon size={22} className="adv-bulb" />
-        <span>Hint</span>
+        <span>{t('btn.hint')}</span>
       </button>
     </>
   );
@@ -290,12 +300,12 @@ function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; 
     <div className="adv-root" ref={rootRef} data-status={play.status} data-realm={level.realm} data-watch={watch.active ? 'true' : undefined}>
       <header className="adv-header">
         <div className="adv-header-bar">
-          <Link to="/adventure" className="btn btn-quiet adv-back" aria-label="Back to the map">
+          <Link to="/adventure" className="btn btn-quiet adv-back" aria-label={t('adv.backMap')}>
             <ArrowLeftIcon />
           </Link>
           <div className="adv-title-block">
             <p className="adv-eyebrow">
-              {realmName(level.realm)} <span aria-hidden="true">&middot;</span> Level {levelNumber(level, mode)}
+              {realmName(level.realm, lang)} <span aria-hidden="true">&middot;</span> {t('adv.level', { n: levelNumber(level, mode) })}
             </p>
             <h1 className="adv-title">{level.title}</h1>
           </div>
@@ -311,12 +321,12 @@ function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; 
             </div>
           )}
           <p className="adv-goal-text">{level.goal}</p>
-          <span className="adv-gems" aria-label={`${scene.gems} of ${scene.gemsTotal} gems`}>
+          <span className="adv-gems" aria-label={t('adv.gemsAria', { n: scene.gems, total: scene.gemsTotal })}>
             <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
               <path d="M12 2.5 20 9l-8 12.5L4 9Z" fill="#7ad7ff" stroke="#17261f" strokeOpacity="0.45" strokeWidth="1.6" strokeLinejoin="round" />
             </svg>
             <span aria-hidden="true">
-              {scene.gems} of {scene.gemsTotal}
+              {t('adv.nOf', { n: scene.gems, total: scene.gemsTotal })}
             </span>
           </span>
         </div>
@@ -332,24 +342,24 @@ function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; 
             {say.text}
           </div>
           <div className="adv-tools">
-            <button type="button" className="btn btn-quiet adv-tool" onClick={() => setDescribeOpen(true)} aria-haspopup="dialog" aria-label="Describe the map">
+            <button type="button" className="btn btn-quiet adv-tool" onClick={() => setDescribeOpen(true)} aria-haspopup="dialog" aria-label={t('adv.describe')}>
               <SpeakerIcon size={22} />
             </button>
-            <button ref={watch.buttonRef} type="button" className="btn btn-quiet adv-tool adv-watch" onClick={watch.toggle} aria-pressed={watch.active} aria-label={watch.active ? 'Leave watch mode' : 'Watch full screen'}>
+            <button ref={watch.buttonRef} type="button" className="btn btn-quiet adv-tool adv-watch" onClick={watch.toggle} aria-pressed={watch.active} aria-label={watch.active ? t('adv.watch.leave') : t('adv.watch.full')}>
               <WatchIcon size={22} />
             </button>
-            <button type="button" className="btn btn-quiet adv-tool" onClick={cycleSpeed} aria-label={`Speed: ${speedNow.label}. Tap to change`}>
+            <button type="button" className="btn btn-quiet adv-tool" onClick={cycleSpeed} aria-label={t('adv.speedAria', { speed: t(`adv.speed.${speedNow.id}`) })}>
               <speedNow.Icon size={24} />
             </button>
           </div>
         </div>
-        <nav className={compact ? 'action-dock adv-dock' : 'adv-dock'} aria-label="Actions">
+        <nav className={compact ? 'action-dock adv-dock' : 'adv-dock'} aria-label={t('nav.actions')}>
           {dockButtons}
         </nav>
-        <section className="adv-plan panel" aria-label="Your plan">
+        <section className="adv-plan panel" aria-label={t('adv.plan')}>
           <div className="adv-plan-head">
-            <h2 className="adv-plan-title">Your plan</h2>
-            <span className="adv-plan-note">1 step = 50</span>
+            <h2 className="adv-plan-title">{t('adv.plan')}</h2>
+            <span className="adv-plan-note">{t('adv.plan.note')}</span>
           </div>
           <div className="adv-editor" data-plan={blocksPlan ? 'blocks' : 'code'}>
             <Suspense fallback={<div className="adv-editor-wait" aria-busy="true" />}>
@@ -360,7 +370,7 @@ function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; 
               )}
             </Suspense>
           </div>
-          {own && <p className="adv-own">Your {own.toUpperCase()} replaces Gio&apos;s {own.toUpperCase()}.</p>}
+          {own && <p className="adv-own">{t('adv.own', { word: own.toUpperCase() })}</p>}
           {!blocksPlan && <AdventureKeys keys={keys} onKey={pressKey} onGo={go} />}
         </section>
       </main>
@@ -415,10 +425,11 @@ function LevelPlay({ level, mode, adventure }: { level: Level; mode: AgeModeId; 
 }
 
 /** What happened to a caged friend, in a sentence: freed and welcomed, already known, or the cage opened without the friend coming home. */
-function friendStory(art: FriendId, feature: string | undefined, welcomed: boolean, owned: boolean): string {
-  const name = friendById(art).name;
-  if (welcomed) return `You freed ${name}! ${rescueLine(art)}`.trim();
-  if (owned) return `You already know ${name}!`;
-  if (feature && feature !== 'bug-fixed') return `The cage is open! Next time try ${FEATURE_WORDS[feature] ?? feature} and ${name} will come home with you.`;
-  return `The cage is open! Fix the bug in the plan and ${name} will come home with you.`;
+function friendStory(art: FriendId, feature: string | undefined, welcomed: boolean, owned: boolean, lang: Lang): string {
+  const t = translator(lang);
+  const name = localizeFriend(friendById(art), lang).name;
+  if (welcomed) return t('adv.freed', { name, line: lang === 'en' ? rescueLine(art) : t(`adv.rescue.${art}`) }).trim();
+  if (owned) return t('adv.knows', { name });
+  if (feature && feature !== 'bug-fixed') return t('adv.cageTry', { word: feature === 'RECURSION' ? t('adv.feature.RECURSION') : (FEATURE_WORDS[feature] ?? feature), name });
+  return t('adv.cageBug', { name });
 }

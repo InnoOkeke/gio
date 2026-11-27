@@ -11,12 +11,17 @@ export interface AdventureKey {
   kind: 'word' | 'inline';
   /** The text typed. */
   insert: string;
-  /** For screen readers and the long-press title. */
+  /** For screen readers and the long-press title, in English. */
   hint: string;
+  /** The message key of the hint: `adv.key.<hintId>`. */
+  hintId: string;
+  /** For a `"word` key: the word, so the hint reads "the word water" in any language. */
+  word?: string;
 }
 
-const word = (label: string, hint: string, insert = label): AdventureKey => ({ id: label, label, kind: 'word', insert, hint });
-const inline = (label: string, hint: string, insert = label): AdventureKey => ({ id: label, label, kind: 'inline', insert, hint });
+const hintIdOf = (label: string): string => label.split(' ')[0] === '[' ? label : label.split(' ')[0]!;
+const word = (label: string, hint: string, insert = label): AdventureKey => ({ id: label, label, kind: 'word', insert, hint, hintId: hintIdOf(label) });
+const inline = (label: string, hint: string, insert = label): AdventureKey => ({ id: label, label, kind: 'inline', insert, hint, hintId: hintIdOf(label) });
 
 /** Every key the adventure can offer, in the order the row shows them. `needs` is the allowed word that unlocks the key. */
 const ALL: { key: AdventureKey; needs: string | string[] }[] = [
@@ -53,7 +58,7 @@ function senseKeys(level: Level): AdventureKey[] {
     // "clear is on every map, so offer it only where the level's own hints ask for it.
     ['clear', level.hints.some((h) => Object.values(h.reveal ?? {}).some((code) => code?.includes('"clear')))],
   ];
-  return found.filter(([, there]) => there).map(([w]) => inline(`"${w}`, `the word ${w}`));
+  return found.filter(([, there]) => there).map(([w]) => ({ ...inline(`"${w}`, `the word ${w}`), word: w }));
 }
 
 /** The keys a level offers a mode: only the words it allows. */

@@ -1,4 +1,4 @@
-import { LogoError, suggest, type SourcePos } from './errors.js';
+import { LogoError, logoError, suggest, type SourcePos } from './errors.js';
 import { tokenize, type Token } from './lexer.js';
 import { canonical } from './word-table.js';
 import { allPrimitiveNames, GAME_KEYS, lookupPrimitive, type GameKey, type PrimitiveSpec } from './primitives.js';
@@ -114,7 +114,7 @@ class Parser {
   private gate(word: string, pos: SourcePos): void {
     const allow = this.options.allow;
     if (!allow || allow.has(word)) return;
-    throw new LogoError(`${word} isn't part of this level. Here you can use: ${[...allow].join(', ')}.`, pos);
+    throw logoError('parse.gate', { word, words: [...allow].join(', ') }, pos);
   }
 
   parseProgram(): Program {
@@ -127,7 +127,7 @@ class Parser {
         this.gate('TO', t.pos);
         const proc = this.parseProcedure();
         if (procedures.has(proc.name)) {
-          throw new LogoError(`You taught me ${proc.name} twice. Give the second one a different name.`, proc.pos);
+          throw logoError('parse.twice', { name: proc.name }, proc.pos);
         }
         procedures.set(proc.name, proc);
       } else {
@@ -141,13 +141,13 @@ class Parser {
     const toTok = this.next()!;
     const nameTok = this.peek();
     if (!nameTok || nameTok.type !== 'word') {
-      throw new LogoError('TO needs a name for your new command, like TO SQUARE.', toTok.pos);
+      throw logoError('parse.toName', {}, toTok.pos);
     }
     this.next();
     const name = nameTok.text;
     this.rejectDashedName(nameTok);
     if (RESERVED.has(name) || (this.lookup(name) && !this.isLate(name))) {
-      throw new LogoError(`${name} is already a Logo word. Pick a different name for your command.`, nameTok.pos);
+      throw logoError('parse.isWord', { name }, nameTok.pos);
     }
     const params: string[] = [];
     while (this.peek()?.type === 'var') params.push(this.next()!.text);
@@ -155,14 +155,14 @@ class Parser {
     const body: Stmt[] = [];
     for (;;) {
       const t = this.peek();
-      if (!t) throw new LogoError(`TO ${name} needs an END to finish it.`, toTok.pos);
+      if (!t) throw logoError('parse.noEnd', { name }, toTok.pos);
       if (t.type === 'word' && this.canon(t) === 'END') {
         this.note(t, 'END');
         this.next();
         break;
       }
       if (t.type === 'word' && this.canon(t) === 'TO') {
-        throw new LogoError(`TO ${name} needs an END before you start teaching another command.`, t.pos);
+        throw logoError('parse.endBefore', { name }, t.pos);
       }
       body.push(this.parseStatement());
     }
@@ -172,13 +172,13 @@ class Parser {
   private parseBlock(owner: string, ownerPos: SourcePos): Stmt[] {
     const open = this.peek();
     if (!open || open.type !== 'lbracket') {
-      throw new LogoError(`${owner} needs a list of commands in square brackets, like [FD 50 RT 90].`, open?.pos ?? ownerPos);
+      throw logoError('parse.list', { owner }, open?.pos ?? ownerPos);
     }
     this.next();
     const body: Stmt[] = [];
     for (;;) {
       const t = this.peek();
-      if (!t) throw new LogoError(`The [ after ${owner} needs a matching ] to close it.`, open.pos);
+      if (!t) throw logoError('parse.listClose', { owner }, open.pos);
       if (t.type === 'rbracket') {
         this.next();
         return body;
@@ -190,26 +190,23 @@ class Parser {
   private parseStatement(): Stmt {
     const t = this.next()!;
 
-    if (t.type === 'rbracket') throw new LogoError('There is a ] without a matching [.', t.pos);
+    if (t.type === 'rbracket') throw logoError('parse.strayClose', {}, t.pos);
     const strayNumber = t.type === 'number' || (t.type === 'op' && t.text === '-' && this.peek()?.type === 'number');
     if (strayNumber) {
       const shown = t.type === 'number' ? t.raw : `-${this.peek()!.raw}`;
-      throw new LogoError(
-        `There's an extra number here (${shown}) with no command to use it. Check that the command before it has the right number of inputs.`,
-        t.pos,
-      );
+      throw logoError('parse.extraNumber', { shown }, t.pos);
     }
     if (t.type !== 'word') {
-      throw new LogoError(`I wasn't expecting "${t.text}" here. Lines should start with a command, like FD or REPEAT.`, t.pos);
+      throw logoError('parse.unexpected', { text: t.text }, t.pos);
     }
 
     const c = this.canon(t);
     if (RESERVED.has(c)) this.note(t, c);
     switch (c) {
       case 'TO':
-        throw new LogoError('TO can only be used at the top level, not inside another command.', t.pos);
+        throw logoError('parse.toNested', {}, t.pos);
       case 'END':
-        throw new LogoError('There is an END without a TO before it.', t.pos);
+        throw logoError('parse.endAlone', {}, t.pos);
       case 'REPEAT': {
         this.gate('REPEAT', t.pos);
         const count = this.parseExpression('REPEAT', t.pos);
@@ -230,7 +227,7 @@ class Parser {
         this.gate('MAKE', t.pos);
         const nameTok = this.peek();
         if (!nameTok || nameTok.type !== 'quoted') {
-          throw new LogoError('MAKE needs a name with a quote mark, like MAKE "size 50.', nameTok?.pos ?? t.pos);
+          throw logoError('parse.make', {}, nameTok?.pos ?? t.pos);
         }
         this.next();
         return { kind: 'make', name: nameTok.text, value: this.parseExpression('MAKE', t.pos), pos: t.pos };
@@ -240,7 +237,7 @@ class Parser {
         const keyTok = this.peek();
         const key = keyTok?.type === 'quoted' ? keyTok.text : '';
         if (!(GAME_KEYS as readonly string[]).includes(key)) {
-          throw new LogoError('WHEN needs a key: "up, "down, "left, "right or "space, like WHEN "up [FD 10]. Or use WHEN "tick to do something 10 times a second.', keyTok?.pos ?? t.pos);
+          throw logoError('parse.when', {}, keyTok?.pos ?? t.pos);
         }
         this.next();
         return { kind: 'when', key: key as GameKey, body: this.parseBlock('WHEN', t.pos), pos: t.pos };
@@ -255,7 +252,7 @@ class Parser {
       this.note(t, prim.name);
       this.gate(prim.name, t.pos);
       if (prim.kind === 'reporter') {
-        throw new LogoError(`${prim.name} gives back a value. Use it inside a command, like FD ${prim.name}${prim.arity ? ' 100' : ''}.`, t.pos);
+        throw logoError('parse.reporter', { name: prim.name, example: prim.arity ? ' 100' : '' }, t.pos);
       }
       return { kind: 'command', name: prim.name, args: this.parseArgs(prim.name, prim.arity, t.pos), pos: t.pos };
     }
@@ -273,7 +270,7 @@ class Parser {
     const dash = this.peek();
     const rest = this.tokens[this.i + 1];
     if (dash?.type === 'op' && dash.text === '-' && !dash.spaceBefore && !dash.spaceAfter && rest?.type === 'word') {
-      throw new LogoError(`Names can't have a dash (-) in them, because - means minus. Try ${t.text}_${rest.text} instead.`, t.pos);
+      throw logoError('parse.dash', { first: t.text, second: rest.text }, t.pos);
     }
   }
 
@@ -281,17 +278,14 @@ class Parser {
     const dash = this.peek();
     const rest = this.tokens[this.i + 1];
     if (dash?.type === 'op' && dash.text === '-' && !dash.spaceBefore && !dash.spaceAfter && rest?.type === 'word') {
-      return new LogoError(`Names can't have a dash (-) in them, because - means minus. Try ${t.text}_${rest.text} instead.`, t.pos);
+      return logoError('parse.dash', { first: t.text, second: rest.text }, t.pos);
     }
     const glued = /^([A-Z]+)(\d+(?:\.\d+)?)$/.exec(t.text);
     if (glued && (this.lookup(canonical(glued[1]!, this.arities.has(glued[1]!))) || this.arities.has(glued[1]!))) {
-      return new LogoError(`Put a space between ${glued[1]} and ${glued[2]}, like ${glued[1]} ${glued[2]}.`, t.pos);
+      return logoError('parse.glued', { word: glued[1]!, n: glued[2]! }, t.pos);
     }
     const hint = suggest(t.text, [...allPrimitiveNames(), ...(this.options.words?.keys() ?? []), ...this.arities.keys()]);
-    return new LogoError(
-      hint ? `I don't know how to ${t.text}. Did you mean ${hint}?` : `I don't know how to ${t.text}. You can teach me with TO ${t.text} … END.`,
-      t.pos,
-    );
+    return (hint ? logoError('parse.unknownHint', { word: t.text, hint }, t.pos) : logoError('parse.unknown', { word: t.text }, t.pos));
   }
 
   private parseArgs(owner: string, arity: number, ownerPos: SourcePos): Expr[] {
@@ -350,7 +344,7 @@ class Parser {
 
   private parsePrimary(owner: string, ownerPos: SourcePos): Expr {
     const t = this.peek();
-    if (!t) throw new LogoError(`${owner} needs more inputs.`, ownerPos);
+    if (!t) throw logoError('parse.moreInputs', { owner }, ownerPos);
 
     switch (t.type) {
       case 'number':
@@ -366,7 +360,7 @@ class Parser {
         this.next();
         const inner = this.parseExpression(owner, ownerPos);
         const close = this.next();
-        if (!close || close.type !== 'rparen') throw new LogoError('The ( needs a matching ) to close it.', t.pos);
+        if (!close || close.type !== 'rparen') throw logoError('parse.paren', {}, t.pos);
         return inner;
       }
       case 'lbracket':
@@ -384,14 +378,14 @@ class Parser {
           return { kind: 'reporter', name: prim.name, args, pos: t.pos };
         }
         if (prim || RESERVED.has(c) || this.arities.has(t.text)) {
-          throw new LogoError(`${owner} needs an input before ${t.text}. Try something like ${owner} 50.`, t.pos);
+          throw logoError('parse.inputBefore', { owner, word: t.text }, t.pos);
         }
         throw this.unknownWord(t);
       }
       case 'rbracket':
-        throw new LogoError(`${owner} needs an input before the ].`, t.pos);
+        throw logoError('parse.inputBeforeClose', { owner }, t.pos);
       default:
-        throw new LogoError(`${owner} needs an input, but found "${t.text}".`, t.pos);
+        throw logoError('parse.inputFound', { owner, text: t.text }, t.pos);
     }
   }
 
@@ -404,7 +398,7 @@ class Parser {
     const items: Expr[] = [];
     for (;;) {
       const n = this.peek();
-      if (!n) throw new LogoError('The [ needs a matching ] to close it.', open.pos);
+      if (!n) throw logoError('parse.listOpen', {}, open.pos);
       if (n.type === 'rbracket') {
         this.next();
         return { kind: 'list', items, pos: open.pos };

@@ -1,5 +1,5 @@
 import { NAMED_COLORS, PALETTE_16, rgbToHex } from './colors.js';
-import { LogoError, suggest, type SourcePos } from './errors.js';
+import { LogoError, logoError, suggest, type SourcePos } from './errors.js';
 import type { Expr, Procedure, Program, Stmt } from './parser.js';
 import { parseTune } from './music.js';
 import { computeFill, type FillRect, type Segment } from './fill.js';
@@ -211,10 +211,7 @@ class Interpreter {
 
   private tick(pos: SourcePos): void {
     if (++this.ops > this.limits.maxOps) {
-      throw new LogoError(
-        `Your program ran ${this.limits.maxOps.toLocaleString('en-US')} steps, so I stopped it. Is a REPEAT or command repeating forever?`,
-        pos,
-      );
+      throw logoError('run.ops', { n: this.limits.maxOps.toLocaleString('en-US') }, pos);
     }
   }
 
@@ -223,17 +220,14 @@ class Interpreter {
     this.seconds += seconds;
     if (this.seconds > this.limits.maxSeconds + 1e-9) {
       const max = this.limits.maxSeconds;
-      const length = max % 60 === 0 ? `${max / 60} minute${max === 60 ? '' : 's'}` : `${max} seconds`;
-      throw new LogoError(`Your show is longer than ${length}, so I stopped it. Try shorter notes or fewer WAITs.`, pos);
+      const key = max % 60 !== 0 ? 'run.showSeconds' : max === 60 ? 'run.showMinute' : 'run.showMinutes';
+      throw logoError(key, { n: max % 60 === 0 ? max / 60 : max }, pos);
     }
   }
 
   private emit(event: TurtleEvent): void {
     if (this.events.length >= this.limits.maxEvents) {
-      throw new LogoError(
-        `That's a lot of drawing! I stopped after ${this.limits.maxEvents.toLocaleString('en-US')} moves. Try smaller numbers in your REPEAT.`,
-        { line: event.line, column: 1 },
-      );
+      throw logoError('run.events', { n: this.limits.maxEvents.toLocaleString('en-US') }, { line: event.line, column: 1 });
     }
     this.events.push(event);
   }
@@ -258,7 +252,7 @@ class Interpreter {
       case 'repeat': {
         const count = this.toNumber(this.eval(stmt.count), 'REPEAT', stmt.count.pos);
         if (!Number.isInteger(count) || count < 0) {
-          throw new LogoError(`REPEAT needs a whole number of times, like REPEAT 4. You gave ${formatValue(count)}.`, stmt.count.pos);
+          throw logoError('run.repeatCount', { value: formatValue(count) }, stmt.count.pos);
         }
         for (let k = 1; k <= count; k++) {
           this.tick(stmt.pos);
@@ -274,7 +268,7 @@ class Interpreter {
       case 'if': {
         const cond = this.eval(stmt.cond);
         if (typeof cond !== 'boolean') {
-          throw new LogoError(`IF needs a question that is true or false, like IF :size > 50. Got ${formatValue(cond)}.`, stmt.cond.pos);
+          throw logoError('run.ifCond', { value: formatValue(cond) }, stmt.cond.pos);
         }
         if (cond) this.execBlock(stmt.then);
         else if (stmt.otherwise) this.execBlock(stmt.otherwise);
@@ -294,10 +288,7 @@ class Interpreter {
   private callProcedure(name: string, argExprs: Expr[], pos: SourcePos): void {
     const proc: Procedure = this.program.procedures.get(name)!;
     if (this.frames.length >= this.limits.maxDepth) {
-      throw new LogoError(
-        `${name} called itself ${this.limits.maxDepth} times deep, so I stopped. Add an IF with STOP so it knows when to finish.`,
-        pos,
-      );
+      throw logoError('run.depth', { name, n: this.limits.maxDepth }, pos);
     }
     const frame = new Map<string, Value>();
     proc.params.forEach((param, k) => frame.set(param, this.eval(argExprs[k]!)));
@@ -329,12 +320,7 @@ class Interpreter {
     if (this.globals.has(name)) return this.globals.get(name)!;
     const known = [...this.globals.keys(), ...this.frames.flatMap((f) => [...f.keys()])];
     const hint = suggest(name, known);
-    throw new LogoError(
-      hint
-        ? `I don't know :${name.toLowerCase()}. Did you mean :${hint.toLowerCase()}?`
-        : `I don't know :${name.toLowerCase()} yet. Make it first with MAKE "${name.toLowerCase()} 50.`,
-      pos,
-    );
+    throw (hint ? logoError('run.varHint', { name: name.toLowerCase(), hint: hint.toLowerCase() }, pos) : logoError('run.var', { name: name.toLowerCase() }, pos));
   }
 
   private move(distance: number, line: number): void {
@@ -357,7 +343,7 @@ class Interpreter {
   }
 
   private arc(angle: number, radius: number, line: number): void {
-    if (radius <= 0) throw new LogoError('The circle needs a size bigger than 0.', { line, column: 1 });
+    if (radius <= 0) throw logoError('run.circle', {}, { line, column: 1 });
     if (!this.state.penDown || angle === 0) return;
     const sweep = Math.max(-360, Math.min(360, angle));
     const segments = Math.max(4, Math.ceil(Math.abs(sweep) / 5));
@@ -463,7 +449,7 @@ class Interpreter {
       case 'SETPENSIZE': {
         const size = num(0);
         if (size <= 0 || size > 100) {
-          throw new LogoError(`Pen size should be between 1 and 100. You gave ${formatValue(size)}.`, argExprs[0]!.pos);
+          throw logoError('run.penSize', { value: formatValue(size) }, argExprs[0]!.pos);
         }
         this.state.size = size;
         this.emit({ type: 'style', line, state: this.snapshot() });
@@ -509,7 +495,7 @@ class Interpreter {
       case 'SETTEMPO': {
         const bpm = num(0);
         if (bpm < 20 || bpm > 300) {
-          throw new LogoError(`SETTEMPO needs a number from 20 to 300 beats a minute, like SETTEMPO 120. You gave ${formatValue(bpm)}.`, argExprs[0]!.pos);
+          throw logoError('run.tempo', { value: formatValue(bpm) }, argExprs[0]!.pos);
         }
         this.tempo = bpm;
         return;
@@ -517,7 +503,7 @@ class Interpreter {
       case 'WAIT': {
         const n = num(0);
         if (n < 0 || n > 600) {
-          throw new LogoError(`WAIT needs a number from 0 to 600 (60 is one second). You gave ${formatValue(n)}.`, argExprs[0]!.pos);
+          throw logoError('run.wait', { value: formatValue(n) }, argExprs[0]!.pos);
         }
         this.addSeconds(n / 60, pos);
         this.emit({ type: 'wait', seconds: n / 60, line, state: this.snapshot() });
@@ -537,7 +523,7 @@ class Interpreter {
           this.worldCommand(this.world, name, argExprs.length ? num(0) : null, line);
           return;
         }
-        throw new LogoError(`I don't know how to ${name} yet.`, pos);
+        throw logoError('run.unknown', { name }, pos);
     }
   }
 
@@ -575,13 +561,13 @@ class Interpreter {
       case '-': return a - b;
       case '*': return a * b;
       case '/':
-        if (b === 0) throw new LogoError("You can't divide by zero.", pos);
+        if (b === 0) throw logoError('run.divZero', {}, pos);
         return a / b;
       case '<': return a < b;
       case '>': return a > b;
       case '<=': return a <= b;
       case '>=': return a >= b;
-      default: throw new LogoError(`I don't understand ${op}.`, pos);
+      default: throw logoError('run.op', { op }, pos);
     }
   }
 
@@ -591,18 +577,18 @@ class Interpreter {
       case 'RANDOM': {
         const n = num(0);
         if (!Number.isInteger(n) || n <= 0) {
-          throw new LogoError(`RANDOM needs a whole number bigger than 0, like RANDOM 10. You gave ${formatValue(n)}.`, argExprs[0]!.pos);
+          throw logoError('run.random', { value: formatValue(n) }, argExprs[0]!.pos);
         }
         return Math.floor(this.random() * n);
       }
       case 'REPCOUNT': {
         const current = this.repcounts[this.repcounts.length - 1];
-        if (current === undefined) throw new LogoError('REPCOUNT only works inside a REPEAT.', pos);
+        if (current === undefined) throw logoError('run.repcount', {}, pos);
         return current;
       }
       case 'SQRT': {
         const n = num(0);
-        if (n < 0) throw new LogoError("SQRT can't take a number below zero.", argExprs[0]!.pos);
+        if (n < 0) throw logoError('run.sqrt', {}, argExprs[0]!.pos);
         return Math.sqrt(n);
       }
       case 'SIN':
@@ -625,24 +611,24 @@ class Interpreter {
       default: {
         const sensed = this.world?.reporter(name);
         if (sensed !== undefined) return sensed;
-        throw new LogoError(`I don't know how to ${name} yet.`, pos);
+        throw logoError('run.unknown', { name }, pos);
       }
     }
   }
 
   private toNumber(value: Value, owner: string, pos: SourcePos): number {
     if (typeof value === 'number') {
-      if (!Number.isFinite(value)) throw new LogoError(`That number is too big for ${owner}.`, pos);
+      if (!Number.isFinite(value)) throw logoError('run.tooBig', { owner }, pos);
       return value;
     }
     if (typeof value === 'string' && value.trim() !== '' && Number.isFinite(Number(value))) return Number(value);
-    throw new LogoError(`${owner} needs a number, but got "${formatValue(value)}".`, pos);
+    throw logoError('run.needsNumber', { owner, value: formatValue(value) }, pos);
   }
 
   private toColor(value: Value, owner: string, pos: SourcePos): string {
     if (typeof value === 'number') {
       if (!Number.isInteger(value) || value < 0 || value > 15) {
-        throw new LogoError(`Colour numbers go from 0 to 15. You gave ${formatValue(value)}.`, pos);
+        throw logoError('run.colourNumber', { value: formatValue(value) }, pos);
       }
       return PALETTE_16[value]!;
     }
@@ -651,16 +637,13 @@ class Interpreter {
       const named = NAMED_COLORS[key];
       if (named) return named;
       const hint = suggest(key, Object.keys(NAMED_COLORS));
-      throw new LogoError(
-        hint ? `I don't know the colour "${value}". Did you mean "${hint.toLowerCase()}?` : `I don't know the colour "${value}". Try "red, "blue or "green.`,
-        pos,
-      );
+      throw (hint ? logoError('run.colourHint', { value, hint: hint.toLowerCase() }, pos) : logoError('run.colour', { value }, pos));
     }
     if (Array.isArray(value) && value.length === 3 && value.every((v) => typeof v === 'number')) {
       const [r, g, b] = value as number[];
       return rgbToHex(r!, g!, b!);
     }
-    throw new LogoError(`${owner} needs a colour like "red, a number from 0 to 15, or [255 0 0].`, pos);
+    throw logoError('run.colourNeeds', { owner }, pos);
   }
 }
 

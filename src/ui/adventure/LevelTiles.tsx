@@ -2,10 +2,12 @@ import { Link } from 'react-router-dom';
 import { LEVELS, type AgeModeId, type Level, type RealmId } from '../../logo/adventure/index.js';
 import { LockIcon } from '../components/icons';
 import { realmName } from './realms';
+import { localizeLevel } from '../../i18n/content.js';
+import { useLang, useT } from '../lang';
 import { StarRow } from './StarRow';
 import { levelNumber, levelStatus, realmLevels, type AdventureState } from './state';
 
-const KIND_WORD: Record<Level['kind'], string | null> = { play: null, fix: 'Fix it', boss: 'Boss' };
+const KIND_WORD: Record<Level['kind'], string | null> = { play: null, fix: 'adv.kind.fix', boss: 'adv.kind.boss' };
 
 interface LevelTilesProps {
   realm: RealmId;
@@ -18,13 +20,17 @@ interface LevelTilesProps {
 
 /** The levels of one world as big tiles: number, title, stars. Locked ones show a padlock and cannot be tapped. */
 export function LevelTiles({ realm, mode, state, levels = LEVELS, current = null }: LevelTilesProps) {
+  const t = useT();
+  const { lang } = useLang();
   const list = realmLevels(realm, mode, levels);
   return (
-    <ul className="adv-tiles" aria-label={`${realmName(realm)} levels`}>
-      {list.map((level) => {
-        const status = levelStatus(state, mode, level, levels);
-        const kind = KIND_WORD[level.kind];
-        const n = levelNumber(level, mode, levels);
+    <ul className="adv-tiles" aria-label={t('adv.levelsOf', { realm: realmName(realm, lang) })}>
+      {list.map((raw) => {
+        const status = levelStatus(state, mode, raw, levels);
+        const level = localizeLevel(raw, lang);
+        const kindKey = KIND_WORD[level.kind];
+        const kind = kindKey ? t(kindKey) : null;
+        const n = levelNumber(raw, mode, levels);
         const inner = (
           <>
             <span className="adv-tile-n" aria-hidden="true">
@@ -40,11 +46,11 @@ export function LevelTiles({ realm, mode, state, levels = LEVELS, current = null
         return (
           <li key={level.id}>
             {status.open ? (
-              <Link to={`/adventure/${level.id}`} className="adv-tile" data-current={current === level.id} aria-label={`Level ${n}, ${level.title}${kind ? `, ${kind}` : ''}, ${status.stars} of 3 stars`}>
+              <Link to={`/adventure/${level.id}`} className="adv-tile" data-current={current === level.id} aria-label={t('adv.tile.aria', { n, title: level.title, kind: kind ? `, ${kind}` : '', stars: status.stars })}>
                 {inner}
               </Link>
             ) : (
-              <div className="adv-tile" data-locked="true" role="group" aria-label={`Level ${n}, ${level.title}, locked`}>
+              <div className="adv-tile" data-locked="true" role="group" aria-label={t('adv.tile.locked', { n, title: level.title })}>
                 {inner}
               </div>
             )}

@@ -27,6 +27,10 @@ import { useMedia } from '../responsive/useMedia';
 import { useWindowClass } from '../responsive/useWindowClass';
 import { getAt, insertBlock, isDescendant, lineMap, moveBlock, removeBlock, update, type Path } from './block-tree';
 import './blocks.css';
+import { tr, trWord } from '../lang-state';
+
+/** A block word (`Forward`, `Draw` ...) in the child's language. */
+const bt = (english: string): string => trWord('blocks', english);
 
 interface Spec {
   label: string;
@@ -37,14 +41,15 @@ interface Spec {
 }
 
 const PITCH_NAMES: Record<NotePitch, string> = { C: 'C', D: 'D', E: 'E', F: 'F', G: 'G', A: 'A', B: 'B', C5: 'high C', R: 'Rest' };
+const pitchName = (p: NotePitch): string => (p === 'C5' ? tr('blocks.highC') : p === 'R' ? bt('Rest') : PITCH_NAMES[p]);
 
 function noteColor(pitch: NotePitch): string {
   return NOTE_KEYS.find((k) => k.pitch === pitch)?.color ?? '#64748b';
 }
 
 function noteLabel(b: Extract<Block, { kind: 'note' }>): string {
-  const name = b.pitch === 'R' ? 'Rest' : `Note ${PITCH_NAMES[b.pitch]}`;
-  return b.beats === 2 ? `${name}, long` : name;
+  const name = b.pitch === 'R' ? bt('Rest') : tr('blocks.note', { name: pitchName(b.pitch) });
+  return b.beats === 2 ? tr('blocks.noteLong', { name }) : name;
 }
 
 function valueText(spec: Spec, n: number): string {
@@ -70,7 +75,7 @@ const SPECS: Record<BlockKind, Spec> = {
     color: '#64748b',
     make: () => ({ kind: 'wait', n: 30 }),
     // WAIT counts sixtieths of a second; children see seconds.
-    number: { step: 30, min: 30, max: 300, format: (n) => `${n / 60} s`, spoken: (n) => `${n / 60} seconds` },
+    number: { step: 30, min: 30, max: 300, format: (n) => `${n / 60} s`, spoken: (n) => tr('blocks.seconds', { n: n / 60 }) },
   },
   repeat: { label: 'Repeat', glyph: '🔁', color: '#7a4cf0', make: () => ({ kind: 'repeat', n: 4, body: [] }), number: { step: 1, min: 1, max: 36, unit: '×' } },
   // The adventure's blocks. They are in the palette only when a PaletteConfig lists them.
@@ -104,6 +109,10 @@ const PALETTE_GROUPS: PaletteConfig['groups'] = [
 /** Studio's palette, and the default. */
 export const STUDIO_PALETTE: PaletteConfig = { groups: PALETTE_GROUPS };
 function specFor(palette: PaletteConfig, kind: BlockKind): Spec {
+  const spec = specForEnglish(palette, kind);
+  return { ...spec, label: bt(spec.label) };
+}
+function specForEnglish(palette: PaletteConfig, kind: BlockKind): Spec {
   const o = palette.specs?.[kind];
   if (!o) return SPECS[kind];
   const { number, ...rest } = o;
@@ -115,7 +124,7 @@ function specFor(palette: PaletteConfig, kind: BlockKind): Spec {
 const SENSE_NAMES = { AHEAD: 'ahead', HERE: 'here' } as const;
 /** The words on an If block's pill, for example "If ahead is not water". */
 function ifLabel(b: Extract<Block, { kind: 'if' }>): string {
-  return `If ${SENSE_NAMES[b.sense]} ${b.not ? 'is not' : 'is'} ${b.is}`;
+  return tr('blocks.if', { sense: tr(`blocks.${SENSE_NAMES[b.sense]}`), is: b.not ? tr('blocks.isNot') : tr('blocks.is'), word: b.is });
 }
 
 /* ---- drag and drop plumbing ---- */
@@ -148,14 +157,14 @@ class MousePenSensor extends PointerSensor {
 }
 
 const slotId = (parent: Path, index: number) => `slot:${parent.join('.')}:${index}`;
-const whereLabel = (blocks: Block[], parent: Path) => (parent.length ? `inside ${getAt(blocks, parent) ? SPECS[getAt(blocks, parent)!.kind].label : 'Repeat'}` : 'in your blocks');
+const whereLabel = (blocks: Block[], parent: Path) => (parent.length ? tr('blocks.inside', { block: bt(getAt(blocks, parent) ? SPECS[getAt(blocks, parent)!.kind].label : 'Repeat') }) : tr('blocks.inYours'));
 
 function DropSlot({ parent, index, where, disabled, empty }: { parent: Path; index: number; where: string; disabled: boolean; empty?: boolean }) {
   const data: SlotData = { type: 'slot', parent, index, where };
   const { setNodeRef, isOver } = useDroppable({ id: slotId(parent, index), data, disabled });
   return (
     <div ref={setNodeRef} className={`drop-slot ${isOver ? 'is-over' : ''} ${empty ? 'is-empty' : ''}`} aria-hidden="true" data-slot={`${parent.join('.')}:${index}`}>
-      {empty && <span className="drop-slot-hint">Drop blocks here</span>}
+      {empty && <span className="drop-slot-hint">{tr('blocks.dropHere')}</span>}
     </div>
   );
 }
@@ -191,7 +200,7 @@ function DragHandle({ path, label }: { path: Path; label: string }) {
       className={`drag-handle ${isDragging ? 'is-dragging' : ''}`}
       {...attributes}
       {...listeners}
-      aria-label={`Drag ${label} block`}
+      aria-label={tr('blocks.drag', { label })}
       data-block-path={path.join('.')}
       onClick={(e) => e.stopPropagation()}
     >
@@ -292,17 +301,17 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
   };
 
   const announcements: Announcements = {
-    onDragStart: ({ active }) => `Picked up ${(active.data.current as DragData | undefined)?.label ?? 'a'} block.`,
+    onDragStart: ({ active }) => tr('blocks.pickedUp', { label: (active.data.current as DragData | undefined)?.label ?? tr('blocks.a') }),
     onDragOver: ({ active, over }) => {
       const to = over?.data.current as SlotData | undefined;
-      return to ? `${(active.data.current as DragData | undefined)?.label ?? 'Block'} block is over a place ${to.where}, position ${to.index + 1}.` : undefined;
+      return to ? tr('blocks.over', { label: (active.data.current as DragData | undefined)?.label ?? tr('blocks.block'), where: to.where, n: to.index + 1 }) : undefined;
     },
     onDragEnd: ({ active, over }) => {
       const to = over?.data.current as SlotData | undefined;
-      const label = (active.data.current as DragData | undefined)?.label ?? 'Block';
-      return to ? `Dropped ${label} block ${to.where}.` : `${label} block was put back.`;
+      const label = (active.data.current as DragData | undefined)?.label ?? tr('blocks.block');
+      return to ? tr('blocks.dropped', { label, where: to.where }) : tr('blocks.putBack', { label });
     },
-    onDragCancel: ({ active }) => `Dragging stopped. ${(active.data.current as DragData | undefined)?.label ?? 'The'} block was put back.`,
+    onDragCancel: ({ active }) => tr('blocks.stopped', { label: (active.data.current as DragData | undefined)?.label ?? tr('blocks.block') }),
   };
 
   const blockedParent = dragging?.type === 'block' ? dragging.path : null;
@@ -322,7 +331,7 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
           const n = 'n' in b ? b.n : null;
           const label = b.kind === 'note' ? noteLabel(b) : b.kind === 'if' ? ifLabel(b) : spec.label;
           const spokenValue = n !== null ? ` ${spec.number?.spoken ? spec.number.spoken(n) : valueText(spec, n)}` : '';
-          const name = `${label}${spokenValue}${b.kind === 'color' ? ` ${b.color}` : ''}`;
+          const name = `${label}${spokenValue}${b.kind === 'color' ? ` ${tr(`colour.${b.color}`)}` : ''}`;
           return (
             <li key={key} className="flex flex-col">
               <DropSlot parent={prefix} index={i} where={where} disabled={slotDisabled(prefix)} />
@@ -343,11 +352,11 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
                 <span className="block-label text-[19px] font-black">{label}</span>
                 {spec.number && n !== null && (
                   <span className="block-steppers ml-auto flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                    <button type="button" className="block-step" aria-label={`Less ${spec.label}`} onClick={() => setValue(path, { n: Math.max(spec.number!.min, n - spec.number!.step) } as Partial<Block>)}>
+                    <button type="button" className="block-step" aria-label={tr('blocks.less', { label: spec.label })} onClick={() => setValue(path, { n: Math.max(spec.number!.min, n - spec.number!.step) } as Partial<Block>)}>
                       <MinusIcon size={18} />
                     </button>
                     <span className="block-value">{valueText(spec, n)}</span>
-                    <button type="button" className="block-step" aria-label={`More ${spec.label}`} onClick={() => setValue(path, { n: Math.min(spec.number!.max, n + spec.number!.step) } as Partial<Block>)}>
+                    <button type="button" className="block-step" aria-label={tr('blocks.more', { label: spec.label })} onClick={() => setValue(path, { n: Math.min(spec.number!.max, n + spec.number!.step) } as Partial<Block>)}>
                       <PlusIcon size={18} />
                     </button>
                   </span>
@@ -366,14 +375,14 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
                         type="button"
                         className={`swatch ${b.color === c ? 'ring-4 ring-[#17261f]/30' : ''}`}
                         style={{ backgroundColor: NAMED_COLORS[c.toUpperCase()] }}
-                        aria-label={`Colour ${c}`}
+                        aria-label={tr('blocks.colourAria', { name: tr(`colour.${c}`) })}
                         onClick={() => setValue(path, { color: c } as Partial<Block>)}
                       />
                     ))}
                   {b.kind === 'if' && palette.ifWords && (
                     <div className="if-picker">
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="segmented" role="radiogroup" aria-label="What Gio looks at">
+                        <div className="segmented" role="radiogroup" aria-label={tr('blocks.looksAt')}>
                           {(['AHEAD', 'HERE'] as const).map((sense) => (
                             <button
                               key={sense}
@@ -385,19 +394,19 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
                                 setValue(path, { sense, is: words.includes(b.is) ? b.is : (words[0] ?? b.is) } as Partial<Block>);
                               }}
                             >
-                              {sense === 'AHEAD' ? 'Ahead' : 'Here'}
+                              {sense === 'AHEAD' ? tr('blocks.Ahead') : tr('blocks.Here')}
                             </button>
                           ))}
                         </div>
-                        <div className="segmented" role="radiogroup" aria-label="Is or is not">
+                        <div className="segmented" role="radiogroup" aria-label={tr('blocks.isOrNot')}>
                           {([false, true] as const).map((not) => (
                             <button key={String(not)} type="button" role="radio" aria-checked={b.not === not} onClick={() => setValue(path, { not } as Partial<Block>)}>
-                              {not ? 'is not' : 'is'}
+                              {not ? tr('blocks.isNot') : tr('blocks.is')}
                             </button>
                           ))}
                         </div>
                       </div>
-                      <div className="if-words" role="group" aria-label="Look for">
+                      <div className="if-words" role="group" aria-label={tr('blocks.lookFor')}>
                         {palette.ifWords[b.sense].map((word) => (
                           <button key={word} type="button" className="if-word" aria-pressed={b.is === word} onClick={() => setValue(path, { is: word } as Partial<Block>)}>
                             {word}
@@ -408,7 +417,7 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
                   )}
                   {b.kind === 'note' && (
                     <div className="note-picker">
-                      <div className="note-picker-keys" role="group" aria-label="Pick a note">
+                      <div className="note-picker-keys" role="group" aria-label={tr('blocks.pickNote')}>
                         {NOTE_KEYS.map((key) => (
                           <button
                             key={key.pitch}
@@ -416,7 +425,7 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
                             className="note-pick"
                             style={{ background: key.color }}
                             aria-pressed={b.pitch === key.pitch}
-                            aria-label={`Note ${PITCH_NAMES[key.pitch]}`}
+                            aria-label={tr('blocks.note', { name: pitchName(key.pitch) })}
                             onClick={() => setValue(path, { pitch: key.pitch } as Partial<Block>)}
                           >
                             {key.label}
@@ -424,27 +433,27 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
                         ))}
                       </div>
                       <div className="flex flex-wrap items-center gap-2">
-                        <div className="segmented" role="radiogroup" aria-label="Note length">
+                        <div className="segmented" role="radiogroup" aria-label={tr('blocks.noteLength')}>
                           {([1, 2] as const).map((beats) => (
                             <button key={beats} type="button" role="radio" aria-checked={b.beats === beats} onClick={() => setValue(path, { beats } as Partial<Block>)}>
-                              {beats === 1 ? 'Short' : 'Long'}
+                              {beats === 1 ? tr('blocks.short') : tr('blocks.long')}
                             </button>
                           ))}
                         </div>
                         <button type="button" className="btn btn-quiet" aria-pressed={b.pitch === 'R'} onClick={() => setValue(path, { pitch: 'R' } as Partial<Block>)}>
-                          Rest
+                          {bt('Rest')}
                         </button>
                       </div>
                     </div>
                   )}
                   <span className="flex gap-2 ml-auto">
-                    <button type="button" className="btn btn-quiet btn-icon" aria-label="Move up" onClick={() => move(path, -1)} disabled={i === 0}>
+                    <button type="button" className="btn btn-quiet btn-icon" aria-label={tr('blocks.moveUp')} onClick={() => move(path, -1)} disabled={i === 0}>
                       <ArrowUpIcon />
                     </button>
-                    <button type="button" className="btn btn-quiet btn-icon" aria-label="Move down" onClick={() => move(path, 1)} disabled={i === list.length - 1}>
+                    <button type="button" className="btn btn-quiet btn-icon" aria-label={tr('blocks.moveDown')} onClick={() => move(path, 1)} disabled={i === list.length - 1}>
                       <ArrowDownIcon />
                     </button>
-                    <button type="button" className="btn btn-quiet btn-icon text-[#c43f33]" aria-label="Remove block" onClick={() => remove(path)}>
+                    <button type="button" className="btn btn-quiet btn-icon text-[#c43f33]" aria-label={tr('blocks.remove')} onClick={() => remove(path)}>
                       <TrashIcon />
                     </button>
                   </span>
@@ -458,7 +467,7 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
                   ) : (
                     <>
                       <DropSlot parent={path} index={0} where={whereLabel(blocks, path)} disabled={slotDisabled(path)} empty />
-                      <p className="m-0 text-[15px] font-bold text-ink-3">{isSelected ? 'Now tap blocks to put them inside.' : `Tap ${b.kind === 'if' ? 'If' : 'Repeat'}, then tap blocks to put inside.`}</p>
+                      <p className="m-0 text-[15px] font-bold text-ink-3">{isSelected ? tr('blocks.tapInside') : tr('blocks.tapThen', { block: bt(b.kind === 'if' ? 'If' : 'Repeat') })}</p>
                     </>
                   )}
                 </div>
@@ -493,20 +502,20 @@ export function BlocksEditor({ blocks, runningLine, problemLine = null, palette 
             renderList(blocks, [])
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center gap-2 py-10">
-              <p className="m-0 text-[22px] font-black">{win.coarse ? 'Drag a block here, or tap one' : 'Tap a block to start!'}</p>
-              <p className="m-0 text-[16px] font-semibold text-ink-2">Try Forward, then press {palette.runLabel ?? 'Run'}.</p>
-              <DropSlot parent={[]} index={0} where="in your blocks" disabled={false} empty />
+              <p className="m-0 text-[22px] font-black">{win.coarse ? tr('blocks.dragHere') : tr('blocks.tapStart')}</p>
+              <p className="m-0 text-[16px] font-semibold text-ink-2">{tr('blocks.tryForward', { run: bt(palette.runLabel ?? 'Run') })}</p>
+              <DropSlot parent={[]} index={0} where={tr('blocks.inYours')} disabled={false} empty />
             </div>
           )}
         </div>
         <div className="blocks-palette border-t border-line bg-paper-2 px-4 py-4">
           <div className="palette-head flex flex-wrap items-center justify-between gap-2 mb-2">
-            <p className="m-0 eyebrow">{hasBody(selectedBlock) ? `Adding inside ${SPECS[selectedBlock.kind].label}` : 'Blocks'}</p>
+            <p className="m-0 eyebrow">{hasBody(selectedBlock) ? tr('blocks.adding', { block: bt(SPECS[selectedBlock.kind].label) }) : bt('Blocks')}</p>
             {palette.groups.length > 1 && (
-              <div className="segmented" role="tablist" aria-label="Block groups">
+              <div className="segmented" role="tablist" aria-label={tr('blocks.groups')}>
                 {palette.groups.map((g) => (
                   <button key={g.id} type="button" role="tab" aria-selected={group === g.id} onClick={() => setGroup(g.id)}>
-                    {g.title}
+                    {bt(g.title)}
                   </button>
                 ))}
               </div>

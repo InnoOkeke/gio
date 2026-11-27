@@ -5,6 +5,7 @@ import { bracketMatching, indentOnInput, syntaxHighlighting } from '@codemirror/
 import { python } from '@codemirror/lang-python';
 import { EditorState } from '@codemirror/state';
 import { EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder } from '@codemirror/view';
+import { tr } from '../lang-state';
 import { lineHighlights, logoHighlight, setProblemLine, setRunningLine } from './logo-language';
 
 export interface PythonEditorHandle {
@@ -45,7 +46,7 @@ export const PythonEditor = forwardRef<PythonEditorHandle, PythonEditorProps>(fu
           indentOnInput(),
           bracketMatching(),
           closeBrackets(),
-          placeholder('Type Python here, like  forward(100)'),
+          placeholder(tr('editor.python.ph')),
           keymap.of([
             { key: 'Mod-Enter', run: () => (onRunRef.current(), true) },
             ...closeBracketsKeymap,
@@ -58,7 +59,7 @@ export const PythonEditor = forwardRef<PythonEditorHandle, PythonEditorProps>(fu
           syntaxHighlighting(logoHighlight),
           lineHighlights(),
           EditorView.lineWrapping,
-          EditorView.contentAttributes.of({ 'aria-label': 'Python code', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),
+          EditorView.contentAttributes.of({ 'aria-label': tr('editor.python.aria'), spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off' }),
           EditorView.updateListener.of((u) => {
             if (u.docChanged) onChangeRef.current(u.state.doc.toString());
           }),

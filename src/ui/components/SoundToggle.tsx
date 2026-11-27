@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { sound } from '../runtime/sound';
+import { useT } from '../lang';
 import { MusicIcon, MusicOffIcon } from './icons';
 
 /** Sound on or off. Also unlocks the browser's audio on the first tap or key press. Hidden without Web Audio. */
 export function SoundToggle() {
+  const t = useT();
   const [on, setOn] = useState(sound.enabled);
 
   useEffect(() => {
@@ -17,7 +19,7 @@ export function SoundToggle() {
   }, []);
 
   if (!sound.available) return null;
-  const label = on ? 'Sound on' : 'Sound off';
+  const label = on ? t('sound.on') : t('sound.off');
   return (
     <button
       type="button"

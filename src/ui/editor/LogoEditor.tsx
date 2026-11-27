@@ -6,6 +6,7 @@ import { EditorState, type Extension } from '@codemirror/state';
 import { EditorView, drawSelection, highlightActiveLine, highlightActiveLineGutter, keymap, lineNumbers, placeholder } from '@codemirror/view';
 import { logoLanguage, setProblemLine, setRunningLine } from './logo-language';
 import { inlineInsertion } from './key-row';
+import { tr } from '../lang-state';
 
 /** Height of the on-screen command key row, written by CommandKeyRow as --key-row-h. */
 function keyRowHeight(): number {
@@ -63,7 +64,7 @@ export const LogoEditor = forwardRef<LogoEditorHandle, LogoEditorProps>(function
           indentOnInput(),
           bracketMatching(),
           closeBrackets(),
-          placeholder(hint ?? 'Type Logo here, like  FD 100  RT 90 …'),
+          placeholder(hint ?? tr('editor.logo.ph')),
           keymap.of([
             { key: 'Mod-Enter', run: () => (onRunRef.current(), true) },
             { key: 'Escape', run: (v) => (v.contentDOM.blur(), true) },
@@ -75,7 +76,7 @@ export const LogoEditor = forwardRef<LogoEditorHandle, LogoEditorProps>(function
           ]),
           language ?? logoLanguage(),
           EditorView.lineWrapping,
-          EditorView.contentAttributes.of({ 'aria-label': 'Logo code', spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off', enterkeyhint: 'enter', inputmode: 'text' }),
+          EditorView.contentAttributes.of({ 'aria-label': tr('editor.logo.aria'), spellcheck: 'false', autocapitalize: 'off', autocorrect: 'off', enterkeyhint: 'enter', inputmode: 'text' }),
           EditorView.scrollMargins.of(() => ({ bottom: keyRowHeight() + 16 })),
           EditorView.domEventHandlers({
             focus: () => void onFocusRef.current?.(true),
