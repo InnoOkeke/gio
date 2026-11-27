@@ -83,7 +83,7 @@ export const COLLECT_FACTS = `(() => {
   // A pane that scrolls sideways inside itself is still a sideways scroll for a child. Code (CodeMirror and the Python and JavaScript listings) and marked scrollers are allowed: long lines scroll inside the code box.
   for (const e of document.querySelectorAll('body *')) {
     if (overflowing.length >= 12) break;
-    if (e.closest('svg') || e.closest('.cm-editor') || e.closest('pre, code, [aria-label$=" code"]') || e.closest('[data-hscroll]') || !visible(e)) continue;
+    if (e.closest('svg') || e.closest('.cm-editor') || e.closest('pre, code, [aria-label$=" code"], [aria-label^="Code "], [aria-label^="Código "]') || e.closest('[data-hscroll]') || !visible(e)) continue;
     const cs = getComputedStyle(e);
     if (!['auto', 'scroll'].includes(cs.overflowX) || e.scrollWidth <= e.clientWidth + 1) continue;
     const r = e.getBoundingClientRect();
@@ -175,7 +175,7 @@ export const COLLECT_FACTS = `(() => {
       if (kids[0]) panel = kids[0];
     }
     const buttons = [...modal.querySelectorAll('button, a[href]')];
-    const close = buttons.find((b) => visible(b) && /^close$/i.test(nameOf(b))) || buttons.find((b) => visible(b) && /close|fermer|cerrar|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop|^hi,/i.test(nameOf(b)));
+    const close = buttons.find((b) => visible(b) && /^(close|close am|fermer|cerrar)$/i.test(nameOf(b))) || buttons.find((b) => visible(b) && /close|fermer|cerrar|back|done|got it|ok\\b|later|keep|continue|see the map|great|cancel|skip|no thanks|stop|^hi,|retour|volver|termin|listo|compris|entendido|annuler|cancelar|passer|saltar|plus tard|luego|continuer|continuar|seguir|voir la carte|ver el mapa|^salut|^hola|^how far|comot|go back|i don get am|no be now|pas maintenant|ahora no/i.test(nameOf(b)));
     dialog = { panel: rectOf(panel), close: close ? rectOf(close) : null, closeName: close ? nameOf(close) : '' };
   }
   let header = null;

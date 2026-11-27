@@ -23,8 +23,8 @@ import { shareText, todaysPuzzle } from '../src/ui/daily';
  * Raw was raised for the fun features (FILL, colouring pages, Daily Turtle Puzzle) and again when the four languages were bundled.
  * Gzip is what is downloaded. Re-measure after the merge and set the final numbers below.
  */
-const BUDGET_RAW = 2_102_000;
-const BUDGET_GZIP = 1_043_000;
+const BUDGET_RAW = 2_659_000;
+const BUDGET_GZIP = 1_207_000;
 
 const OFFLINE_MESSAGE = 'Gio needs the internet for this one. Drawing and quests still work, and your code is safe on this phone.';
 const PYTHON_OFFLINE_TEXT = 'Python needs the internet to get ready.';

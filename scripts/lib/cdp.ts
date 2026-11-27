@@ -8,6 +8,16 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
+/** The texts a click looks for. LANG-aware callers replace it (see devices-check.ts); by default only the text itself. */
+let cdpTexts: (text: string) => string[] = (text) => [text];
+export function setClickTexts(fn: (text: string) => string[]): void {
+  cdpTexts = fn;
+}
+/** Rewrites page scripts before they run, so English `aria-label` selectors also find the chosen language. */
+let cdpRewrite: (expr: string) => string = (expr) => expr;
+export function setScriptRewrite(fn: (expr: string) => string): void {
+  cdpRewrite = fn;
+}
 export const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 const BROWSERS = [
@@ -106,7 +116,7 @@ export async function launchBrowser(base: string): Promise<Cdp> {
       ws.send(JSON.stringify({ id: n, method, params }));
     });
   // While a page is navigating the browser answers with an error and no result; treat that as "not yet".
-  const evaluate = async <T = unknown>(expr: string) => (await send('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true }))?.result?.value as T | undefined;
+  const evaluate = async <T = unknown>(expr: string) => (await send('Runtime.evaluate', { expression: cdpRewrite(expr), returnByValue: true, awaitPromise: true }))?.result?.value as T | undefined;
   const waitFor = async (expr: string, ms = 8000) => {
     for (let t = 0; t < ms; t += 150) {
       if (await evaluate(expr)) return true;
@@ -135,9 +145,11 @@ export async function launchBrowser(base: string): Promise<Cdp> {
     evaluate,
     waitFor,
     async click(selector, text = '') {
+      const texts = cdpTexts(text);
       const ok = await evaluate<boolean>(`(() => {
+        const texts = ${JSON.stringify(texts)};
         const shown = (e) => { const r = e.getBoundingClientRect(); return r.width > 0 && r.height > 0 && getComputedStyle(e).visibility !== 'hidden'; };
-        const all = [...document.querySelectorAll(${JSON.stringify(selector)})].filter((e) => (e.getAttribute('aria-label') ?? '').includes(${JSON.stringify(text)}) || (e.textContent ?? '').includes(${JSON.stringify(text)}));
+        const all = [...document.querySelectorAll(${JSON.stringify(selector)})].filter((e) => texts.some((t) => (e.getAttribute('aria-label') ?? '').includes(t) || (e.textContent ?? '').includes(t)));
         const el = all.find(shown) ?? all[0];
         if (!el) return false;
         window.__tap = performance.now(); el.click();

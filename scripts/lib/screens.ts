@@ -5,6 +5,7 @@
  */
 import { LEVELS } from '../../src/logo/adventure/index.js';
 import { todaysPuzzle } from '../../src/ui/daily';
+import { canonical } from '../../src/logo/word-table.js';
 import { ISLANDS } from '../../src/ui/path/islands';
 import { ADVENTURE_REFERENCE } from '../../tests/solutions/adventure';
 import type { Cdp } from './cdp';
@@ -179,7 +180,7 @@ function expect(ok: boolean, message: string): void {
 }
 
 const GARDEN_OPEN = `!!document.querySelector('#garden-title')`;
-const FOCUS_ON_GARDEN_BUTTON = `document.activeElement?.getAttribute('aria-label') === "Gio's garden"`;
+const FOCUS_ON_GARDEN_BUTTON = `!!document.activeElement && [...document.querySelectorAll('button[aria-label="Gio\\'s garden"]')].includes(document.activeElement)`;
 
 async function openGarden(c: Cdp): Promise<void> {
   // A tap or click focuses the button in Chrome; element.click() alone would not, so focus it first.
@@ -423,8 +424,13 @@ async function touchDrag(c: Cdp, from: Pt, target: () => Promise<Pt>): Promise<v
   await sleep(500);
 }
 
-const blocksLogo = (c: Cdp) =>
-  c.evaluate<string>(`(document.querySelector('pre[aria-label="Your blocks as Logo code"]')?.textContent ?? '').replace(/\\[/g, '[ ').replace(/\\]/g, ' ]').replace(/\\s+/g, ' ').trim()`);
+/** The blocks' Logo with English short words, whatever language the blocks wrote (AV 50 becomes FD 50). */
+const ENGLISH_SHORT: Record<string, string> = { FORWARD: 'FD', BACK: 'BK', RIGHT: 'RT', LEFT: 'LT', PENUP: 'PU', PENDOWN: 'PD' };
+const blocksLogo = async (c: Cdp) =>
+  ((await c.evaluate<string>(`(document.querySelector('pre[aria-label="Your blocks as Logo code"]')?.textContent ?? '').replace(/\\[/g, '[ ').replace(/\\]/g, ' ]').replace(/\\s+/g, ' ').trim()`)) ?? '')
+    .split(' ')
+    .map((w) => { const canon = canonical(w, false); return ENGLISH_SHORT[canon] ?? canon; })
+    .join(' ');
 
 /** Scroll an element to the middle of the screen (or of its scroller) and give back its centre. */
 async function reveal(c: Cdp, selector: string): Promise<Pt> {

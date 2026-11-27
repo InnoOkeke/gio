@@ -13,7 +13,9 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { ASSERTIONS, COLLECT_FACTS, calmPage, type Facts } from './device-checks';
-import { launchBrowser } from './lib/cdp';
+import { launchBrowser, setClickTexts, setScriptRewrite } from './lib/cdp';
+import { rewriteScript, textsFor } from './lib/lang-text';
+import type { Lang } from '../src/i18n/index.js';
 import { sleep } from './lib/cdp';
 import { applyDevice, DEVICES, type Orientation } from './lib/devices';
 import { SCREENS } from './lib/screens';
@@ -39,6 +41,8 @@ async function main(): Promise<void> {
   fs.mkdirSync(outDir, { recursive: true });
   const cdp = await launchBrowser(base);
   if (lang) {
+    setClickTexts((text) => textsFor(text, lang as Lang));
+    setScriptRewrite((expr) => rewriteScript(expr, lang as Lang));
     const seed = cdp.seed.bind(cdp);
     cdp.seed = (entries, query, titleSelector) => seed({ 'gio.lang': lang, ...entries }, query, titleSelector);
   }

@@ -7,10 +7,14 @@ import type { Messages } from './en.js';
  * Everything a child reads or says in Pidgin lives here. It is a first draft written to sound
  * like everyday spoken Pidgin, NOT English with changed spelling. Please read each section and
  * change anything that does not sound right to you. Sections, in order:
- *   1. SCREEN TEXT        buttons, titles, hints (FEAT-001 now; more screens come in FEAT-002)
+ *   1. SCREEN TEXT        buttons, titles, hints, the Privacy page and the certificate, for every screen
  *   2. LOGO COMMAND WORDS the words kids type (FD stays FD; GO, COMEBACK ... are proposals)
- * FEAT-002/FEAT-003 will add here: quest and level text, Logo error text, voice phrases,
- * number words, kid-safe terms and the helper instructions.
+ *   3. QUEST, STAGE, FRIEND AND ADVENTURE TEXT  quest titles, goals and hints, stage names, friends,
+ *      stickers, the lines Gio says, and every adventure world and level (by the data's own ids)
+ *   4. LOGO ERROR TEXT    what Gio says when a program has a problem
+ * FEAT-003 will add here: voice phrases, number words, kid-safe terms and the helper instructions.
+ * Block names in section 1 (blocks.*) use the same words as the hints in section 3: Go front,
+ * Go back, Do am again, Lift pen, Drop pen.
  * Keep {name} style markers exactly as they are. Code words are CAPITAL letters without accents.
  */
 
