@@ -116,6 +116,7 @@ function fileName(title: string, ext: string): string {
   return `${safe || 'gio-drawing'}.${ext}`;
 }
 const ReplayDialog = lazy(() => import('../components/ReplayDialog'));
+const ShareDialog = lazy(() => import('../components/ShareDialog'));
 const ColouringDialog = lazy(() => import('../components/ColouringDialog'));
 const DailyDialog = lazy(() => import('../components/DailyDialog'));
 // Each editor loads only in the mode that uses it: dnd-kit with the blocks, CodeMirror with Coder code.
@@ -241,6 +242,7 @@ function StudioView({ initial }: { initial: Loaded }) {
   const [questsOpen, setQuestsOpen] = useState(false);
   const [gardenOpen, setGardenOpen] = useState(false);
   const [movie, setMovie] = useState<{ events: readonly TurtleEvent[]; background: string } | null>(null);
+  const [sharePreview, setSharePreview] = useState<{ url: string; picture: string | null } | null>(null);
   /** The drawing shown as a colouring page, while that dialog is open. */
   const [colouring, setColouring] = useState<readonly TurtleEvent[] | null>(null);
   /** The Daily Turtle Puzzle dialog: today's puzzle and, once solved, its result. */
@@ -923,16 +925,7 @@ function StudioView({ initial }: { initial: Loaded }) {
     const slug = dirty || !project ? await save() : project.slug;
     if (!slug) return;
     const url = `${window.location.origin}/p/${slug}`;
-    try {
-      if (navigator.share && window.matchMedia('(pointer: coarse)').matches) {
-        await navigator.share({ title: `${title} · GIO`, text: tr('studio.shareText'), url });
-        return;
-      }
-      await navigator.clipboard.writeText(url);
-      toast.show({ text: tr('studio.linkCopied') });
-    } catch {
-      toast.show({ text: tr('studio.yourLink', { url }) }, 8000);
-    }
+    setSharePreview({ url, picture: stageRef.current?.toPNG() ?? null });
   };
 
   const exportPicture = () => {
@@ -1361,6 +1354,11 @@ function StudioView({ initial }: { initial: Loaded }) {
             onSaved={() => toast.show({ text: t('studio.savedMovie') })}
             onClose={() => setMovie(null)}
           />
+        </Suspense>
+      )}
+      {sharePreview && (
+        <Suspense fallback={null}>
+          <ShareDialog title={title || DEFAULT_TITLE} url={sharePreview.url} picture={sharePreview.picture} onClose={() => setSharePreview(null)} />
         </Suspense>
       )}
       {colouring && (
