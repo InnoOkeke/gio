@@ -1,4 +1,4 @@
-import { LogoError, logoError, type SourcePos } from './errors.js';
+import { logoError, type SourcePos } from './errors.js';
 import { foldWord } from './word-table.js';
 
 export type TokenType = 'number' | 'word' | 'quoted' | 'var' | 'lbracket' | 'rbracket' | 'lparen' | 'rparen' | 'op';

@@ -587,7 +587,7 @@ function StudioView({ initial }: { initial: Loaded }) {
       const q = questRef.current;
       if (!q) return;
       const result = checkQuest(q, codeRef.current);
-      const feedback = questFeedbackText(result);
+      const feedback = result.pass ? tr('check.complete', { title: localizeQuest(q, currentLang()).title }) : questFeedbackText(result);
       setQuestFeedback(feedback);
       if (!result.pass) {
         setFriendQueue((f) => [...f, ...earned.newFriends]);

@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getLocale, guessLang, t as format, type Lang, type Locale, type Params } from '../i18n/index.js';
-import { LANG_KEY, readStoredLang, setActiveLang } from './lang-state';
+import { currentLang, LANG_KEY, readStoredLang, setActiveLang } from './lang-state';
 
 interface LangContextValue {
   lang: Lang;
@@ -33,7 +33,11 @@ export function LangProvider({ children }: { children: ReactNode }) {
 
 export function useLang(): LangContextValue {
   const ctx = useContext(LangContext);
-  if (!ctx) throw new Error('useLang must be used inside LangProvider');
+  // Outside the provider (a lone component in a test, the error screen) the current language still applies.
+  if (!ctx) {
+    const lang = currentLang();
+    return { lang, locale: getLocale(lang), chosen: false, setLang: setActiveLang };
+  }
   return ctx;
 }
 
