@@ -171,7 +171,8 @@ async function main() {
       await click('button[aria-haspopup="dialog"]', 'Picture');
       await sleep(500);
       const rows = (await evaluate(`document.querySelectorAll('.save-row').length`)) as number;
-      expect(rows === 3, `the Save menu offers three ways to keep a drawing (${rows})`);
+      // Picture, drawing file and movie, plus colouring page, daily puzzle and WhatsApp sticker.
+      expect(rows === 6, `the Save menu offers six rows: three ways to keep a drawing and three fun extras (${rows})`);
       const row = await size('.save-row', 'Movie');
       expect(!!row && row.h >= 48, `menu rows are at least 48px high (${Math.round(row?.h ?? 0)}px)`);
       await fits('save menu', '[role=dialog]');

@@ -903,6 +903,25 @@ html[data-width='large'] .quest-preview {
   html[data-layout='split'] .studio-shell {
     grid-template-columns: minmax(0, 1fr) minmax(0, 460px) !important;
   }
+  /* The game pad in the controls column: 48px keys that fit its width, so the grid never squeezes a key under 48px. */
+  html[data-layout='split'] .studio-stage-pane:not([data-focus='true']) .gamepad {
+    gap: 8px;
+    padding: 8px;
+  }
+  html[data-layout='split'] .studio-stage-pane:not([data-focus='true']) .gamepad-dpad {
+    grid-template-columns: repeat(3, 48px);
+    grid-auto-rows: 48px;
+    gap: 8px;
+  }
+  html[data-layout='split'] .studio-stage-pane:not([data-focus='true']) .pad-btn.pad-arrow {
+    width: 48px;
+    min-width: 48px;
+    height: 48px;
+    min-height: 48px;
+  }
+  html[data-layout='split'] .studio-stage-pane:not([data-focus='true']) .pad-btn.pad-space {
+    min-height: 48px;
+  }
 }
 
 /* A small stage cannot hold the full-screen offer and the zoom buttons together: while the offer shows, it gets the stage. */
