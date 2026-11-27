@@ -40,7 +40,6 @@ import { StudioHeader } from '../components/StudioHeader';
 import { commandsUsed } from '../../logo/daily.js';
 import { recordDaily, savedResult, todaysPuzzle, type DailyResult, type TodaysPuzzle } from '../daily';
 import { haptic } from '../haptics';
-import { FUN_TEXT } from '../i18n-fun';
 import { makeSticker } from '../export/sticker';
 import { useWindowClass } from '../responsive/useWindowClass';
 import '../responsive/studio.css';
@@ -603,7 +602,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         const saved = recordDaily(today.number, q.audience, commandsUsed(codeRef.current) ?? 1, today.par);
         setFriendQueue((f) => [...f, ...earned.newFriends]);
         haptic('win');
-        setBubble({ kind: 'success', text: FUN_TEXT.dailyBubbleSolved, mood: 'cheer' });
+        setBubble({ kind: 'success', text: tr('fun.daily.bubbleSolved'), mood: 'cheer' });
         momentTimer.current.schedule(() => setDaily({ today, result: saved }), 800);
         return;
       }
@@ -952,12 +951,12 @@ function StudioView({ initial }: { initial: Loaded }) {
     try {
       const sticker = await makeSticker(events);
       if (!sticker) return;
-      const name = fileName(`${title || DEFAULT_TITLE} ${FUN_TEXT.stickerFileTitle}`, sticker.extension);
+      const name = fileName(`${title || DEFAULT_TITLE} ${tr('fun.sticker.fileTitle')}`, sticker.extension);
       const file = new File([sticker.blob], name, { type: sticker.blob.type });
       if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
         try {
           await navigator.share({ files: [file] });
-          toast.show({ text: FUN_TEXT.stickerShared });
+          toast.show({ text: tr('fun.sticker.shared') });
           return;
         } catch (err) {
           // Closing the share menu is not a problem. Any other failure falls back to a download.
@@ -970,9 +969,9 @@ function StudioView({ initial }: { initial: Loaded }) {
       a.download = name;
       a.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      toast.show({ text: FUN_TEXT.stickerSaved });
+      toast.show({ text: tr('fun.sticker.saved') });
     } catch {
-      toast.show({ text: FUN_TEXT.stickerFailed });
+      toast.show({ text: tr('fun.sticker.failed') });
     }
   };
   const exportSvg = () => {
@@ -1147,7 +1146,7 @@ function StudioView({ initial }: { initial: Loaded }) {
           />
         )}
         {quest ? (
-          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted && !skill.run} review={review ? { index: review.index, total: review.ids.length } : null} eyebrow={quest.id.startsWith('daily-') ? FUN_TEXT.dailyEyebrow((dailyPlayRef.current ?? todaysPuzzle(mode)).number) : undefined} nextLabel={quest.id.startsWith('daily-') ? FUN_TEXT.dailySeeResult : skill.run ? t('btn.nextChallenge') : review ? (review.index + 1 < review.ids.length ? t('btn.nextReview') : t('btn.finishReview')) : t('btn.nextQuest')} onHint={() => void askForHint()} onNext={quest.id.startsWith('daily-') ? openDaily : nextQuest} onLeave={leaveQuest} onVoice={(text) => {
+          <QuestCard quest={quest} done={questDone} feedback={questFeedback} star={questStar} hinted={hinted && !skill.run} review={review ? { index: review.index, total: review.ids.length } : null} eyebrow={quest.id.startsWith('daily-') ? t('fun.daily.eyebrow', { n: (dailyPlayRef.current ?? todaysPuzzle(mode)).number }) : undefined} nextLabel={quest.id.startsWith('daily-') ? t('fun.daily.seeResult') : skill.run ? t('btn.nextChallenge') : review ? (review.index + 1 < review.ids.length ? t('btn.nextReview') : t('btn.finishReview')) : t('btn.nextQuest')} onHint={() => void askForHint()} onNext={quest.id.startsWith('daily-') ? openDaily : nextQuest} onLeave={leaveQuest} onVoice={(text) => {
             const command = parseVoiceCommand(text);
             if (command) doCommand(command);
             else setBubble({ kind: 'info', text: tr('studio.questVoice') });

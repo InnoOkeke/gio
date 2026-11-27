@@ -1,7 +1,6 @@
 import { useT } from '../lang';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useSheetDrag } from '../responsive/useSheetDrag';
-import { FUN_TEXT } from '../i18n-fun';
 import { CrayonIcon, DownloadIcon, MovieIcon, ShapesIcon, StickerIcon, TrophyIcon } from './icons';
 
 interface ExportMenuProps {
@@ -111,24 +110,24 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
     },
     {
       id: 'colouring',
-      title: FUN_TEXT.colouringRow,
-      help: little ? FUN_TEXT.colouringRowHelpLittle : FUN_TEXT.colouringRowHelp,
+      title: t('fun.colouring.row'),
+      help: little ? t('fun.colouring.rowHelpLittle') : t('fun.colouring.rowHelp'),
       tile: 'bg-[#fde7f0] text-[#a3245a]',
       icon: <CrayonIcon size={24} />,
       run: onColouring,
     },
     {
       id: 'sticker',
-      title: FUN_TEXT.stickerRow,
-      help: little ? FUN_TEXT.stickerRowHelpLittle : FUN_TEXT.stickerRowHelp,
+      title: t('fun.sticker.row'),
+      help: little ? t('fun.sticker.rowHelpLittle') : t('fun.sticker.rowHelp'),
       tile: 'bg-[#dcf7e3] text-[#12663a]',
       icon: <StickerIcon size={24} />,
       run: onSticker,
     },
     {
       id: 'daily',
-      title: FUN_TEXT.dailyRow,
-      help: dailySolved ? FUN_TEXT.dailyRowSolved : little ? FUN_TEXT.dailyRowHelpLittle : FUN_TEXT.dailyRowHelp,
+      title: t('fun.daily.row'),
+      help: dailySolved ? t('fun.daily.rowSolved') : little ? t('fun.daily.rowHelpLittle') : t('fun.daily.rowHelp'),
       tile: 'bg-[#ece6ff] text-[#5b36c4]',
       icon: <TrophyIcon size={24} />,
       run: onDaily,

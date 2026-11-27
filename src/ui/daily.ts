@@ -1,5 +1,5 @@
 import { dayOf, parOf, puzzleOfTheDay, starsFor, type DailyMode, type DailyPuzzle } from '../logo/daily.js';
-import { FUN_TEXT } from './i18n-fun';
+import { pluralIn, translator, type Lang } from '../i18n/index.js';
 
 /** What a child solved, as JSON: puzzle number and mode to commands and stars. It stays in this browser. */
 export const DAILY_KEY = 'gio.daily';
@@ -81,8 +81,12 @@ export function todaysPuzzle(mode: DailyMode, now: Date = new Date()): TodaysPuz
 }
 
 /** The line a child shares. It says how it went and never what the answer is. */
-export function shareText(number: number, result: DailyResult): string {
-  return FUN_TEXT.dailyShareLine(number, result.commands, result.stars);
+export function shareText(number: number, result: DailyResult, lang: Lang = 'en'): string {
+  return translator(lang)('fun.daily.shareLine', {
+    number,
+    commands: pluralIn(lang, 'fun.daily.result', result.commands),
+    stars: '\u2B50'.repeat(result.stars),
+  });
 }
 
 export type ShareOutcome = 'shared' | 'copied' | 'failed' | 'cancelled';
