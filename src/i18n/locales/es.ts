@@ -593,6 +593,94 @@ const messages: Messages = {
   'studio.privacy': 'Privacidad para familias',
   'studio.movieTitle': 'Mi dibujo de GIO',
   'studio.savedMovie': '¡Tu película se guardó!',
+  /* ---- Adventure stars ---- */
+  'adventure.stars': '{n} de 3 estrellas',
+  'btn.minus': 'menos',
+  /* ---- Certificate page ---- */
+  'certificate.waiting': 'Tu diploma de Maestro Logo te espera',
+  'certificate.how':
+    'Navega las {n} etapas de {mode} y Gio te dará un diploma para imprimir y un caparazón dorado.',
+  'btn.backToDrawing': 'Volver a dibujar',
+  'certificate.youAre': '¡Eres un Maestro Logo!',
+  'certificate.typeName': 'Escribe el nombre para el diploma',
+  'certificate.namePh': 'Tu nombre',
+  'btn.print': 'Imprimir',
+  'btn.forgetName': 'Olvidar mi nombre',
+  'certificate.nameNote':
+    'El nombre se queda en este navegador. Nunca se envía a ningún sitio ni se pone en un enlace. Déjalo vacío para escribir el nombre a mano.',
+  /* ---- Privacy page (all of it) ---- */
+  'privacy.title': 'Privacidad para familias y docentes',
+  'privacy.intro':
+    'GIO está hecho para que los niños jueguen sin revelar nada. Esto es exactamente lo que pasa con sus datos.',
+  'privacy.s.accounts': 'Sin cuentas ni rastreo',
+  'privacy.accounts':
+    'Los niños nunca se registran ni inician sesión, y GIO nunca pide nombre, correo electrónico ni fecha de nacimiento. La primera pantalla pregunta el grupo de edad del niño (menos de 8 o de 8 a 12), pero esa elección solo cambia el aspecto de GIO y se queda en el dispositivo. GIO no usa cookies, publicidad ni analíticas.',
+  'privacy.s.server': 'Lo que GIO guarda en su servidor',
+  'privacy.server1':
+    'Solo un dibujo que el niño decide guardar: su título y su código Logo, con un enlace secreto y una clave de edición. No se guarda nada más sobre el niño.',
+  'privacy.server2':
+    'Cualquiera que tenga el enlace para compartir un dibujo puede ver su título y su código, así que pida a los niños que no pongan datos personales en títulos ni en el código. No hay galería pública, así que un dibujo solo se encuentra si alguien tiene su enlace.',
+  'privacy.server3':
+    'La clave de edición solo se da al navegador que guardó el dibujo. Quien abre el enlace puede verlo y guardar su propia copia, pero no puede cambiar el original.',
+  'privacy.s.browser': 'Lo que se queda en el navegador',
+  'privacy.browser1':
+    'El progreso de las misiones y las insignias, qué misiones ganaron una estrella de oro o de plata, qué islas del mapa están navegadas, las fechas usadas para planear repasos cortos, el modo de edad elegido, el idioma elegido, el ajuste de lectura en voz alta, un borrador sin guardar, los cambios sin guardar de hasta 50 dibujos guardados (<code>gio.unsaved</code>) y las claves de edición de los dibujos guardados se guardan en el almacenamiento del navegador (localStorage) de ese dispositivo. El servidor de GIO nunca recibe el progreso, los ajustes ni el borrador. La clave de edición de un dibujo se guarda en el navegador y se envía a GIO solo cuando el niño guarda cambios en ese dibujo. Borrar los datos del sitio en el navegador los elimina.',
+  'privacy.firstWin':
+    'GIO también recuerda, para cada grupo de edad, si ya se mostró la bienvenida del primer dibujo (la clave se llama gio.firstWin). Se queda en el dispositivo y nunca se envía a GIO.',
+  'privacy.stages':
+    'Las etapas se guardan igual. Qué etapas navegó el niño, cuáles superó con una prueba de habilidad y la fecha en que se convirtió en Maestro Logo (todo en <code>gio.path</code>), y si Gio lleva el caparazón dorado (<code>gio.rewards</code>), nunca salen del navegador. Una prueba de habilidad en sí no se guarda: salir de ella simplemente la termina.',
+  'privacy.certificate':
+    'El diploma de Maestro Logo tiene una casilla para un nombre. Si alguien escribe uno, se guarda en el navegador (<code>gio.certificate</code>), hasta 40 caracteres, para que siga ahí la próxima vez. Nunca se envía al servidor de GIO ni se pone en el enlace. El botón «Olvidar mi nombre» de la página del diploma lo borra, igual que borrar los datos del sitio. El nombre solo aparece en la página impresa si alguien la imprime.',
+  'privacy.s.adventure': 'La Aventura de Gio',
+  'privacy.adventure':
+    'La Aventura de Gio guarda su propio registro en el navegador (<code>gio.adventure</code>): qué niveles se ganaron, las estrellas de cada uno, el menor número de comandos usado, la fecha de la victoria y qué tarjetas de historia se mostraron. El último plan que el niño escribió para cada nivel (hasta 100 niveles) se guarda en <code>gio.adventure.code</code> para poder retomar un nivel. Ninguna de las dos claves se envía a GIO y ninguna cambia el progreso de las misiones. Borrar los datos del sitio en el navegador las elimina.',
+  'privacy.s.daily': 'El Rompecabezas diario de la tortuga',
+  'privacy.daily1':
+    'GIO elige el rompecabezas de cada día según la fecha del dispositivo, así que todos reciben el mismo y funciona sin internet. No se envía nada del rompecabezas a GIO, y no hay cuentas, puntuaciones ni clasificaciones.',
+  'privacy.daily2':
+    'Cuando un niño resuelve un rompecabezas, GIO guarda en el navegador el número del rompecabezas, el grupo de edad, cuántos comandos se usaron y las estrellas ganadas, de los últimos 60 rompecabezas (<code>gio.daily</code>). Nunca se envía a GIO. Borrar los datos del sitio en el navegador lo elimina.',
+  'privacy.daily3':
+    'El resultado que un niño puede compartir son solo unas palabras y estrellas, como «GIO #42 resuelto en 7 comandos» con un enlace a GIO. Nunca incluye el código ni el dibujo del niño. Solo sale cuando el niño toca Compartir, con el menú de compartir del teléfono, o se copia al portapapeles.',
+  'privacy.s.files': 'Imágenes, películas, stickers y archivos de dibujo',
+  'privacy.files':
+    'Las imágenes, películas, stickers de WhatsApp y archivos de dibujo (SVG) se crean en el dispositivo del niño y se guardan en su carpeta de descargas, o se comparten con el menú de compartir del teléfono. No se sube nada a GIO. Una película solo lleva el dibujo y una pequeña marca «Made with GIO». Un sticker de WhatsApp es solo el dibujo sobre fondo transparente con un borde blanco. Se crea cuando el niño toca el botón y no se guarda en ningún lugar del navegador, así que no hay nada nuevo que borrar.',
+  'privacy.s.sound': 'Música y sonido',
+  'privacy.sound':
+    'Las notas de <code>PLAY</code> se crean en el dispositivo del niño con el audio integrado del navegador. GIO no reproduce grabaciones, nunca usa el micrófono para la música y no sube nada. El ajuste de sonido activado o desactivado se guarda en el navegador (la clave se llama gio.sound) y nunca se envía a GIO.',
+  'privacy.s.python': 'Python en el navegador',
+  'privacy.python1':
+    'Los Turtle Coders pueden ejecutar Python de verdad. Funciona en el dispositivo del niño, dentro de una caja cerrada del navegador que no puede ver los ajustes guardados de GIO, no puede usar internet y no puede llegar a nada más del dispositivo.',
+  'privacy.python2':
+    'Los archivos del motor de Python (unos 13 MB) vienen del propio servidor de GIO, nunca de otro sitio web. Solo se descargan después de que el niño toque «Preparar Python», y GIO vuelve a preguntar en cada sesión nueva. Como la caja cerrada está separada del resto de GIO, el navegador no guarda estos archivos, así que se descargan de nuevo cada vez que Python arranca tras abrir GIO, y Python necesita internet para arrancar. El ajuste gio.pythonReady del navegador solo recuerda que Python ya se usó aquí, para que GIO pueda avisar de que se descargará otra vez.',
+  'privacy.python3':
+    'El Python que escribe el niño se queda en el navegador (la clave se llama gio.python). No se guarda en el servidor de GIO ni forma parte de Guardar o Compartir, que solo conservan el Logo. Borrar los datos del sitio en el navegador lo elimina.',
+  'privacy.s.offline': 'Sin conexión e instalación',
+  'privacy.offline1':
+    'GIO guarda sus propios archivos (su código, imágenes y fuentes) en la caché de aplicaciones del navegador, para abrirse y dibujar sin internet. En esa caché no se guardan dibujos, respuestas del ayudante tortuga ni información personal. Las misiones, el mapa de aventura, las imágenes y las películas también funcionan sin conexión. El ayudante tortuga, Guardar y Compartir, y abrir un enlace compartido necesitan internet.',
+  'privacy.offline2':
+    'El motor de Python no se guarda en la caché de aplicaciones. Python necesita internet cada vez que arranca tras abrir GIO (ver «Python en el navegador»).',
+  'privacy.offline3':
+    'La clave <code>gio.pwa</code> recuerda cuántas veces se abrió GIO en este navegador, cuándo se cerró el consejo «Pon GIO en este teléfono» y si se mostró la nota «GIO ya funciona sin conexión». La clave <code>gio.unsaved</code> guarda los cambios de un dibujo guardado que aún no se guardaron, para que una recarga o una actualización de GIO no los pierda. Ninguna se envía a GIO.',
+  'privacy.offline4':
+    'Añadir GIO a la pantalla de inicio solo pone un icono en el dispositivo. No envía nada. Borrar los datos del sitio en el navegador elimina la caché de aplicaciones, <code>gio.pwa</code> y <code>gio.unsaved</code>.',
+  'privacy.s.ai': 'El ayudante tortuga (IA)',
+  'privacy.ai1':
+    'Cuando un niño pide a la tortuga que dibuje o explique algo, las palabras que escribió o dijo, y el código del editor, se envían a Amazon Bedrock, un servicio de AWS, que ejecuta el modelo Qwen3 Coder.',
+  'privacy.ai2':
+    'Cuando un niño toca «Estoy atascado», el código del editor, la misión en la que está y el paso de pista que pidió (Piensa, Mira o Arregla) se envían a Amazon Bedrock de la misma forma. Las pistas pasan por las mismas dos comprobaciones y cuentan en los mismos límites diarios. Las pistas no se guardan y nunca cambian el progreso, las insignias ni las pegatinas.',
+  'privacy.ai3':
+    'Antes de dibujar nada, cada petición se comprueba dos veces: con una lista de palabras que GIO nunca permite y con una comprobación de seguridad por IA. Las peticiones que no pasan se rechazan con un mensaje amable, como «¡Dibujemos otra cosa!». Si la comprobación de seguridad no puede hacerse, la tortuga espera y pide al niño que lo intente otra vez en lugar de adivinar.',
+  'privacy.ai4':
+    'GIO no guarda registro de lo que los niños piden a la tortuga. La IA solo escribe código Logo, y GIO ejecuta ese código en su propia tortuga. Nunca ejecuta nada más.',
+  'privacy.s.voice': 'Hablar con la tortuga',
+  'privacy.voice':
+    'El botón del micrófono usa el reconocimiento de voz integrado en el navegador y solo funciona en los navegadores que lo tienen. En Chrome y Edge, el navegador envía el audio a Google o Microsoft para convertirlo en texto. GIO nunca recibe el audio, solo el texto. El botón solo escucha después de que el niño lo toque, y los niños siempre pueden escribir en su lugar.',
+  'privacy.s.limits': 'Límites que protegen a los niños y el coste',
+  'privacy.limits1':
+    'El ayudante tortuga tiene un límite de peticiones al día para cada conexión a internet y para todo el sitio. El límite de todo el sitio es un único número diario guardado en el servidor. El límite por conexión solo se mantiene en la memoria del servidor y nunca se guarda.',
+  'privacy.limits2':
+    'Como casi todos los sitios web, el servidor que aloja GIO escribe registros de conexión estándar (la dirección de internet, la hora y la página pedida). Estos registros no incluyen lo que un niño escribió a la tortuga ni el código que escribió, y GIO no los usa para seguir a los niños.',
+  'privacy.licence': 'GIO es un proyecto de código abierto con licencia MIT.',
   /* @@MORE@@ */
 };
 

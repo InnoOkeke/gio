@@ -601,6 +601,94 @@ export const messages = {
   'studio.privacy': 'Privacy for parents',
   'studio.movieTitle': 'My GIO drawing',
   'studio.savedMovie': 'Saved your movie!',
+  /* ---- Adventure stars ---- */
+  'adventure.stars': '{n} of 3 stars',
+  'btn.minus': 'minus',
+  /* ---- Certificate page ---- */
+  'certificate.waiting': 'Your Logo Master certificate is waiting',
+  'certificate.how':
+    'Sail all {n} stages of {mode} and Gio will give you a printable certificate and a golden shell.',
+  'btn.backToDrawing': 'Back to drawing',
+  'certificate.youAre': 'You are a Logo Master!',
+  'certificate.typeName': 'Type the name for the certificate',
+  'certificate.namePh': 'Your name',
+  'btn.print': 'Print',
+  'btn.forgetName': 'Forget my name',
+  'certificate.nameNote':
+    'The name stays in this browser. It is never sent anywhere or put in a link. Leave it empty to write the name by hand.',
+  /* ---- Privacy page (all of it) ---- */
+  'privacy.title': 'Privacy for parents and teachers',
+  'privacy.intro':
+    'GIO is built so children can play without giving anything away. Here is exactly what happens with their data.',
+  'privacy.s.accounts': 'No accounts, no tracking',
+  'privacy.accounts':
+    'Children never sign up or log in, and GIO never asks for a name, email address or birthday. The first screen asks which age group a child is in (Under 8 or 8 to 12), but that choice only changes how GIO looks and stays on the device. GIO does not use cookies, advertising or analytics.',
+  'privacy.s.server': 'What GIO saves on its server',
+  'privacy.server1':
+    'Only a drawing a child chooses to save: its title and its Logo code, with a secret link and edit key. Nothing else about the child is stored.',
+  'privacy.server2':
+    'Anyone who has a drawing’s share link can see its title and code, so ask children not to put personal details in titles or code. There is no public gallery, so a drawing can only be found if someone has its link.',
+  'privacy.server3':
+    'The edit key is given only to the browser that saved the drawing. People who open the link can watch and save their own copy, but they cannot change the original.',
+  'privacy.s.browser': 'What stays in the browser',
+  'privacy.browser1':
+    'Quest progress and badges, which quests earned a gold or silver star, which islands on the adventure map are sailed, the calendar dates used to plan short review visits, the age mode a child picked, the language a child picked, the read-aloud setting, an unsaved draft, unsaved changes to up to 50 saved drawings (<code>gio.unsaved</code>) and the edit keys for saved drawings are kept in the browser’s own storage (localStorage) on that device. GIO’s server never receives the progress, settings or draft. A drawing’s edit key is stored in the browser and sent to GIO only when the child saves changes to that drawing. Clearing the browser’s site data removes them.',
+  'privacy.firstWin':
+    'GIO also remembers, for each age group, whether the first-drawing welcome has already been shown (the key is called gio.firstWin). It stays on the device and is never sent to GIO.',
+  'privacy.stages':
+    'Stages are kept the same way. Which stages a child sailed, which ones they tested out of with a skill check, and the date they became a Logo Master (all in <code>gio.path</code>), and whether Gio wears the golden shell (<code>gio.rewards</code>) never leave the browser. A skill check itself is not saved: leaving it simply ends it.',
+  'privacy.certificate':
+    'The Logo Master certificate has a box for a name. If someone types one, it is kept in the browser (<code>gio.certificate</code>), up to 40 characters, so it is still there next time. It is never sent to GIO’s server and is not put in the link. The “Forget my name” button on the certificate page deletes it, and so does clearing the site data. The name only appears on the printed page if someone prints it.',
+  'privacy.s.adventure': 'Gio’s Adventure',
+  'privacy.adventure':
+    'Gio’s Adventure keeps its own record in the browser (<code>gio.adventure</code>): which levels were won, the stars on each, the fewest commands used, the date of the win, and which story cards were shown. The last plan a child wrote for each level (up to 100 levels) is kept in <code>gio.adventure.code</code> so a level can be picked up again. Neither key is sent to GIO, and neither changes quest progress. Clearing the browser’s site data removes them.',
+  'privacy.s.daily': 'The Daily Turtle Puzzle',
+  'privacy.daily1':
+    'GIO picks each day’s puzzle from the date on the device, so everyone gets the same one and it works without the internet. Nothing about the puzzle is sent to GIO, and there are no accounts, scores or leaderboards.',
+  'privacy.daily2':
+    'When a child solves a puzzle, GIO keeps the puzzle number, the age group, how many commands were used and the stars earned, for the last 60 puzzles, in the browser (<code>gio.daily</code>). It is never sent to GIO. Clearing the browser’s site data removes it.',
+  'privacy.daily3':
+    'The result a child can share is only a few words and stars, such as “GIO #42 solved in 7 commands” with a link to GIO. It never includes the child’s code or drawing. It goes out only when a child taps Share, through the phone’s own share menu, or it is copied to the clipboard.',
+  'privacy.s.files': 'Pictures, movies, stickers and drawing files',
+  'privacy.files':
+    'Pictures, movies, WhatsApp stickers and drawing files (SVG) are made on the child’s own device and saved to its downloads folder, or shared through the phone’s own share menu. Nothing is uploaded to GIO. A movie carries only the drawing and a small “Made with GIO” mark. A WhatsApp sticker is only the drawing on a transparent background with a white outline. It is made when a child taps the button and is not kept anywhere in the browser, so there is nothing new to clear.',
+  'privacy.s.sound': 'Music and sound',
+  'privacy.sound':
+    'Notes from <code>PLAY</code> are made on the child’s own device by the browser’s built-in audio. GIO plays no recordings, never uses the microphone for music, and uploads nothing. The sound on/off setting is kept in the browser (the key is called gio.sound) and is never sent to GIO.',
+  'privacy.s.python': 'Python in the browser',
+  'privacy.python1':
+    'Turtle Coders can run real Python. It runs on the child’s own device, inside a locked box in the browser that cannot see GIO’s saved settings, cannot use the internet and cannot reach anything else on the device.',
+  'privacy.python2':
+    'The Python engine files (about 13 MB) come from GIO’s own server, never from another website. They are downloaded only after a child taps “Get Python ready”, and GIO asks again in every new session. Because the locked box is kept apart from the rest of GIO, the browser does not keep these files, so they are downloaded again each time Python starts after GIO is opened, and Python needs the internet to start. The browser setting gio.pythonReady only remembers that Python was used here before, so GIO can say it will download again.',
+  'privacy.python3':
+    'Python a child types stays in the browser (the key is called gio.python). It is not saved to GIO’s server and it is not part of Save or Share, which keep only the Logo. Clearing the browser’s site data removes it.',
+  'privacy.s.offline': 'Offline and installing',
+  'privacy.offline1':
+    'GIO saves its own program files (its code, pictures and fonts) in the browser’s app cache, so it opens and draws without internet. No drawings, no answers from the turtle helper and no personal information are put in that cache. Quests, the adventure map, pictures and movies work offline too. The turtle helper, Save and Share, and opening a shared link need the internet.',
+  'privacy.offline2':
+    'The Python engine is not put in the app cache. Python needs the internet each time it starts after GIO is opened (see “Python in the browser”).',
+  'privacy.offline3':
+    'The key <code>gio.pwa</code> remembers how many times GIO was opened in this browser, when the “Put GIO on this phone” tip was dismissed, and whether the “GIO works offline now” note was shown. The key <code>gio.unsaved</code> keeps changes to a saved drawing that were not saved yet, so a reload or an update of GIO does not lose them. Neither is sent to GIO.',
+  'privacy.offline4':
+    'Adding GIO to the home screen only puts an icon on the device. It sends nothing. Clearing the browser’s site data removes the app cache, <code>gio.pwa</code> and <code>gio.unsaved</code>.',
+  'privacy.s.ai': 'The turtle helper (AI)',
+  'privacy.ai1':
+    'When a child asks the turtle to draw or explain something, the words they typed or said, and the code in the editor, are sent to Amazon Bedrock, an AWS service, which runs the Qwen3 Coder model.',
+  'privacy.ai2':
+    'When a child taps “I’m stuck”, the code in the editor, which quest they are on and which hint step they asked for (Think, Look or Fix) are sent to Amazon Bedrock the same way. Hints go through the same two checks and count toward the same daily limits. Hints are not stored, and they never change progress, badges or stickers.',
+  'privacy.ai3':
+    'Before anything is drawn, every request is checked twice: against a list of words GIO never allows, and by an AI safety check. Requests that fail are turned down with a friendly message, such as “Let’s draw something else!”. If the safety check cannot run, the turtle waits and asks the child to try again instead of guessing.',
+  'privacy.ai4':
+    'GIO does not keep a record of what children ask the turtle. The AI only ever writes Logo code, and GIO runs that code in its own turtle. It never runs anything else.',
+  'privacy.s.voice': 'Talking to the turtle',
+  'privacy.voice':
+    'The microphone button uses the speech recognition built into the browser, and only works in browsers that have it. In Chrome and Edge the browser sends the audio to Google or Microsoft to turn it into text. GIO never receives the audio, only the text. The button only listens after a child taps it, and children can always type instead.',
+  'privacy.s.limits': 'Limits that protect children and cost',
+  'privacy.limits1':
+    'The turtle helper has a limit on how many requests each internet connection and the whole site can make per day. The whole-site limit is a single daily number saved on the server. The per-connection limit is held only in the server’s memory and is never saved.',
+  'privacy.limits2':
+    'Like almost every website, the web server that hosts GIO writes standard connection logs (the internet address, the time and the page requested). These logs do not include what a child typed to the turtle or the code they wrote, and GIO does not use them to follow children around.',
+  'privacy.licence': 'GIO is an open-source project under the MIT licence.',
   /* @@MORE@@ */
 };
 

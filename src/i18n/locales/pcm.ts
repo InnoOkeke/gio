@@ -611,6 +611,94 @@ const messages: Messages = {
   'studio.privacy': 'Privacy for parents',
   'studio.movieTitle': 'My GIO drawing',
   'studio.savedMovie': 'Your movie don save!',
+  /* ---- Adventure stars ---- */
+  'adventure.stars': '{n} for 3 stars',
+  'btn.minus': 'minus',
+  /* ---- Certificate page ---- */
+  'certificate.waiting': 'Your Logo Master certificate dey wait for you',
+  'certificate.how':
+    'Sail all {n} stages of {mode} and Gio go give you certificate wey you fit print and golden shell.',
+  'btn.backToDrawing': 'Go back to drawing',
+  'certificate.youAre': 'You don be Logo Master!',
+  'certificate.typeName': 'Type the name wey go dey the certificate',
+  'certificate.namePh': 'Your name',
+  'btn.print': 'Print',
+  'btn.forgetName': 'Forget my name',
+  'certificate.nameNote':
+    'The name dey stay for this browser. We no dey send am anywhere or put am for link. Leave am empty if you wan write the name with hand.',
+  /* ---- Privacy page (all of it) ---- */
+  'privacy.title': 'Privacy for parents and teachers',
+  'privacy.intro':
+    'We build GIO so pikin fit play without giving anything about themselves. See exactly wetin dey happen to their data.',
+  'privacy.s.accounts': 'No account, nobody dey follow you',
+  'privacy.accounts':
+    'Pikin no dey sign up or log in at all, and GIO no dey ask for name, email address or birthday. The first screen dey ask which age group the pikin dey (Under 8 or 8 reach 12), but that choice only dey change how GIO take look and e dey stay for the device. GIO no dey use cookies, advert or analytics.',
+  'privacy.s.server': 'Wetin GIO dey keep for im server',
+  'privacy.server1':
+    'Only drawing wey pikin choose to save: im title and im Logo code, with secret link and edit key. We no dey keep any other thing about the pikin.',
+  'privacy.server2':
+    'Anybody wey get the share link of one drawing fit see im title and code, so tell pikin make dem no put their personal details for title or code. No public gallery dey, so nobody fit find drawing unless dem get im link.',
+  'privacy.server3':
+    'Na only the browser wey save the drawing dey get the edit key. People wey open the link fit watch am and save their own copy, but dem no fit change the original one.',
+  'privacy.s.browser': 'Wetin dey stay inside the browser',
+  'privacy.browser1':
+    'Quest progress and badges, which quest win gold or silver star, which islands for the adventure map don sail, the dates wey we dey use plan short review visit, the age mode wey pikin choose, the language wey pikin choose, the read-aloud setting, draft wey never save, changes wey never save for reach 50 saved drawings (<code>gio.unsaved</code>) and the edit keys for saved drawings, all of dem dey stay for the browser own storage (localStorage) for that device. GIO server no dey receive the progress, settings or draft at all. The edit key of one drawing dey stay for the browser, and e dey go GIO only when the pikin save changes for that drawing. If you clear the site data for the browser, all of dem go comot.',
+  'privacy.firstWin':
+    'GIO still dey remember, for each age group, whether e don show the first-drawing welcome before (the key na gio.firstWin). E dey stay for the device and e no dey go GIO.',
+  'privacy.stages':
+    'Stages dey stay the same way. Which stages pikin don sail, which ones dem pass with skill check, and the date wey dem become Logo Master (all inside <code>gio.path</code>), and whether Gio dey wear the golden shell (<code>gio.rewards</code>) no dey ever comot from the browser. We no dey save skill check itself: if you leave am, e just end.',
+  'privacy.certificate':
+    'The Logo Master certificate get box for name. If person type one, e go stay for the browser (<code>gio.certificate</code>), reach 40 letters, so e go still dey there next time. E no dey go GIO server and we no dey put am for link. The “Forget my name” button for the certificate page dey delete am, and clearing the site data go delete am too. The name go only show for paper if person print am.',
+  'privacy.s.adventure': 'Gio Adventure',
+  'privacy.adventure':
+    'Gio Adventure dey keep im own record for the browser (<code>gio.adventure</code>): which levels pikin win, the stars for each one, the smallest number of commands wey dem use, the date wey dem win, and which story cards don show. The last plan wey pikin write for each level (reach 100 levels) dey stay for <code>gio.adventure.code</code> so dem fit continue the level again. None of the two keys dey go GIO, and none dey change quest progress. If you clear the site data for the browser, dem go comot.',
+  'privacy.s.daily': 'Daily Turtle Puzzle',
+  'privacy.daily1':
+    'GIO dey pick each day puzzle from the date wey dey the device, so everybody go get the same one and e dey work without internet. Nothing about the puzzle dey go GIO, and no account, no score, no leaderboard dey.',
+  'privacy.daily2':
+    'If pikin solve puzzle, GIO dey keep the puzzle number, the age group, how many commands dem use and the stars wey dem win, for the last 60 puzzles, inside the browser (<code>gio.daily</code>). Dem no dey ever send am go GIO. If you clear the browser site data, e go comot.',
+  'privacy.daily3':
+    'The result wey pikin fit share na just small words and stars, like “GIO #42 solved in 7 commands” with link to GIO. E no dey ever carry the pikin code or drawing. E dey go only if pikin tap Share, through the phone own share menu, or dem copy am put for clipboard.',
+  'privacy.s.files': 'Pictures, movies, stickers and drawing files',
+  'privacy.files':
+    'Pictures, movies, WhatsApp stickers and drawing files (SVG) dey make for the pikin own device and dey save for im downloads folder, or dem dey share am with the phone own share menu. Nothing dey upload go GIO. Movie only carry the drawing and small “Made with GIO” mark. WhatsApp sticker na only the drawing for transparent background with white line round am. E dey make when pikin tap the button and dem no dey keep am anywhere for the browser, so nothing new dey to clear.',
+  'privacy.s.sound': 'Music and sound',
+  'privacy.sound':
+    'The notes from <code>PLAY</code> dey make for the pikin own device with the browser own sound. GIO no dey play any recording, e no dey use microphone for music, and e no dey upload anything. The sound on/off setting dey stay for the browser (the key na gio.sound) and e no dey go GIO.',
+  'privacy.s.python': 'Python inside the browser',
+  'privacy.python1':
+    'Turtle Coders fit run real Python. E dey run for the pikin own device, inside locked box for the browser wey no fit see GIO saved settings, no fit use internet and no fit reach any other thing for the device.',
+  'privacy.python2':
+    'The Python engine files (about 13 MB) dey come from GIO own server, no be from another website. E dey download only after pikin press “Ready Python”, and GIO go ask again for every new session. Because the locked box dey separate from the rest of GIO, the browser no dey keep these files, so dem go download again every time Python start after GIO open, and Python need internet to start. The browser setting gio.pythonReady only dey remember say dem don use Python here before, so GIO fit talk say e go download again.',
+  'privacy.python3':
+    'The Python wey pikin type dey stay for the browser (the key na gio.python). E no dey save for GIO server and e no dey part of Save or Share, wey only dey keep the Logo. If you clear the site data for the browser, e go comot.',
+  'privacy.s.offline': 'Offline and installing',
+  'privacy.offline1':
+    'GIO dey save im own program files (im code, pictures and fonts) for the browser app cache, so e fit open and draw without internet. No drawing, no answer from the turtle helper and no personal information dey go that cache. Quests, the adventure map, pictures and movies dey work offline too. The turtle helper, Save and Share, and to open shared link need internet.',
+  'privacy.offline2':
+    'We no dey put the Python engine for the app cache. Python need internet every time e start after GIO open (see “Python inside the browser”).',
+  'privacy.offline3':
+    'The key <code>gio.pwa</code> dey remember how many times GIO don open for this browser, when person close the “Put GIO for this phone” tip, and whether the “GIO dey work without internet now” note don show. The key <code>gio.unsaved</code> dey keep changes for saved drawing wey never save yet, so reload or GIO update no go lose dem. None of dem dey go GIO.',
+  'privacy.offline4':
+    'To add GIO to home screen only dey put icon for the device. E no dey send anything. If you clear the site data for the browser, the app cache, <code>gio.pwa</code> and <code>gio.unsaved</code> go comot.',
+  'privacy.s.ai': 'The turtle helper (AI)',
+  'privacy.ai1':
+    'When pikin ask the turtle make e draw or explain something, the words wey dem type or talk, and the code for the editor, dey go Amazon Bedrock, one AWS service, wey dey run the Qwen3 Coder model.',
+  'privacy.ai2':
+    'When pikin press “I don hook”, the code for the editor, the quest wey dem dey and the hint step wey dem ask for (Think, Look or Fix) dey go Amazon Bedrock the same way. Hints dey pass the same two checks and dey count for the same daily limits. We no dey keep hints, and dem no dey change progress, badges or stickers.',
+  'privacy.ai3':
+    'Before anything draw, we dey check every request two times: against list of words wey GIO no go ever allow, and with AI safety check. Request wey fail go get friendly answer, like “Make we draw another thing!”. If the safety check no fit run, the turtle go wait and ask the pikin make dem try again, e no go guess.',
+  'privacy.ai4':
+    'GIO no dey keep record of wetin pikin ask the turtle. The AI only dey write Logo code, and GIO dey run that code for im own turtle. E no dey run any other thing.',
+  'privacy.s.voice': 'To yarn the turtle',
+  'privacy.voice':
+    'The microphone button dey use the speech recognition wey dey inside the browser, and e only dey work for browsers wey get am. For Chrome and Edge, the browser dey send the sound go Google or Microsoft make dem turn am to text. GIO no dey ever receive the sound, only the text. The button only dey listen after pikin press am, and pikin fit always type instead.',
+  'privacy.s.limits': 'Limits wey dey protect pikin and cost',
+  'privacy.limits1':
+    'The turtle helper get limit for how many requests each internet connection and the whole site fit make every day. The whole-site limit na one daily number wey dey save for the server. The per-connection limit dey only for the server memory and we no dey ever save am.',
+  'privacy.limits2':
+    'Like almost every website, the web server wey dey host GIO dey write normal connection logs (the internet address, the time and the page wey person ask for). These logs no get wetin pikin type give the turtle or the code wey dem write, and GIO no dey use dem follow pikin up and down.',
+  'privacy.licence': 'GIO na open-source project under MIT licence.',
   /* @@MORE@@ */
 };
 

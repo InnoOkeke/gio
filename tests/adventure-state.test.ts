@@ -470,7 +470,8 @@ describe('a full playthrough leaves quest progress alone', () => {
 
 describe('privacy page', () => {
   it('lists both adventure keys', () => {
-    const privacy = read('src', 'ui', 'pages', 'Privacy.tsx');
+    // The page's words live in the English catalogue since the page was translated.
+    const privacy = read('src', 'ui', 'pages', 'Privacy.tsx') + read('src', 'i18n', 'locales', 'en.ts');
     expect(privacy).toContain(`<code>${ADVENTURE_KEY}</code>`);
     expect(privacy).toContain(`<code>${PLANS_KEY}</code>`);
     expect(privacy).toMatch(/neither (key )?(is sent|changes)/i);

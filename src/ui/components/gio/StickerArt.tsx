@@ -1,4 +1,6 @@
 import type { ReactElement } from 'react';
+import { useLang, useT } from '../../lang';
+import { localizeSticker } from '../../../i18n/content.js';
 import { stickerById, type StickerId } from '../../gio/catalog';
 
 /* Twelve original stickers. Each has its own outline and its own picture, so no sticker
@@ -104,9 +106,11 @@ export const STICKER_ART: Record<StickerId, () => ReactElement> = {
 
 /** A sticker on its own, for the sticker book and toasts. The shell draws STICKER_ART directly. */
 export function StickerPicture({ id, size = 48, className }: { id: StickerId; size?: number; className?: string }) {
+  const t = useT();
+  const { lang } = useLang();
   const Art = STICKER_ART[id];
   return (
-    <svg viewBox="-20 -20 40 40" width={size} height={size} role="img" aria-label={`${stickerById(id).name} sticker`} className={className}>
+    <svg viewBox="-20 -20 40 40" width={size} height={size} role="img" aria-label={t('garden.stickerAria', { sticker: localizeSticker(stickerById(id), lang).name })} className={className}>
       <Art />
     </svg>
   );

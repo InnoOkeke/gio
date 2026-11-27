@@ -2,7 +2,8 @@ import { Link } from 'react-router-dom';
 import { CertificateArt, type CertificateStage } from '../components/CertificateArt';
 import { Wordmark } from '../components/GioMark';
 import { useCertificateName } from '../certificate';
-import { MODE_LABEL, useMode, type AgeMode } from '../mode';
+import { useMode, type AgeMode } from '../mode';
+import { useLang, useT } from '../lang';
 import { NAME_MAX, formatEarned, stageTally, tallyLine } from '../path/certificate';
 import { stageCount, stageNumber } from '../path/islands';
 import { useProgress } from '../progress';
@@ -10,6 +11,8 @@ import { useProgress } from '../progress';
 /** The printable Logo Master certificate. The name is typed here and kept only in this browser. */
 export default function Certificate() {
   const { mode: chosen } = useMode();
+  const t = useT();
+  const { lang } = useLang();
   const mode: AgeMode = chosen ?? 'coder';
   const progress = useProgress(mode);
   const { name, setName, forget } = useCertificateName();
@@ -21,12 +24,12 @@ export default function Certificate() {
       <div className="min-h-full flex items-center justify-center p-6">
         <div className="panel max-w-md w-full p-8 text-center flex flex-col items-center gap-4">
           <Wordmark />
-          <h1 className="m-0 text-[24px] font-black leading-tight">Your Logo Master certificate is waiting</h1>
+          <h1 className="m-0 text-[24px] font-black leading-tight">{t('certificate.waiting')}</h1>
           <p className="m-0 text-[16px] font-semibold text-ink-2">
-            Sail all {total} stages of {MODE_LABEL[mode]} and Gio will give you a printable certificate and a golden shell.
+            {t('certificate.how', { n: total, mode: t(`mode.${mode}`) })}
           </p>
           <Link to="/" className="btn btn-primary btn-lg">
-            Back to drawing
+            {t('btn.backToDrawing')}
           </Link>
         </div>
       </div>
@@ -43,13 +46,13 @@ export default function Certificate() {
         <div className="flex items-center justify-between gap-3">
           <Wordmark />
           <Link to="/" className="btn btn-quiet min-h-[48px]">
-            Back to drawing
+            {t('btn.backToDrawing')}
           </Link>
         </div>
         <div className="panel flex flex-col gap-3 p-4 sm:p-5">
-          <h1 className="m-0 text-[24px] font-black leading-tight">You are a Logo Master!</h1>
+          <h1 className="m-0 text-[24px] font-black leading-tight">{t('certificate.youAre')}</h1>
           <label htmlFor="cert-name" className="text-[16px] font-extrabold text-ink">
-            Type the name for the certificate
+            {t('certificate.typeName')}
           </label>
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -59,24 +62,24 @@ export default function Certificate() {
               maxLength={NAME_MAX}
               autoComplete="off"
               spellCheck={false}
-              placeholder="Your name"
+              placeholder={t('certificate.namePh')}
               className="min-h-[48px] min-w-0 flex-1 max-sm:basis-full rounded-full border border-line bg-white px-5 text-[18px] font-extrabold text-ink outline-none focus:border-[#12a36b]"
             />
             <button type="button" className="btn btn-primary btn-lg max-sm:w-full" onClick={() => window.print()}>
-              Print
+              {t('btn.print')}
             </button>
             <button type="button" className="btn btn-quiet min-h-[48px] max-sm:w-full" onClick={forget} disabled={!name}>
-              Forget my name
+              {t('btn.forgetName')}
             </button>
           </div>
           <p className="m-0 text-[16px] font-semibold text-ink-3">
-            The name stays in this browser. It is never sent anywhere or put in a link. Leave it empty to write the name by hand.
+            {t('certificate.nameNote')}
           </p>
         </div>
       </div>
 
       <div className="cert-sheet w-full max-w-[920px] overflow-hidden rounded-[18px] bg-white shadow-[var(--shadow-2)]">
-        <CertificateArt name={name} total={total} stages={stages} tally={tallyLine(stageTally(progress.islands))} date={formatEarned(earnedOn)} />
+        <CertificateArt name={name} total={total} stages={stages} tally={tallyLine(stageTally(progress.islands), lang)} date={formatEarned(earnedOn, lang === 'en' ? undefined : lang)} />
       </div>
     </div>
   );

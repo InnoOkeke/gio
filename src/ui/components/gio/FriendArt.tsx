@@ -1,3 +1,5 @@
+import { useLang, useT } from '../../lang';
+import { localizeFriend } from '../../../i18n/content.js';
 import type { ReactElement } from 'react';
 import { friendById, type FriendId } from '../../gio/catalog';
 
@@ -222,9 +224,11 @@ export const FRIEND_ART: Record<FriendId, () => ReactElement> = {
 /** A friend on their own, for the friend dialog and the garden. */
 export function FriendPicture({ id, size = 120, className }: { id: FriendId; size?: number; className?: string }) {
   const Art = FRIEND_ART[id];
-  const f = friendById(id);
+  const t = useT();
+  const { lang } = useLang();
+  const f = localizeFriend(friendById(id), lang);
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={`${f.name} the ${f.species}`} className={`friend-art overflow-visible ${className ?? ''}`}>
+    <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={t('friend.title', { name: f.name, species: f.species })} className={`friend-art overflow-visible ${className ?? ''}`}>
       <Art />
     </svg>
   );
