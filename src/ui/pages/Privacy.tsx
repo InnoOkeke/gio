@@ -53,8 +53,8 @@ export default function Privacy() {
           <p className="m-0">When a child solves a puzzle, GIO keeps the puzzle number, the age group, how many commands were used and the stars earned, for the last 60 puzzles, in the browser (<code>gio.daily</code>). It is never sent to GIO. Clearing the browser&rsquo;s site data removes it.</p>
           <p className="m-0">The result a child can share is only a few words and stars, such as &ldquo;GIO #42 solved in 7 commands&rdquo; with a link to GIO. It never includes the child&rsquo;s code or drawing. It goes out only when a child taps Share, through the phone&rsquo;s own share menu, or it is copied to the clipboard.</p>
         </Section>
-        <Section title="Pictures, movies and drawing files">
-          <p className="m-0">Pictures, movies and drawing files (SVG) are made on the child&rsquo;s own device and saved to its downloads folder, or shared through the phone&rsquo;s own share menu. Nothing is uploaded to GIO. A movie carries only the drawing and a small &ldquo;Made with GIO&rdquo; mark.</p>
+        <Section title="Pictures, movies, stickers and drawing files">
+          <p className="m-0">Pictures, movies, WhatsApp stickers and drawing files (SVG) are made on the child&rsquo;s own device and saved to its downloads folder, or shared through the phone&rsquo;s own share menu. Nothing is uploaded to GIO. A movie carries only the drawing and a small &ldquo;Made with GIO&rdquo; mark. A WhatsApp sticker is only the drawing on a transparent background with a white outline. It is made when a child taps the button and is not kept anywhere in the browser, so there is nothing new to clear.</p>
         </Section>
 
         <Section title="Music and sound">

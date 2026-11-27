@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useSheetDrag } from '../responsive/useSheetDrag';
 import { FUN_TEXT } from '../i18n-fun';
-import { CrayonIcon, DownloadIcon, MovieIcon, ShapesIcon, TrophyIcon } from './icons';
+import { CrayonIcon, DownloadIcon, MovieIcon, ShapesIcon, StickerIcon, TrophyIcon } from './icons';
 
 interface ExportMenuProps {
   /** Nothing has been drawn yet. */
@@ -13,6 +13,8 @@ interface ExportMenuProps {
   onDrawingFile(): void;
   /** Open the printable colouring page. */
   onColouring(): void;
+  /** Make a WhatsApp sticker of the drawing and share or save it. */
+  onSticker(): void;
   /** Open today's Daily Turtle Puzzle. */
   onDaily(): void;
   /** Today's puzzle is already solved on this device. */
@@ -31,7 +33,7 @@ interface Row {
 }
 
 /** One "Picture" button that opens the ways to keep a drawing: picture, movie, drawing file and colouring page. */
-export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, onColouring, onDaily, dailySolved }: ExportMenuProps) {
+export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, onColouring, onSticker, onDaily, dailySolved }: ExportMenuProps) {
   const [open, setOpen] = useState(false);
   /** Tablets: the menu opens above the button, or below it when there is no room above. */
   const [below, setBelow] = useState(false);
@@ -112,6 +114,14 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
       tile: 'bg-[#fde7f0] text-[#a3245a]',
       icon: <CrayonIcon size={24} />,
       run: onColouring,
+    },
+    {
+      id: 'sticker',
+      title: FUN_TEXT.stickerRow,
+      help: little ? FUN_TEXT.stickerRowHelpLittle : FUN_TEXT.stickerRowHelp,
+      tile: 'bg-[#dcf7e3] text-[#12663a]',
+      icon: <StickerIcon size={24} />,
+      run: onSticker,
     },
     {
       id: 'daily',

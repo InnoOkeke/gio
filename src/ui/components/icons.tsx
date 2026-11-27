@@ -164,6 +164,13 @@ export const TrophyIcon = (p: IconProps) => (
   </Icon>
 );
 
+export const StickerIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 4h14v10l-6 6H5Z" fill="currentColor" fillOpacity={0.2} />
+    <path d="M19 14h-4.5a1.5 1.5 0 0 0-1.5 1.5V20" />
+    <path d="M9 10.2h.01M15 10.2h.01M9.2 13.4c1.6 1.2 3.2 1.2 4.8 0" />
+  </Icon>
+);
 export const LeafIcon = (p: IconProps) => (
   <Icon {...p}>
     <path d="M5 19C4 11 9 5 20 4c0 11-5 16-13 16Z" fill="currentColor" fillOpacity={0.2} />

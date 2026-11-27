@@ -79,7 +79,7 @@ Little Turtles stages are block-based: Shape Shore, Loop Lagoon, Colour Cove, Pe
 ## Fun features
 
 1. **Daily Turtle Puzzle.** One new puzzle a day, the same for everyone, with a spoiler-free emoji result to share (e.g. "GIO #42 🐢 solved in 7 commands ⭐⭐⭐"). No accounts or leaderboards.
-2. **WhatsApp stickers.** One tap turns a drawing into a WhatsApp sticker for family chats.
+2. **WhatsApp stickers (done).** One tap in the Picture menu turns a drawing into a 512x512 WebP sticker with a transparent background and a white outline, under 100 KB, shared with the phone's share menu or downloaded. What WhatsApp needs, and what could not be checked, is in [STICKERS.md](STICKERS.md).
 3. **Seasonal events.** Limited-time stages and Gio outfits: Spooky Season (pumpkins, ghost-catching games, haunted houses), then Christmas, Eid, Independence Day and more.
 4. *(Maze mode, merged into 9.)*
 5. **Race your past self.** Re-solve a quest against a "ghost turtle" replaying your earlier solution. Improvement without comparing kids to each other.

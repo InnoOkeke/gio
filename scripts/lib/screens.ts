@@ -707,6 +707,19 @@ export const SCREENS: Screen[] = [
     },
   },
   {
+    id: 'sticker-made',
+    label: 'WhatsApp sticker made (the saved note after tapping the row)',
+    open: async (c) => {
+      await c.seed({ ...coder, 'gio.progress': CODER_PROGRESS, 'gio.draft': draft('FD 100\nRT 90\nFD 100\nRT 90\nFD 100') }, '?mode=coder');
+      await runAndWait(c, '.bubble-success');
+      await c.click('button[aria-haspopup=dialog]', 'Picture');
+      await sleep(500);
+      await c.click('[role=dialog] button', 'WhatsApp sticker');
+      if (!(await c.waitFor(`!!document.querySelector('.toast') && /sticker/i.test(document.querySelector('.toast').textContent)`, 10000))) throw new Error('the sticker note did not appear');
+      await sleep(400);
+    },
+  },
+  {
     id: 'friend-dialog',
     label: 'Friend dialog',
     open: async (c) => {

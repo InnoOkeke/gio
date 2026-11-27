@@ -51,4 +51,12 @@ export const FUN_TEXT = {
   /** What a child shares. It never says how the puzzle was solved. */
   dailyShareLine: (n: number, commands: number, stars: number) =>
     `GIO #${n} \u{1F422} solved in ${commands} ${commands === 1 ? 'command' : 'commands'} ${'\u2B50'.repeat(stars)}`,
+  /** The WhatsApp sticker row in the Save your drawing menu. */
+  stickerRow: 'WhatsApp sticker',
+  stickerRowHelp: 'A 512 px sticker with a white outline',
+  stickerRowHelpLittle: 'Make a sticker to send',
+  stickerSaved: 'Sticker saved! Send it in WhatsApp.',
+  stickerShared: 'Sticker ready to send!',
+  stickerFailed: 'I could not make the sticker. Try drawing a little less, then tap it again.',
+  stickerFileTitle: 'sticker',
 } as const;

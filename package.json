@@ -27,7 +27,8 @@
     "report:adventure": "tsx scripts/adventure-report.ts",
     "check:creativity": "tsx scripts/creativity-shots.ts",
     "build:icons": "tsx scripts/make-icons.ts",
-    "check:offline": "tsx scripts/offline-check.ts"
+    "check:offline": "tsx scripts/offline-check.ts",
+    "check:sticker": "tsx scripts/sticker-check.ts"
   },
   "engines": {
     "node": ">=20.0.0"

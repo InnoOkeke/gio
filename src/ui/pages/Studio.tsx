@@ -41,6 +41,7 @@ import { commandsUsed } from '../../logo/daily.js';
 import { recordDaily, savedResult, todaysPuzzle, type DailyResult, type TodaysPuzzle } from '../daily';
 import { haptic } from '../haptics';
 import { FUN_TEXT } from '../i18n-fun';
+import { makeSticker } from '../export/sticker';
 import { useWindowClass } from '../responsive/useWindowClass';
 import '../responsive/studio.css';
 import { useToast } from '../components/Toast';
@@ -932,6 +933,36 @@ function StudioView({ initial }: { initial: Loaded }) {
     a.click();
     toast.show({ text: 'Saved your picture!' });
   };
+  /** One tap: a WhatsApp-ready sticker. Shared with the phone's share menu where files can be shared, saved otherwise. */
+  const makeWhatsAppSticker = async () => {
+    const events = stageRef.current?.events();
+    if (!events) return;
+    try {
+      const sticker = await makeSticker(events);
+      if (!sticker) return;
+      const name = fileName(`${title || DEFAULT_TITLE} ${FUN_TEXT.stickerFileTitle}`, sticker.extension);
+      const file = new File([sticker.blob], name, { type: sticker.blob.type });
+      if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file] });
+          toast.show({ text: FUN_TEXT.stickerShared });
+          return;
+        } catch (err) {
+          // Closing the share menu is not a problem. Any other failure falls back to a download.
+          if (err instanceof DOMException && err.name === 'AbortError') return;
+        }
+      }
+      const url = URL.createObjectURL(sticker.blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      toast.show({ text: FUN_TEXT.stickerSaved });
+    } catch {
+      toast.show({ text: FUN_TEXT.stickerFailed });
+    }
+  };
   const exportSvg = () => {
     const svg = toSVG(stageRef.current?.events() ?? [], { title: title || 'GIO drawing' });
     if (!svg) return;
@@ -1158,7 +1189,7 @@ function StudioView({ initial }: { initial: Loaded }) {
                   <ResetIcon />
                 </button>
                 <SoundToggle />
-                <ExportMenu empty={!hasDrawing(stageRef.current?.events() ?? [])} little={little} onPicture={exportPicture} onMovie={openMovie} onDrawingFile={exportSvg} onColouring={openColouring} onDaily={openDaily} dailySolved={dailySolved} />
+                <ExportMenu empty={!hasDrawing(stageRef.current?.events() ?? [])} little={little} onPicture={exportPicture} onMovie={openMovie} onDrawingFile={exportSvg} onColouring={openColouring} onSticker={makeWhatsAppSticker} onDaily={openDaily} dailySolved={dailySolved} />
               </div>
             </div>
 
