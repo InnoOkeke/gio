@@ -147,18 +147,27 @@ describe('AI endpoint input checks (no model call)', () => {
     expect(hint.json).toMatchObject({ success: false, code: 'redirect' });
   });
 
-  it('stops all AI requests for the day once the site-wide cap is reached', async () => {
+  it('gives the daily slot back when moderation fails, and stops AI requests once the cap is reached', async () => {
+    const { db } = await import('../src/db/client.js');
+    const used = () => (db.prepare('SELECT COALESCE(SUM(count), 0) AS n FROM ai_daily_usage').get() as { n: number }).n;
+    const before = used();
+    // With no Bedrock settings the moderation check cannot answer, so it fails closed (503) and the slot is given back.
     const first = await call('POST', '/api/ai/logo', { prompt: 'a star' });
     const second = await call('POST', '/api/ai/explain', { code: 'FD 10' });
-    // The moderation check runs after the cap is counted. With no Bedrock settings it cannot answer, so it fails closed (503).
     expect(first.status).toBe(503);
     expect(second.status).toBe(503);
+    expect(used()).toBe(before);
+    // Fill the day up: the next request is stopped by the cap before it reaches moderation.
+    const today = new Date().toISOString().slice(0, 10);
+    db.prepare('INSERT INTO ai_daily_usage (day, count) VALUES (?, 1000000) ON CONFLICT(day) DO UPDATE SET count = 1000000').run(today);
     const third = await call('POST', '/api/ai/logo', { prompt: 'a star' });
     expect(third.status).toBe(429);
     expect(third.json.error).toContain('lots of drawing today');
   });
-
-  it('unknown API routes return a JSON 404', async () => {
+  it('reads only comments in code for the blocklist, so variable names like ass or meth reach moderation', async () => {
+    const res = await call('POST', '/api/ai/explain', { code: 'MAKE "ass 5 TO meth FD :ass END' });
+    expect(res.status).not.toBe(422);
+  });  it('unknown API routes return a JSON 404', async () => {
     const { status, json } = await call('GET', '/api/nope');
     expect(status).toBe(404);
     expect(json).toMatchObject({ success: false });

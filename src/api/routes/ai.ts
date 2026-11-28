@@ -4,7 +4,7 @@ import { isBlocked } from '../../ai/blocklist.js';
 import { explainLogo, generateLogo } from '../../ai/logo-assistant.js';
 import { moderate } from '../../ai/moderation.js';
 import { assertHintable, hintLogo } from '../../ai/tutor.js';
-import { takeDailySlot } from '../../db/ai-usage.js';
+import { giveBackDailySlot, takeDailySlot } from '../../db/ai-usage.js';
 import { db } from '../../db/client.js';
 import { dailyCap, rateLimit } from '../middleware/rate-limit.js';
 import { validate } from '../middleware/validate.js';
@@ -66,9 +66,22 @@ function childText(body: { prompt?: string; code?: string }): string {
   return [body.prompt, body.code].filter(Boolean).join('\n');
 }
 
+/**
+ * What the local blocklist reads. The prompt is read in full. Code is read only in its comments (text after a semicolon),
+ * because names a child picks for variables and procedures, such as `ass` or `meth`, are not messages to anyone.
+ * The moderation check below still reads all of the code.
+ */
+function blocklistText(body: { prompt?: string; code?: string }): string {
+  const comments = (body.code ?? '')
+    .split(/\r?\n/)
+    .map((line) => (line.includes(';') ? line.slice(line.indexOf(';') + 1) : ''))
+    .filter(Boolean);
+  return [body.prompt, ...comments].filter(Boolean).join('\n');
+}
+
 /** Step 1, free: the local blocklist turns away obvious bad words before anything else happens. */
 function blocklist(req: Request, res: Response, next: NextFunction): void {
-  if (isBlocked(childText(req.body as { prompt?: string; code?: string }))) {
+  if (isBlocked(blocklistText(req.body as { prompt?: string; code?: string }))) {
     res.status(422).json({ success: false, error: REDIRECT_MESSAGE, code: 'redirect' });
     return;
   }
@@ -80,14 +93,18 @@ function blocklist(req: Request, res: Response, next: NextFunction): void {
  * Fail-closed: if the check cannot give a clear answer, nothing is generated (see ai/moderation.ts).
  */
 async function moderation(req: Request, res: Response, next: NextFunction): Promise<void> {
+  // The daily cap was counted just before this check. A refused or failed check gives that request back.
+  const refund = () => giveBackDailySlot(db, new Date().toISOString().slice(0, 10));
   try {
     const verdict = await moderate(childText(req.body as { prompt?: string; code?: string }));
     if (verdict === 'unsafe') {
+      refund();
       res.status(422).json({ success: false, error: REDIRECT_MESSAGE, code: 'redirect' });
       return;
     }
     next();
   } catch (err) {
+    refund();
     console.error('[ai/moderation] check failed, refusing the request (fail-closed):', err);
     res.status(503).json({ success: false, error: RETRY_MESSAGE });
   }

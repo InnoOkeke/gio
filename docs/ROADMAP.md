@@ -14,10 +14,25 @@ Built: a real Logo interpreter, two age modes (Little Turtles under 8, Turtle Co
 | 2. Learning (built) | Tutor mode ("I'm stuck" hint ladder), 60-second first win, shareable animated replays, SVG export |
 | 3. Reach | Logo in English, Nigerian Pidgin, French and Spanish; installable offline app (PWA) for low-cost phones |
 | 4. Creativity (built) | Music (`PLAY`, `SETTEMPO`, `WAIT`) and flipbook animation (`FRAME`); real Python running in the browser. Deferred: instruments, chords and music stickers |
-| 5. Classrooms | Class codes without accounts, private class gallery, teacher dashboard |
 
 Not planned for now: robots over Bluetooth, uptime alarm, GitHub Actions deploys.
 
+## Later
+
+Not started, and not part of the hackathon build. Each is described further down this page.
+
+- **Classrooms** (was Phase 5): class codes without accounts, private class gallery, teacher dashboard
+- **Mathland** (G): maths units through the turtle
+- **Story adventures** (D)
+- **Photo challenges** (E): draw from real life
+- **AR floor turtle** (fun feature 7)
+- **Talk with Gio** (C): voice conversation
+- **Coding songs** (F)
+- **Seasonal events** (fun feature 3)
+- **Ghost race** (fun feature 5): race your past self
+- **Take-turns drawing** (fun feature 6)
+- **Parents learn along** (H)
+- **AI and voice in other languages** (languages FEAT-003): the AI helper and voice control in Pidgin, French and Spanish. Screen text is already translated.
 ## Learning from Giggle Academy
 
 [Giggle Academy](https://giggleacademy.com/about-us) is a free, nonprofit learning platform founded by Changpeng Zhao, aimed at reaching children worldwide, including those without access to school. It reports [2 million learners](https://www.giggleacademy.com/blog/giggle-academy-reaches-2-million-learners-free-english-education-for-every-child-worldwide). What makes children come back, from its own materials:
@@ -44,29 +59,29 @@ Gio the turtle gets a name, moods, a voice and reactions: happy dances when code
 **B. An adventure map (learning path). Built.** The quest list is now a map of 3 islands in Little Turtles and 8 in Turtle Coders, each with two units of three quests (66 quests). A quest solved with no hint earns a gold star, a quest solved after help earns a silver star, two different gold stars master a unit, and a sailed island grows its tree, sticker and friend in the garden. Sailed islands invite a quiet two-quest review after 2, 7, 21 and 60 days (the original plan follows).
 Replace the quest list with a world map of islands, one per concept (Shape Shore, Loop Lagoon, Variable Valley, Event Forest, Recursion Ridge). Each island holds ten-minute units around one theme, with built-in repetition. Mastery-based: a child moves on after showing they can do it twice without hints. Earlier islands come back as short reviews days later (spaced repetition).
 
-**C. Talk with Gio (voice conversation).**
+**C. Talk with Gio (voice conversation). Later.**
 Turn voice input into a conversation: Gio asks questions, listens, praises specific things ("I love how you used REPEAT there!"), and gives tutor-mode hints out loud. Little Turtles can do a whole session without reading.
 
-**D. Story adventures.**
+**D. Story adventures. Later.**
 Illustrated story chapters where each page is a coding puzzle: help Gio build a bridge (draw a line of the right length), light a lighthouse (`IF`), plant a garden (`REPEAT`). Story text is read aloud. Stories are local and culturally familiar: a market in Lagos, a football match, a birthday party.
 
-**E. Draw from real life (photo to challenge).**
+**E. Draw from real life (photo to challenge). Later.**
 A child photographs something (a house, a flower, a flag) and the AI turns it into a challenge: "Can you draw this with the turtle?", with a faint target outline and hints. Needs a vision-capable model on Bedrock; check availability on the account first.
 
-**F. Songs and music.**
+**F. Songs and music. Later.**
 Builds on Phase 4's `PLAY`: short coding songs ("Repeat, repeat, four times round"), and kids compose tunes with loops, so music teaches patterns.
 
-**G. Maths through the turtle (Mathland).**
+**G. Maths through the turtle (Mathland). Later.**
 Units that teach angles, shapes, symmetry, multiplication (`REPEAT 3 [REPEAT 4 …]`), fractions of a circle and coordinates, aligned to primary school curricula (Nigerian, UK, US). This is where schools and parents see measurable value.
 
-**H. Parents learn along.**
+**H. Parents learn along. Later.**
 A weekly progress card kept in the browser ("This week Ada learned loops and drew 12 pictures"), suggested things to try together, and a short guide for parents who have never coded. No accounts needed; parents open it on the same device.
 
 **I. Gentle rewards. Built.** Gio's garden shows friends, stickers, a growing scene and a calm week strip, kept in the browser under `gio.rewards` (the original plan follows).
 Badges, a growing garden or aquarium that fills up as the child learns, and a calm streak that never shames a missed day. No leaderboards against strangers.
 
 **J. Free for every child.**
-Keep GIO free for children. Fund it through school and NGO partnerships (Phase 5 classrooms), grants, and cloud credits. Offline-first (Phase 3) so it works where data is scarce. Add more languages as native speakers volunteer, e.g. Yoruba, Hausa, Igbo and Swahili.
+Keep GIO free for children. Fund it through school and NGO partnerships (classrooms, under Later), grants, and cloud credits. Offline-first (Phase 3) so it works where data is scarce. Add more languages as native speakers volunteer, e.g. Yoruba, Hausa, Igbo and Swahili.
 
 ## Stages: quests that keep getting harder (done)
 
@@ -78,13 +93,13 @@ Little Turtles stages are block-based: Shape Shore, Loop Lagoon, Colour Cove, Pe
 
 ## Fun features
 
-1. **Daily Turtle Puzzle.** One new puzzle a day, the same for everyone, with a spoiler-free emoji result to share (e.g. "GIO #42 🐢 solved in 7 commands ⭐⭐⭐"). No accounts or leaderboards.
+1. **Daily Turtle Puzzle (done).** One new puzzle a day, the same for everyone, with a spoiler-free emoji result to share (e.g. "GIO #42 🐢 solved in 7 commands ⭐⭐⭐"). No accounts or leaderboards.
 2. **WhatsApp stickers (done).** One tap in the Picture menu turns a drawing into a 512x512 WebP sticker with a transparent background and a white outline, under 100 KB, shared with the phone's share menu or downloaded. What WhatsApp needs, and what could not be checked, is in [STICKERS.md](STICKERS.md).
-3. **Seasonal events.** Limited-time stages and Gio outfits: Spooky Season (pumpkins, ghost-catching games, haunted houses), then Christmas, Eid, Independence Day and more.
+3. **Seasonal events (later).** Limited-time stages and Gio outfits: Spooky Season (pumpkins, ghost-catching games, haunted houses), then Christmas, Eid, Independence Day and more.
 4. *(Maze mode, merged into 9.)*
-5. **Race your past self.** Re-solve a quest against a "ghost turtle" replaying your earlier solution. Improvement without comparing kids to each other.
-6. **Take-turns drawing.** Two kids on one device add one command each to build a picture together. Works offline.
-7. **Turtle on the floor (AR).** Point the phone at the floor and Gio walks and draws on it: the original 1970s floor turtle, back again. Newer phones only.
+5. **Race your past self (later).** Re-solve a quest against a "ghost turtle" replaying your earlier solution. Improvement without comparing kids to each other.
+6. **Take-turns drawing (later).** Two kids on one device add one command each to build a picture together. Works offline.
+7. **Turtle on the floor (AR) (later).** Point the phone at the floor and Gio walks and draws on it: the original 1970s floor turtle, back again. Newer phones only.
 8. **Colouring pages and `FILL` (done).** `FILL` colours in the closed shape the turtle is in, with the pen colour, under the lines. It works in the interpreter, in Python and JavaScript (Python gets a flood-fill helper, checked in real CPython by `check:python`) and as a Fill block for Little Turtles, and the AI helper knows it. Picture → Colouring page shows any drawing as black outlines on white and prints it on one A4 or Letter page with the drawing's name. Nothing new is stored in the browser.
 9. **Gio's Adventure, a game you play with code (done).** A world of levels (forests, rivers, caves, a castle) where kids write commands to get Gio through: walk around rocks, `REPEAT` across a long bridge, `IF` there's a river then swim, collect gems, free trapped friends, beat boss levels. Each world introduces one coding idea; Maze mode is its first world. Blocks for Little Turtles, typed code for Turtle Coders. Built: 7 worlds, 44 levels for Turtle Coders and 36 for Little Turtles, 7 bosses and 6 rescued friends (see `docs/ADVENTURE.md`).
 
@@ -113,10 +128,8 @@ At most two workflows run at once, paired so they don't edit the same files.
 | 1 | Stages 20/10 + certificate · Phase 4 (music, animation, Python in the browser) |
 | 2 | 9 Gio's Adventure (done) · Phase 3 offline app (PWA) |
 | 3 | Phase 3 languages (translates everything built so far) · 1 Daily puzzle + 2 WhatsApp stickers + 8 colouring and `FILL` |
-| 4 | Phase 5 classrooms · C talk with Gio |
-| 5 | G Mathland units + D story adventures · 3 seasonal events + 5 ghost race + 6 take-turns |
-| 6 | H parents + F songs + E photo challenges · 7 AR floor turtle |
+| Later | See the Later list above |
 
 ### Phase 3, offline app (PWA): done
 
-GIO installs on a phone and drawing, quests, the adventure map, GIF export and the privacy and certificate pages work with no connection. The AI and saving need the internet, and say so kindly. Python needs the internet each time it starts (the locked box cannot use the app cache). Measured by `npm run check:offline` (build 6ba7663a17d3): first load of `/` transfers 1,127,700 bytes uncompressed (8 requests, the Node server does not compress; production nginx does). The offline cache holds 16 files, 1,543,592 bytes raw, 816,168 bytes gzip, with a budget of 15 percent above that. Languages: all four locales (English, Naijá Pidgin, French, Spanish) are bundled statically, because the parser needs the command words synchronously. With FEAT-001 of the languages work (build 5217ac76d70b) the offline cache holds 36 files, 1,827,689 bytes raw (over the old 1,807,000 raw budget), 906,796 bytes gzip (inside the old 951,000 gzip budget). This is the new baseline; the budget in scripts/offline-check.ts is again 15 percent above it: 2,102,000 bytes raw, 1,043,000 bytes gzip. With FEAT-002 (every screen, quest, stage and adventure text, and the Logo errors, in all four languages) the offline cache holds 36 files, 2,312,157 bytes raw, 1,049,186 bytes gzip. This is the new baseline; the budget is 15 percent above it: 2,659,000 bytes raw, 1,207,000 bytes gzip.
+GIO installs on a phone and drawing, quests, the adventure map, GIF export and the privacy and certificate pages work with no connection. The AI and saving need the internet, and say so kindly. Python needs the internet each time it starts (the locked box cannot use the app cache). Measured by `npm run check:offline` (build 6ba7663a17d3): first load of `/` transfers 1,127,700 bytes uncompressed (8 requests, the Node server does not compress; production nginx does). The offline cache holds 16 files, 1,543,592 bytes raw, 816,168 bytes gzip, with a budget of 15 percent above that. Languages: all four locales (English, Naijá Pidgin, French, Spanish) are bundled statically, because the parser needs the command words synchronously. With FEAT-001 of the languages work (build 5217ac76d70b) the offline cache holds 36 files, 1,827,689 bytes raw (over the old 1,807,000 raw budget), 906,796 bytes gzip (inside the old 951,000 gzip budget). This is the new baseline; the budget in scripts/offline-check.ts is again 15 percent above it: 2,102,000 bytes raw, 1,043,000 bytes gzip. With FEAT-002 (every screen, quest, stage and adventure text, and the Logo errors, in all four languages) the offline cache holds 36 files, 2,312,157 bytes raw, 1,049,186 bytes gzip. This is the new baseline; the budget is 15 percent above it: 2,659,000 bytes raw, 1,207,000 bytes gzip. Since then the command words live in src/i18n/words.ts, so the parser no longer needs the language files: only English is in the main script, and Pidgin, French and Spanish each load in their own file when a child picks one. The main script went from 1,061 kB to 603 kB, inside the 720 kB budget in check:learning. The offline cache still holds every language: 42 files, 2,368,155 bytes raw, 1,067,619 bytes gzip, inside the budget.

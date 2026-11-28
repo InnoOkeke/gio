@@ -9,7 +9,7 @@ import { canonical } from '../../src/logo/word-table.js';
 import { ISLANDS } from '../../src/ui/path/islands';
 import { ADVENTURE_REFERENCE } from '../../tests/solutions/adventure';
 import type { Cdp } from './cdp';
-import { sleep } from './cdp';
+import { clickTexts, sleep } from './cdp';
 
 export interface Screen {
   id: string;
@@ -486,7 +486,7 @@ async function blockDragChecks(c: Cdp): Promise<void> {
   const swiped = await blocksLogo(c);
   expect(swiped === start, `a quick swipe on the palette added or moved a block: ${swiped} (tile at ${Math.round(tile.x)},${Math.round(tile.y)})`);
   // 1. Palette tile into the end of the outer Repeat.
-  await c.evaluate(`[...document.querySelectorAll('.palette-tile')].find((e) => e.textContent.includes('Turn left'))?.setAttribute('data-test', 'turn-left')`);
+  await c.evaluate(`[...document.querySelectorAll('.palette-tile')].find((e) => ${JSON.stringify(clickTexts('Turn left'))}.some((t) => e.textContent.includes(t)))?.setAttribute('data-test', 'turn-left')`);
   await dropInto(c, '[data-test="turn-left"]', '[data-slot="0:2"]', 'REPEAT 4 [ FD 50 REPEAT 3 [ RT 10 ] LT 90 ] FD 5', 'palette tile into the Repeat');
   // 2. Reorder: the new block's handle to the start of the same Repeat.
   await dropInto(c, '[data-block-path="0.2"]', '[data-slot="0:0"]', 'REPEAT 4 [ LT 90 FD 50 REPEAT 3 [ RT 10 ] ] FD 5', 'reordering with the handle');

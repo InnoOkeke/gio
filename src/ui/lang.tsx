@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getLocale, guessLang, t as format, type Lang, type Locale, type Params } from '../i18n/index.js';
+import { getLocale, guessLang, isLocaleLoaded, loadLocale, t as format, type Lang, type Locale, type Params } from '../i18n/index.js';
 import { currentLang, LANG_KEY, readStoredLang, setActiveLang } from './lang-state';
 
 interface LangContextValue {
@@ -15,6 +15,21 @@ const LangContext = createContext<LangContextValue | null>(null);
 export function LangProvider({ children }: { children: ReactNode }) {
   const [stored, setStored] = useState<Lang | null>(readStoredLang);
   const lang: Lang = stored ?? guessLang(typeof navigator === 'undefined' ? undefined : navigator.languages);
+  // A language other than English arrives in its own file. Until then the screen stays in English.
+  const [, setLoaded] = useState(0);
+  const ready = isLocaleLoaded(lang);
+  useEffect(() => {
+    if (ready) return;
+    let live = true;
+    loadLocale(lang)
+      .then(() => live && setLoaded((n) => n + 1))
+      .catch(() => {
+        /* Offline with no copy saved yet: English stays until the file can load. */
+      });
+    return () => {
+      live = false;
+    };
+  }, [lang, ready]);
   setActiveLang(lang);
   const setLang = useCallback((next: Lang) => {
     try {
@@ -27,7 +42,7 @@ export function LangProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = lang;
   }, [lang]);
-  const value = useMemo<LangContextValue>(() => ({ lang, locale: getLocale(lang), chosen: stored !== null, setLang }), [lang, stored, setLang]);
+  const value = useMemo<LangContextValue>(() => ({ lang, locale: getLocale(lang), chosen: stored !== null, setLang }), [lang, stored, setLang, ready]);
   return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
 

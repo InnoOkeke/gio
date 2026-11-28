@@ -1170,7 +1170,7 @@ function StudioView({ initial }: { initial: Loaded }) {
             <div className="studio-controls flex flex-wrap items-center justify-center gap-3">
               {(!compact || focus.active) && (
               <>
-              <button type="button" className={`btn btn-lg ${playing ? 'btn-stop' : 'btn-primary'} min-w-[150px]`} onClick={onRunPress}>
+              <button type="button" data-run className={`btn btn-lg ${playing ? 'btn-stop' : 'btn-primary'} min-w-[150px]`} onClick={onRunPress}>
                 {playing ? <PauseIcon size={22} /> : <PlayIcon size={22} />}
                 {playing ? t('btn.pause') : status === 'paused' ? t('btn.keepGoing') : t('btn.run')}
               </button>

@@ -155,14 +155,14 @@ export const COLLECT_FACTS = `(() => {
   if (st && visible(st)) {
     const pane = st.closest('.studio-stage-pane') || st.closest('section, .panel') || st.parentElement;
     const cs = getComputedStyle(pane);
-    const run = [...document.querySelectorAll('button')].find((b) => /^(Run|Pause|Keep going)$/.test((b.textContent || '').trim()));
+    const run = [...document.querySelectorAll('button')].find((b) => b.hasAttribute('data-run') || /^(Run|Pause|Keep going)$/.test((b.textContent || '').trim()));
     const hdr = document.querySelector('header');
     stage = { ...rectOf(st), paneInner: pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight),
       paneInnerHeight: pane.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom),
       controlsHeight: run && run.parentElement ? run.parentElement.getBoundingClientRect().height + 16 : 0,
       headerBottom: hdr ? hdr.getBoundingClientRect().bottom : 0 };
   }
-  const runEl = [...document.querySelectorAll('button')].find((b) => /^(Run|Pause|Keep going)$/.test((b.textContent || '').trim()));
+  const runEl = [...document.querySelectorAll('button')].find((b) => b.hasAttribute('data-run') || /^(Run|Pause|Keep going)$/.test((b.textContent || '').trim()));
 
   let dialog = null;
   if (modal) {

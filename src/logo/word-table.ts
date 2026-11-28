@@ -1,6 +1,4 @@
-import { fr } from '../i18n/locales/fr.js';
-import { es } from '../i18n/locales/es.js';
-import { pcm } from '../i18n/locales/pcm.js';
+import { esWords, frWords, pcmWords } from '../i18n/words.js';
 import type { Lang, WordTable } from '../i18n/types.js';
 import { PRIMITIVES, SPECIAL_FORMS } from './primitives.js';
 
@@ -16,7 +14,7 @@ export const ENGLISH_WORDS: WordTable = Object.fromEntries([
 ]);
 
 /** The command words each language adds to the English ones. English adds none: its words are the names and aliases. */
-export const LOCAL_WORDS: Record<Lang, WordTable> = { en: {}, fr: fr.words, es: es.words, pcm: pcm.words };
+export const LOCAL_WORDS: Record<Lang, WordTable> = { en: {}, fr: frWords, es: esWords, pcm: pcmWords };
 
 export interface WordEntry {
   canon: string;

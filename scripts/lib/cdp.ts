@@ -13,6 +13,10 @@ let cdpTexts: (text: string) => string[] = (text) => [text];
 export function setClickTexts(fn: (text: string) => string[]): void {
   cdpTexts = fn;
 }
+/** The texts a click would look for, for page scripts that match text themselves. */
+export function clickTexts(text: string): string[] {
+  return cdpTexts(text);
+}
 /** Rewrites page scripts before they run, so English `aria-label` selectors also find the chosen language. */
 let cdpRewrite: (expr: string) => string = (expr) => expr;
 export function setScriptRewrite(fn: (expr: string) => string): void {

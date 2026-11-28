@@ -1,7 +1,4 @@
 import { en } from './locales/en.js';
-import { es } from './locales/es.js';
-import { fr } from './locales/fr.js';
-import { pcm } from './locales/pcm.js';
 import { LANGS, type Lang, type Locale } from './types.js';
 
 export { LANGS } from './types.js';
@@ -11,10 +8,38 @@ import { t, plural, type Params } from './format.js';
 export { t, plural };
 export type { Params };
 
-const LOCALES: Record<Lang, Locale> = { en, pcm, fr, es };
+/**
+ * English is always here. The other languages are big, so each loads in its own file only when a child picks it
+ * (loadLocale). Until it arrives, getLocale gives English, so nothing is ever missing.
+ */
+const LOCALES: Partial<Record<Lang, Locale>> = { en };
+
+const LOADERS: Record<Exclude<Lang, 'en'>, () => Promise<Locale>> = {
+  fr: () => import('./locales/fr.js').then((m) => m.fr),
+  es: () => import('./locales/es.js').then((m) => m.es),
+  pcm: () => import('./locales/pcm.js').then((m) => m.pcm),
+};
 
 export function getLocale(lang: Lang): Locale {
-  return LOCALES[lang];
+  return LOCALES[lang] ?? en;
+}
+
+export function isLocaleLoaded(lang: Lang): boolean {
+  return LOCALES[lang] !== undefined;
+}
+
+/** Loads a language's text once; later calls reuse it. */
+export async function loadLocale(lang: Lang): Promise<Locale> {
+  const ready = LOCALES[lang];
+  if (ready) return ready;
+  const locale = await LOADERS[lang as Exclude<Lang, 'en'>]();
+  LOCALES[lang] = locale;
+  return locale;
+}
+
+/** Loads every language, for tests and scripts that check all of them. */
+export async function loadAllLocales(): Promise<void> {
+  await Promise.all(LANGS.map((l) => loadLocale(l.id)));
 }
 
 export function isLang(value: unknown): value is Lang {

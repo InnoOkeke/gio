@@ -1,5 +1,6 @@
 import type { Content, Locale } from '../types.js';
 import type { Messages } from './en.js';
+import { frWords as words } from '../words.js';
 
 const messages: Messages = {
   'lang.choose': 'Quelle langue veux-tu utiliser ?',
@@ -1066,60 +1067,7 @@ const messages: Messages = {
   /* @@MORE@@ */
 };
 
-/**
- * Mots Logo français. Les mots officiels viennent du Logo français (AVANCE/AV, RECULE/RE, DROITE/TD,
- * GAUCHE/TG, LEVELECRAYON/LC, BAISSELECRAYON/BC, REPETE, EFFACEECRAN/VE). Ceux qui n'ont pas de mot
- * établi sont « ours » : choisis par nous, simples, en ASCII et sans accent.
- */
-const words = {
-  FORWARD: ['AVANCE', 'AV'],
-  BACK: ['RECULE', 'RE'],
-  RIGHT: ['DROITE', 'TD'],
-  LEFT: ['GAUCHE', 'TG'],
-  PENUP: ['LEVELECRAYON', 'LC'],
-  PENDOWN: ['BAISSELECRAYON', 'BC'],
-  HOME: ['ORIGINE'],
-  CLEARSCREEN: ['EFFACEECRAN', 'VE'],
-  CLEAN: ['NETTOIE'], // ours
-  SETPENCOLOR: ['FIXECOULEUR'], // ours
-  SETPENSIZE: ['FIXEEPAISSEUR'], // ours
-  SETBACKGROUND: ['FIXEFOND'], // ours
-  SETHEADING: ['FIXECAP'],
-  SETXY: ['FIXEXY'],
-  SETX: ['FIXEX'],
-  SETY: ['FIXEY'],
-  ARC: ['ARC'], // ours
-  CIRCLE: ['CERCLE'], // ours
-  HIDETURTLE: ['CACHETORTUE', 'CT'],
-  SHOWTURTLE: ['MONTRETORTUE', 'MT'],
-  PRINT: ['ECRIS'],
-  DOT: ['POINT'], // ours
-  SHOW: ['AFFICHE'], // ours
-  GAMEOVER: ['FINDUJEU'], // ours
-  PLAY: ['JOUE'], // ours
-  SETTEMPO: ['TEMPO'], // ours
-  WAIT: ['ATTENDS'], // ours
-  FRAME: ['IMAGE'], // ours
-  FILL: ['REMPLIS'], // ours
-  RANDOM: ['HASARD'],
-  REPCOUNT: ['COMPTEUR'], // ours
-  SQRT: ['RACINE'],
-  SIN: ['SINUS'],
-  COS: ['COSINUS'],
-  HEADING: ['CAP'],
-  XCOR: ['ABSCISSE'],
-  YCOR: ['ORDONNEE'],
-  DISTANCE: ['DISTANCE'], // ours
-  SENTENCE: ['PHRASE'],
-  TO: ['POUR'],
-  END: ['FIN'],
-  REPEAT: ['REPETE'],
-  IF: ['SI'],
-  IFELSE: ['SISINON'],
-  MAKE: ['DONNE'],
-  STOP: ['ARRETE'],
-  WHEN: ['QUAND'], // ours
-} as const;
+
 
 /* ===================== Content: text from the data files, by id ===================== */
 const content: Content = {

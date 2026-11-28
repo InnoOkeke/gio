@@ -25,3 +25,8 @@ export function takeDailySlot(db: BetterSqlite3.Database, day: string, max: numb
   }
   return true;
 }
+
+/** Gives back one request taken by takeDailySlot, for a request the moderation check refused or could not judge. */
+export function giveBackDailySlot(db: BetterSqlite3.Database, day: string): void {
+  db.prepare('UPDATE ai_daily_usage SET count = count - 1 WHERE day = ? AND count > 0').run(day);
+}

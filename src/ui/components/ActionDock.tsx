@@ -24,7 +24,7 @@ export function ActionDock({ status, onRun, onStep, onAsk, askOpen, onStuck, stu
   const playing = status === 'playing';
   return (
     <nav className="action-dock" aria-label={t('nav.actions')}>
-      <button type="button" className={`btn dock-run ${playing ? 'btn-stop' : 'btn-primary'}`} onClick={onRun}>
+      <button type="button" data-run className={`btn dock-run ${playing ? 'btn-stop' : 'btn-primary'}`} onClick={onRun}>
         {playing ? <PauseIcon size={24} /> : <PlayIcon size={24} />}
         {playing ? t('btn.pause') : status === 'paused' ? t('btn.keepGoing') : t('btn.run')}
       </button>

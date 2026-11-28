@@ -811,6 +811,15 @@ html[data-width='large'] .quest-preview {
     padding: 0 6px;
     box-shadow: none;
   }
+  /* Ask Gio is longer in French, Spanish and Pidgin (Demande à Gio). It wraps onto two lines so it keeps clear of the drawing name. */
+  html:not([lang='en']) .ask-fold .ask-bar-cta {
+    max-width: 104px;
+    padding: 4px 10px;
+    font-size: 15px;
+    line-height: 1.05;
+    text-align: center;
+    white-space: normal;
+  }
   .speed-label,
   .step-label,
   .export-label {

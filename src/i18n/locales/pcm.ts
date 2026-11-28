@@ -1,5 +1,6 @@
 import type { Content, Locale } from '../types.js';
 import type { Messages } from './en.js';
+import { pcmWords as words } from '../words.js';
 
 /*
  * NAIJÁ PIDGIN (Nigerian Pidgin): the one file to review.
@@ -1086,38 +1087,7 @@ const messages: Messages = {
  * RIGHT, LEFT, HOME, SHOW, STOP, IF and WHEN are already the same as English, so they are not listed.
  * All of these are proposals for you to review. Change a word here and nothing else needs to change.
  */
-const words = {
-  FORWARD: ['GO', 'FD'],
-  BACK: ['COMEBACK', 'BK'],
-  RIGHT: ['RIGHT', 'RT'],
-  LEFT: ['LEFT', 'LT'],
-  PENUP: ['LIFTPEN', 'PU'],
-  PENDOWN: ['DROPPEN', 'PD'],
-  CLEARSCREEN: ['WIPE', 'CS'],
-  CLEAN: ['SWEEP'],
-  SETPENCOLOR: ['PENCOLOUR'],
-  SETPENSIZE: ['PENFAT'],
-  SETBACKGROUND: ['BACKCOLOUR'],
-  SETHEADING: ['FACE'],
-  SETXY: ['JUMPXY'],
-  SETX: ['JUMPX'],
-  SETY: ['JUMPY'],
-  HIDETURTLE: ['HIDEMAN'],
-  SHOWTURTLE: ['SHOWMAN'],
-  PRINT: ['WRITE'],
-  GAMEOVER: ['GAMEDONE'],
-  PLAY: ['SING'],
-  WAIT: ['HOLD'],
-  FRAME: ['SNAP'],
-  RANDOM: ['ANYHOW'],
-  REPCOUNT: ['WHICHROUND'],
-  HEADING: ['WHERETOFACE'],
-  SENTENCE: ['JOIN'],
-  TO: ['TEACH'],
-  END: ['FINISH'],
-  REPEAT: ['DOAGAIN'],
-  MAKE: ['KEEP'],
-} as const;
+
 
 /* ===================== 3. QUEST, STAGE, FRIEND AND ADVENTURE TEXT ===================== */
 const content: Content = {

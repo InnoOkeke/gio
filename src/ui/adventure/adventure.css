@@ -505,6 +505,12 @@ a.adv-tile:active {
 html[data-width='compact'] .adv-scene-box {
   width: min(100cqw, 46dvh);
 }
+/* On a phone held upright the picture takes about 40% of the height, so the blocks below are reachable without scrolling. */
+@media (orientation: portrait) {
+  html[data-width='compact'] .adv-scene-box {
+    width: min(100cqw, 40dvh);
+  }
+}
 html[data-width='medium'][data-layout='stack'] .adv-scene-box {
   width: min(100cqw, 560px, 46dvh);
 }

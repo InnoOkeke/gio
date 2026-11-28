@@ -1,5 +1,6 @@
 import type { Content, Locale } from '../types.js';
 import type { Messages } from './en.js';
+import { esWords as words } from '../words.js';
 
 const messages: Messages = {
   'lang.choose': '¿Qué idioma quieres usar?',
@@ -1058,60 +1059,7 @@ const messages: Messages = {
   /* @@MORE@@ */
 };
 
-/**
- * Palabras Logo en español. Las oficiales vienen del Logo en español (AVANZA/AV, RETROCEDE/RE,
- * DERECHA, IZQUIERDA, SUBELAPIZ, BAJALAPIZ, REPITE, BORRAPANTALLA). Donde no hay palabra establecida
- * son « ours »: elegidas por nosotros, simples, en ASCII y sin tildes.
- */
-const words = {
-  FORWARD: ['AVANZA', 'AV'],
-  BACK: ['RETROCEDE', 'RE'],
-  RIGHT: ['DERECHA', 'DE'],
-  LEFT: ['IZQUIERDA', 'IZ'],
-  PENUP: ['SUBELAPIZ', 'SL'],
-  PENDOWN: ['BAJALAPIZ', 'BL'],
-  HOME: ['CENTRO'],
-  CLEARSCREEN: ['BORRAPANTALLA', 'BP'],
-  CLEAN: ['LIMPIA'], // ours
-  SETPENCOLOR: ['PONCOLOR'], // ours
-  SETPENSIZE: ['PONGROSOR'], // ours
-  SETBACKGROUND: ['PONFONDO'], // ours
-  SETHEADING: ['PONRUMBO'],
-  SETXY: ['PONPOS'],
-  SETX: ['PONX'],
-  SETY: ['PONY'],
-  ARC: ['ARCO'], // ours
-  CIRCLE: ['CIRCULO'], // ours
-  HIDETURTLE: ['OCULTATORTUGA', 'OT'],
-  SHOWTURTLE: ['MUESTRATORTUGA', 'MT'],
-  PRINT: ['ESCRIBE'],
-  DOT: ['PUNTO'], // ours
-  SHOW: ['MUESTRA'], // ours
-  GAMEOVER: ['FINJUEGO'], // ours
-  PLAY: ['TOCA'], // ours
-  SETTEMPO: ['TEMPO'], // ours
-  WAIT: ['ESPERA'], // ours
-  FRAME: ['CUADRO'], // ours
-  FILL: ['RELLENA'], // ours
-  RANDOM: ['AZAR'],
-  REPCOUNT: ['CUENTA'], // ours
-  SQRT: ['RAIZ'],
-  SIN: ['SENO'],
-  COS: ['COSENO'],
-  HEADING: ['RUMBO'],
-  XCOR: ['POSX'],
-  YCOR: ['POSY'],
-  DISTANCE: ['DISTANCIA'], // ours
-  SENTENCE: ['FRASE'],
-  TO: ['PARA'],
-  END: ['FIN'],
-  REPEAT: ['REPITE'],
-  IF: ['SI'],
-  IFELSE: ['SISINO'],
-  MAKE: ['HAZ'],
-  STOP: ['ALTO'],
-  WHEN: ['CUANDO'], // ours
-} as const;
+
 
 /* ===================== Content: text from the data files, by id ===================== */
 const content: Content = {
