@@ -9,7 +9,15 @@ describe('speakable', () => {
     expect(speakable('Try these\n• Draw a square\n• Add a colour')).toEqual(['Try these. Draw a square. Add a colour.']);
   });
   it('reads Logo words, variables and brackets naturally', () => {
-    expect(speakable('Type REPEAT 4 [FD :size RT 90] to draw it.')).toEqual(['Type REPEAT 4, forward size right 90, to draw it.']);
+    expect(speakable('Type REPEAT 4 [FD :size RT 90] to draw it.')).toEqual(['Type repeat 4, forward size right 90, to draw it.']);
+  });
+  it('reads Logo words in the language of the text, never spelled out', () => {
+    expect(speakable('Écris REPETE 4 [AV 100 TD 90] puis LC.', 'fr')).toEqual(['Écris répète 4, avance 100 droite 90, puis lève le crayon.']);
+    expect(speakable('Usa FD 50 y luego BAJALAPIZ.', 'es')).toEqual(['Usa avanza 50 y luego baja el lápiz.']);
+    expect(speakable('Use DOAGAIN 4 [GO 100]', 'pcm')).toEqual(['Use do again 4, go 100.']);
+  });
+  it('leaves other words in capitals alone', () => {
+    expect(speakable('GIO says OK.')).toEqual(['GIO says OK.']);
   });
   it('drops emoji and does not split numbers with a decimal point', () => {
     expect(speakable('Well done! 🐢⭐ You moved 1.5 steps.')).toEqual(['Well done! You moved 1.5 steps.']);

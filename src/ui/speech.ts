@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { isLang } from '../i18n/index.js';
 import { speakable, voiceLangs } from './speakable';
 
 const KEY = 'gio.readAloud';
@@ -58,10 +59,11 @@ export function useReadAloud(defaultOn: boolean) {
   const speak = useCallback(
     (text: string, force = false) => {
       if (!supported || (!enabledRef.current && !force)) return;
-      const pieces = speakable(text);
+      const lang = appLang();
+      const pieces = speakable(text, isLang(lang) ? lang : 'en');
       if (pieces.length === 0) return;
       window.speechSynthesis.cancel();
-      const langs = voiceLangs(appLang());
+      const langs = voiceLangs(lang);
       const voice = pickVoice(langs);
       // One sentence (or a few short ones) per utterance: the voice pauses between them and long text is not cut off.
       for (const piece of pieces) {
