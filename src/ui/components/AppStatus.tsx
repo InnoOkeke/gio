@@ -5,6 +5,7 @@ import { decideInstallOffer, pickCard, platformOf, readPwaState, writePwaState }
 import { getSnapshot, subscribe } from '../offline/register';
 import { useT } from '../lang';
 import { GioMark } from './GioMark';
+import { CloseIcon } from './icons';
 
 /** The event Chrome and Edge on Android fire when GIO can be installed. TypeScript's DOM library does not include it. */
 interface InstallPromptEvent extends Event {
@@ -70,7 +71,8 @@ function ShareIcon() {
 
 const BUTTON = 'btn min-h-12 focus-visible:outline focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-[#0b7a4f]';
 
-function Card({ title, children, actions }: { title: string; children?: ReactNode; actions?: ReactNode }) {
+function Card({ title, children, actions, onClose }: { title: string; children?: ReactNode; actions?: ReactNode; onClose?: () => void }) {
+  const t = useT();
   return (
     <div className="panel pointer-events-auto w-full max-w-md p-4 flex gap-3 items-start motion-safe:transition-opacity">
       <GioMark size={40} className="shrink-0" />
@@ -79,6 +81,11 @@ function Card({ title, children, actions }: { title: string; children?: ReactNod
         {children}
         {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
       </div>
+      {onClose && (
+        <button type="button" className={`btn btn-quiet btn-icon min-h-12 min-w-12 shrink-0 -mr-1 -mt-1 ${BUTTON}`} onClick={onClose} aria-label={t('btn.close')}>
+          <CloseIcon />
+        </button>
+      )}
     </div>
   );
 }
@@ -194,7 +201,7 @@ export function AppStatus() {
           <p className="m-0 text-[15px] font-semibold text-ink-2">{t('status.quota.note')}</p>
         </Card>
       )}
-      {card === 'ready' && <Card title={t('status.ready.title')} />}
+      {card === 'ready' && <Card title={t('status.ready.title')} onClose={() => setReadyNote(false)} />}
       {card === 'android' && (
         <Card
           title={t('status.install.title')}
