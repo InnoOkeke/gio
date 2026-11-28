@@ -1,31 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { speakable, voiceLangs } from './speakable';
 
 const KEY = 'gio.readAloud';
 
-function pickVoice(): SpeechSynthesisVoice | null {
+/** The language GIO is showing (LangProvider sets <html lang>), so French text is read by a French voice. */
+function appLang(): string {
+  return document.documentElement.lang || navigator.language || 'en';
+}
+
+function pickVoice(langs: string[]): SpeechSynthesisVoice | null {
   const voices = window.speechSynthesis.getVoices();
-  const lang = (navigator.language || 'en').toLowerCase();
-  return (
-    voices.find((v) => v.lang.toLowerCase() === lang && v.localService) ??
-    voices.find((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2)) && v.localService) ??
-    voices.find((v) => v.lang.toLowerCase().startsWith(lang.slice(0, 2))) ??
-    null
-  );
+  for (const lang of langs) {
+    const exact = (v: SpeechSynthesisVoice) => v.lang.toLowerCase().replace('_', '-') === lang;
+    const sameBase = (v: SpeechSynthesisVoice) => v.lang.toLowerCase().startsWith(lang.slice(0, 2));
+    const voice =
+      voices.find((v) => exact(v) && v.localService) ??
+      voices.find(exact) ??
+      (lang.length === 2 ? voices.find((v) => sameBase(v) && v.localService) ?? voices.find(sameBase) : undefined);
+    if (voice) return voice;
+  }
+  return null;
 }
-
-/** Turn the bubble's text into something pleasant to hear. */
-function speakable(text: string): string {
-  return text
-    .replace(/•\s*/g, '')
-    .replace(/\bFD\b/g, 'forward')
-    .replace(/\bBK\b/g, 'back')
-    .replace(/\bRT\b/g, 'right')
-    .replace(/\bLT\b/g, 'left')
-    .replace(/[[\]":;]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 /**
  * Reads the turtle's messages aloud with the browser's built-in voices, so children who can't read yet
  * can still use GIO. Speech is generated on the device where the browser supports it.
@@ -63,15 +58,20 @@ export function useReadAloud(defaultOn: boolean) {
   const speak = useCallback(
     (text: string, force = false) => {
       if (!supported || (!enabledRef.current && !force)) return;
-      const words = speakable(text);
-      if (!words) return;
+      const pieces = speakable(text);
+      if (pieces.length === 0) return;
       window.speechSynthesis.cancel();
-      const u = new SpeechSynthesisUtterance(words);
-      const voice = pickVoice();
-      if (voice) u.voice = voice;
-      u.rate = 0.98;
-      u.pitch = 1.15;
-      window.speechSynthesis.speak(u);
+      const langs = voiceLangs(appLang());
+      const voice = pickVoice(langs);
+      // One sentence (or a few short ones) per utterance: the voice pauses between them and long text is not cut off.
+      for (const piece of pieces) {
+        const u = new SpeechSynthesisUtterance(piece);
+        if (voice) u.voice = voice;
+        u.lang = voice?.lang ?? langs[0]!;
+        u.rate = 0.95;
+        u.pitch = 1.1;
+        window.speechSynthesis.speak(u);
+      }
     },
     [supported],
   );
