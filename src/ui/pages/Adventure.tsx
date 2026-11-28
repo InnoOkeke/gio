@@ -65,7 +65,7 @@ export default function Adventure() {
               {t('adv.nOf', { n: total.stars, total: total.max })}
             </span>
           </span>
-          <LanguageButton />
+          <LanguageButton className="btn btn-quiet px-3 min-h-[48px] min-w-[48px]" codeClass="hidden medium:inline text-[14px] font-black" />
         </div>
       </header>
       <div className="adv-map-scroll">

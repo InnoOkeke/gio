@@ -1,7 +1,9 @@
 import { useT } from '../lang';
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { useSheetDrag } from '../responsive/useSheetDrag';
+import { createPortal } from 'react-dom';
+import { useIsCompact } from '../responsive/useMedia';
 import { CrayonIcon, DownloadIcon, MovieIcon, ShapesIcon, StickerIcon, TrophyIcon } from './icons';
+import { Sheet } from './Sheet';
 
 interface ExportMenuProps {
   /** Nothing has been drawn yet. */
@@ -35,6 +37,7 @@ interface Row {
 /** One "Picture" button that opens the ways to keep a drawing: picture, movie, drawing file and colouring page. */
 export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, onColouring, onSticker, onDaily, dailySolved }: ExportMenuProps) {
   const t = useT();
+  const compact = useIsCompact();
   const [open, setOpen] = useState(false);
   /** Tablets: the menu opens above the button, or below it when there is no room above. */
   const [below, setBelow] = useState(false);
@@ -44,19 +47,25 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
 
   const close = useCallback(() => {
     setOpen(false);
-    buttonRef.current?.focus();
+    window.setTimeout(() => buttonRef.current?.focus(), 0);
   }, []);
-  // A bottom sheet on phones (under 640 px): swipe the handle down to close it.
-  useSheetDrag(panelRef, close, open);
+
   useLayoutEffect(() => {
-    if (!open) return setBelow(false);
-    const button = buttonRef.current?.getBoundingClientRect();
-    const panel = panelRef.current?.getBoundingClientRect();
-    if (button && panel && window.innerWidth >= 640) setBelow(button.top - panel.height - 10 < 8 && button.bottom + panel.height + 10 <= window.innerHeight);
-  }, [open]);
+    if (!open || compact) return setBelow(false);
+    const place = () => {
+      const button = buttonRef.current?.getBoundingClientRect();
+      const panel = panelRef.current?.getBoundingClientRect();
+      if (button && panel && window.innerWidth >= 600) {
+        setBelow(button.top - panel.height - 10 < 8 && button.bottom + panel.height + 10 <= window.innerHeight);
+      }
+    };
+    place();
+    window.addEventListener('resize', place);
+    return () => window.removeEventListener('resize', place);
+  }, [open, compact]);
 
   useEffect(() => {
-    if (!open) return;
+    if (!open || compact) return;
     panelRef.current?.querySelector<HTMLElement>('.save-row')?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -80,7 +89,7 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, close]);
+  }, [open, compact, close]);
 
   const reason = t('export.reason');
   const rows: Row[] = [
@@ -141,6 +150,36 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
     row.run();
   };
 
+  const menuContent = (
+    <>
+      <div className="mb-2 flex items-center justify-between gap-2" data-sheet-header>
+        <h2 id={titleId} className="m-0 px-3 pt-1 pb-1 text-[15px] font-black text-ink-2">
+          {t('export.save')}
+        </h2>
+        <button type="button" className="btn btn-quiet min-h-[48px]" onClick={close}>
+          {t('btn.close')}
+        </button>
+      </div>
+      <div className="flex flex-col gap-2">
+        {rows.map((row) => (
+          <button
+            key={row.id}
+            type="button"
+            className="save-row"
+            aria-disabled={empty && !row.always}
+            onClick={() => pick(row)}
+          >
+            <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-[14px] ${row.tile}`}>{row.icon}</span>
+            <span className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-[17px] font-black leading-tight">{row.title}</span>
+              <span className="text-[14px] font-semibold leading-tight text-ink-2">{empty && !row.always ? reason : row.help}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+
   return (
     <div className="relative">
       <button
@@ -153,10 +192,16 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
       >
         <DownloadIcon /> <span className="export-label">{t('btn.picture')}</span>
       </button>
-      {open && (
+      {open && compact && createPortal(
+        <Sheet open={open} variant="sheet" labelledBy={titleId} onClose={close} className="save-panel">
+          <div className="px-3 pb-2">{menuContent}</div>
+        </Sheet>,
+        document.body,
+      )}
+      {open && !compact && (
         <>
           <div
-            className="fixed inset-0 z-40 bg-[rgba(23,38,31,0.35)] sm:bg-transparent save-fade"
+            className="fixed inset-0 z-40 bg-transparent save-fade"
             onClick={close}
             aria-hidden="true"
           />
@@ -165,38 +210,10 @@ export function ExportMenu({ empty, little, onPicture, onMovie, onDrawingFile, o
             role="dialog"
             aria-modal="true"
             aria-labelledby={titleId}
-            className={`z-50 bg-[var(--surface)] shadow-[var(--shadow-3)] border border-line p-2
-              max-sm:fixed max-sm:inset-x-0 max-sm:bottom-0 max-sm:rounded-t-[28px] max-sm:rounded-b-none max-sm:pb-[max(16px,env(safe-area-inset-bottom))] save-panel
-              sm:absolute sm:right-0 ${below ? 'sm:top-[calc(100%+10px)]' : 'sm:bottom-[calc(100%+10px)]'} sm:w-[340px] sm:rounded-[24px]`}
+            className={`z-50 bg-[var(--surface)] shadow-[var(--shadow-3)] border border-line p-2 save-panel
+              absolute right-0 ${below ? 'top-[calc(100%+10px)]' : 'bottom-[calc(100%+10px)]'} w-[340px] max-h-[calc(var(--vvh,100dvh)-24px)] overflow-y-auto rounded-[24px]`}
           >
-            <div className="sm:hidden flex justify-center pt-1 pb-2" data-sheet-grab aria-hidden="true">
-              <span className="h-[5px] w-10 rounded-full bg-[var(--line-strong)]" />
-            </div>
-            <div className="mb-2 flex items-center justify-between gap-2" data-sheet-header>
-              <h2 id={titleId} className="m-0 px-3 pt-1 pb-1 text-[15px] font-black text-ink-2">
-                {t('export.save')}
-              </h2>
-              <button type="button" className="btn btn-quiet min-h-[48px]" onClick={close}>
-                {t('btn.close')}
-              </button>
-            </div>
-            <div className="flex flex-col gap-2">
-              {rows.map((row) => (
-                <button
-                  key={row.id}
-                  type="button"
-                  className="save-row"
-                  aria-disabled={empty && !row.always}
-                  onClick={() => pick(row)}
-                >
-                  <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-[14px] ${row.tile}`}>{row.icon}</span>
-                  <span className="flex min-w-0 flex-col gap-0.5">
-                    <span className="text-[17px] font-black leading-tight">{row.title}</span>
-                    <span className="text-[14px] font-semibold leading-tight text-ink-2">{empty && !row.always ? reason : row.help}</span>
-                  </span>
-                </button>
-              ))}
-            </div>
+            {menuContent}
           </div>
         </>
       )}

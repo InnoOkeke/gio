@@ -1106,6 +1106,10 @@ function StudioView({ initial }: { initial: Loaded }) {
     <div className="studio-root min-h-full flex flex-col" data-game={gameKeys.length > 0}>
       <StudioHeader
         compact={compact}
+        shortLandscape={win.shortLandscape}
+        showAsk={!quest}
+        askOpen={askOpen}
+        onToggleAsk={() => setAskOpen((v) => !v)}
         mode={mode}
         title={title}
         onTitle={setTitle}
@@ -1125,7 +1129,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         onNew={startNew}
       />
 
-      <main className="studio-main flex-1 mx-auto w-full max-w-[1360px] px-4 sm:px-6 py-5 sm:py-6 flex flex-col gap-5">
+      <main className="studio-main flex-1 mx-auto w-full max-w-[1360px] px-4 medium:px-6 py-5 medium:py-6 flex flex-col gap-5">
         {skill.run && quest && (
           <SkillCheckBanner
             stageName={((s) => (s ? localizeStage(s, lang).name : t('studio.theStage')))(islandByKey(skill.run.targetKey))}
@@ -1145,7 +1149,7 @@ function StudioView({ initial }: { initial: Loaded }) {
             else setBubble({ kind: 'info', text: tr('studio.questVoice') });
           }} />
         ) : (
-          <AskFold widthClass={win.widthClass} layout={win.layout} open={askOpen} onOpen={setAskOpen} label={little ? t('studio.ask.little') : t('studio.ask.coder')}>
+          <AskFold widthClass={win.widthClass} layout={win.layout} shortLandscape={win.shortLandscape} open={askOpen} onOpen={setAskOpen} label={little ? t('studio.ask.little') : t('studio.ask.coder')}>
             <AskTurtle mode={mode} hasCode={code.trim().length > 0} busy={asking} onAsk={askAndFold} />
           </AskFold>
         )}
@@ -1153,7 +1157,7 @@ function StudioView({ initial }: { initial: Loaded }) {
         <div className="studio-shell">
           {codePanel}
 
-          <section ref={paneRef} data-focus={focus.active} className="studio-stage-pane panel p-4 sm:p-5 flex flex-col gap-4" aria-label={t('studio.stagePane')}>
+          <section ref={paneRef} data-focus={focus.active} className="studio-stage-pane panel p-4 medium:p-5 flex flex-col gap-4" aria-label={t('studio.stagePane')}>
             {/* The square stage is sized in CSS from its pane, so the Run button stays on screen. */}
             <div className="studio-stage-slot">
             <div className="studio-stage-box relative">
@@ -1170,7 +1174,7 @@ function StudioView({ initial }: { initial: Loaded }) {
             <div className="studio-controls flex flex-wrap items-center justify-center gap-3">
               {(!compact || focus.active) && (
               <>
-              <button type="button" data-run className={`btn btn-lg ${playing ? 'btn-stop' : 'btn-primary'} min-w-[150px]`} onClick={onRunPress}>
+              <button type="button" data-run className={`btn btn-lg ${playing ? 'btn-stop' : 'btn-primary'} min-w-[132px]`} onClick={onRunPress}>
                 {playing ? <PauseIcon size={22} /> : <PlayIcon size={22} />}
                 {playing ? t('btn.pause') : status === 'paused' ? t('btn.keepGoing') : t('btn.run')}
               </button>

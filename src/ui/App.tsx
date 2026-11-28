@@ -18,7 +18,7 @@ const AdventureLevel = lazy(() => import('./pages/AdventureLevel'));
 function PageFallback() {
   return <div className="min-h-full" aria-busy="true" />;
 }
-import { useWindowClass } from './responsive/useWindowClass';
+import { WindowClassProvider } from './responsive/useWindowClass';
 
 interface ErrorBoundaryState {
   error: Error | null;
@@ -65,23 +65,24 @@ function AdventureGate({ children }: { children: ReactNode }) {
   return mode ? <Suspense fallback={<PageFallback />}>{children}</Suspense> : <ModePicker />;
 }
 export default function App() {
-  useWindowClass();
   return (
-    <AppErrorBoundary>
-      <LangProvider>
-      <ModeProvider>
-        <Routes>
-          <Route path="/" element={<StudioGate />} />
-          <Route path="/p/:slug" element={<StudioGate />} />
-          <Route path="/adventure" element={<AdventureGate><Adventure /></AdventureGate>} />
-          <Route path="/adventure/:levelId" element={<AdventureGate><AdventureLevel /></AdventureGate>} />
-          <Route path="/certificate" element={<Suspense fallback={<PageFallback />}><Certificate /></Suspense>} />
-          <Route path="/privacy" element={<Suspense fallback={<PageFallback />}><Privacy /></Suspense>} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <AppStatus />
-      </ModeProvider>
-      </LangProvider>
-    </AppErrorBoundary>
+    <WindowClassProvider>
+      <AppErrorBoundary>
+        <LangProvider>
+        <ModeProvider>
+          <Routes>
+            <Route path="/" element={<StudioGate />} />
+            <Route path="/p/:slug" element={<StudioGate />} />
+            <Route path="/adventure" element={<AdventureGate><Adventure /></AdventureGate>} />
+            <Route path="/adventure/:levelId" element={<AdventureGate><AdventureLevel /></AdventureGate>} />
+            <Route path="/certificate" element={<Suspense fallback={<PageFallback />}><Certificate /></Suspense>} />
+            <Route path="/privacy" element={<Suspense fallback={<PageFallback />}><Privacy /></Suspense>} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <AppStatus />
+        </ModeProvider>
+        </LangProvider>
+      </AppErrorBoundary>
+    </WindowClassProvider>
   );
 }

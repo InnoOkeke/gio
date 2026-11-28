@@ -41,7 +41,7 @@ export function QuestCard({ quest: source, done, feedback, star, hinted, review,
   const lines = mapLinesFor(quest.audience, lang);
   const hidden = hiddenTestLine(quest, lang);
   return (
-    <section className="quest-card panel px-5 py-5 sm:px-7 flex flex-col sm:flex-row sm:items-center gap-4" aria-labelledby="quest-title" style={{ borderColor: c.color, borderWidth: 2 }}>
+    <section className="quest-card panel px-5 py-5 medium:px-7 flex flex-col medium:flex-row medium:items-center gap-4" aria-labelledby="quest-title" style={{ borderColor: c.color, borderWidth: 2 }}>
       <span className="w-14 h-14 shrink-0 rounded-[18px] flex items-center justify-center text-white" style={{ background: c.color }} aria-hidden="true">
         {done ? <CheckIcon size={30} /> : <TrophyIcon size={30} />}
       </span>

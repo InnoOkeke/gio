@@ -38,7 +38,7 @@ function BlocksArt() {
         <div
           key={b.t}
           className="h-9 rounded-[12px] px-3 flex items-center text-white text-[15px] font-extrabold shadow-[0_3px_0_rgba(0,0,0,0.18)]"
-          style={{ width: b.w + 40, background: b.c, marginLeft: k === 2 ? 0 : 0 }}
+          style={{ width: b.w + 40, maxWidth: '100%', background: b.c, marginLeft: k === 2 ? 0 : 0 }}
         >
           {b.t}
         </div>
@@ -49,7 +49,7 @@ function BlocksArt() {
 
 function CodeArt() {
   return (
-    <div className="rounded-[14px] bg-white/80 px-3 py-2.5 font-mono text-[14px] leading-[1.6] font-bold shadow-[0_3px_0_rgba(0,0,0,0.08)]" aria-hidden="true">
+    <div className="max-w-full overflow-x-auto rounded-[14px] bg-white/80 px-3 py-2.5 font-mono text-[14px] leading-[1.6] font-bold shadow-[0_3px_0_rgba(0,0,0,0.08)]" aria-hidden="true">
       <div>
         <span className="text-[#7a4cf0]">REPEAT</span> <span className="text-[#1e6fd9]">4</span> [<span className="text-[#0b7a4f]">FD</span> <span className="text-[#1e6fd9]">50</span> <span className="text-[#0b7a4f]">RT</span> <span className="text-[#1e6fd9]">90</span>]
       </div>
@@ -92,18 +92,18 @@ export function ModePicker() {
         <div className="w-20 h-20 turtle is-happy" style={{ position: 'static', margin: 0 }} aria-hidden="true">
           <TurtleSprite />
         </div>
-        <h1 className="m-0 text-[34px] sm:text-[44px] font-black leading-[1.05] tracking-tight">{t('mode.title')}</h1>
+        <h1 className="m-0 text-[34px] medium:text-[44px] font-black leading-[1.05] tracking-tight">{t('mode.title')}</h1>
         <p className="m-0 text-[18px] font-semibold text-ink-2">{t('mode.subtitle')}</p>
       </div>
 
-      <div className="grid gap-5 medium:grid-cols-2 landscape:grid-cols-2 w-full max-w-[860px]">
+      <div className="grid gap-5 medium:grid-cols-2 w-full max-w-[860px]">
         {CARDS.map((c, k) => (
           <button
             key={c.id}
             ref={k === 0 ? firstRef : undefined}
             type="button"
             onClick={() => setMode(c.id)}
-            className="group text-left rounded-[32px] p-6 sm:p-7 border-0 cursor-pointer shadow-[var(--shadow-2)] hover:shadow-[var(--shadow-3)] transition-[transform,box-shadow] duration-200 hover:-translate-y-1 active:scale-[0.98] flex flex-col gap-5 min-h-[340px] short:min-h-[96px] short:gap-3 short:p-5"
+            className="group text-left rounded-[32px] p-6 medium:p-7 border-0 cursor-pointer shadow-[var(--shadow-2)] hover:shadow-[var(--shadow-3)] transition-[transform,box-shadow] duration-200 hover:-translate-y-1 active:scale-[0.98] flex flex-col gap-5 min-h-[340px] short:min-h-[96px] short:gap-3 short:p-5"
             style={{ background: c.tint }}
           >
             <span className="inline-flex self-start items-center rounded-full bg-white/80 px-3 py-1 text-[14px] font-black text-ink">{t(c.age)}</span>

@@ -70,7 +70,7 @@ export function TranslatedCode({ language, logo, runningLine, pythonLine = null,
 
   if (result.ok === 'empty') {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-2 p-8 text-center">
+      <div className="h-full overflow-y-auto flex flex-col items-center justify-center gap-2 p-4 medium:p-8 text-center">
         <p className="text-[17px] font-extrabold text-ink">{t('code.empty.title', { name })}</p>
         <p className="text-[15px] font-semibold text-ink-2">{t('code.empty.body', { name })}</p>
         <ConceptTable language={language} />
@@ -80,7 +80,7 @@ export function TranslatedCode({ language, logo, runningLine, pythonLine = null,
 
   if (result.ok === false) {
     return (
-      <div className="h-full flex flex-col items-center justify-center gap-2 p-8 text-center">
+      <div className="h-full overflow-y-auto flex flex-col items-center justify-center gap-2 p-4 medium:p-8 text-center">
         <p className="text-[17px] font-extrabold text-ink">{t('code.fix.title')}</p>
         <p className="text-[15px] font-semibold text-ink-2">
           {t('code.fix.body', { line: result.line, name })}
@@ -146,17 +146,15 @@ export function TranslatedCode({ language, logo, runningLine, pythonLine = null,
 function ConceptTable({ language }: { language: TargetLanguage }) {
   const t = useT();
   return (
-    <table className="mt-3 text-left text-[14px] border-separate border-spacing-y-1.5">
-      <tbody>
-        {CONCEPTS[language].map((c) => (
-          <tr key={c.idea}>
-            <td className="pr-3 font-mono font-extrabold text-[#0b7a4f] whitespace-nowrap">{c.logo}</td>
-            <td className="pr-3 text-ink-3 font-bold">→</td>
-            <td className="pr-3 font-mono font-extrabold text-ink whitespace-nowrap">{c.other}</td>
-            <td className="text-ink-3 font-semibold whitespace-nowrap">{t(`code.idea.${c.idea}`)}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <ul className="mt-3 w-full max-w-[440px] list-none p-0 flex flex-col gap-2 text-left text-[14px]">
+      {CONCEPTS[language].map((c) => (
+        <li key={c.idea} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 rounded-[14px] bg-paper-2 px-3 py-2">
+          <span className="font-mono font-extrabold text-[#0b7a4f] break-words">{c.logo}</span>
+          <span className="text-ink-3 font-bold" aria-hidden="true">→</span>
+          <span className="font-mono font-extrabold text-ink break-words">{c.other}</span>
+          <span className="ml-auto text-ink-3 font-semibold">{t(`code.idea.${c.idea}`)}</span>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -636,7 +636,7 @@
 }
 
 /* On a phone the bottom edge holds the Run bar and the game pad, so the toast sits under the sticky header. */
-@media (max-width: 640px) {
+@media (max-width: 599px) {
   .toast {
     top: calc(env(safe-area-inset-top) + 84px);
     bottom: auto;
@@ -699,11 +699,9 @@
   line-height: 1.7;
 }
 
-/* Below the two-column layout the code panel has no fixed height, so cap the editor and let long programs scroll inside it. */
-@media (max-width: 1023.98px) {
-  .editor-host .cm-editor {
-    max-height: 60vh;
-  }
+/* Below the split layout the code panel has no fixed height, so cap the editor and let long programs scroll inside it. */
+html[data-layout='stack'] .editor-host .cm-editor {
+  max-height: 60vh;
 }
 
 .editor-host .cm-content {
@@ -1110,7 +1108,7 @@
   from { transform: scale(0.92) translateY(6px); opacity: 0; }
   to { transform: none; opacity: 1; }
 }
-@media (max-width: 639px) {
+@media (max-width: 599px) {
   .save-panel {
     animation: save-sheet 340ms var(--ease-out);
   }
@@ -1747,7 +1745,7 @@ html[data-perf='lite'] .btn-stop {
   user-select: all;
 }
 /* A tablet or a phone on its side: the puzzle beside its result or its Play button. */
-@media (min-width: 640px) {
+@media (min-width: 600px) {
   .daily-body {
     flex-direction: row;
     align-items: center;
@@ -1800,5 +1798,57 @@ html[data-width] .daily-card .quest-preview {
   .daily-intro,
   .daily-card .quest-preview figcaption {
     display: none;
+  }
+}
+
+/* Long translated button labels inside sheets, cards, and stage extras wrap cleanly instead of overflowing. */
+.sheet-panel .btn,
+.studio-extras .btn,
+.quest-card .btn {
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  padding-block: 6px;
+}
+
+/* Share dialog: fits comfortably on portrait phones and switches side-by-side in short landscape. */
+.share-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.share-card {
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+.share-preview {
+  max-height: min(40dvh, 280px);
+  width: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+.share-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+@media (max-height: 500px) and (orientation: landscape) {
+  .share-body {
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+  .share-card {
+    flex: 0 0 auto;
+    max-width: 44%;
+  }
+  .share-preview {
+    max-height: min(44dvh, 170px);
+  }
+  .share-actions {
+    flex: 1 1 0;
+    min-width: 0;
   }
 }

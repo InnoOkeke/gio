@@ -45,32 +45,32 @@ export function AskTurtle({ mode, hasCode, busy, onAsk }: AskTurtleProps) {
       : t('tutor.ask.sub.new');
 
   return (
-    <section className="ask px-5 py-5 sm:px-7 sm:py-6" aria-labelledby="ask-title">
+    <section className="ask px-5 py-5 medium:px-7 medium:py-6" aria-labelledby="ask-title">
       <div className="relative flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 shrink-0 rounded-2xl bg-white/20 p-1.5" aria-hidden="true">
             <TurtleSprite />
           </div>
           <div>
-            <h2 id="ask-title" className="text-[22px] sm:text-[26px] font-black leading-tight tracking-tight">
+            <h2 id="ask-title" className="text-[22px] medium:text-[26px] font-black leading-tight tracking-tight">
               {title}
             </h2>
             <p className="text-[15px] font-semibold text-white/85">{subtitle}</p>
           </div>
         </div>
 
-        <form onSubmit={submit} className="flex flex-col sm:flex-row gap-3">
+        <form onSubmit={submit} className="flex flex-col medium:flex-row gap-3">
           {voice.supported && (
             <button
               type="button"
-              className={`btn ${little ? 'btn-lg w-full sm:w-[72px] sm:px-0' : 'btn-icon min-h-[56px] w-[56px]'} bg-[#ffc93c] text-[#5a3b00] shadow-[0_4px_0_#c99a1a] ${voice.listening ? 'mic-live' : ''}`}
+              className={`btn ${little ? 'btn-lg w-full medium:w-[72px] medium:px-0' : 'btn-icon min-h-[56px] w-[56px]'} bg-[#ffc93c] text-[#5a3b00] shadow-[0_4px_0_#c99a1a] ${voice.listening ? 'mic-live' : ''}`}
               onClick={() => (voice.listening ? voice.stop() : voice.start())}
               disabled={busy}
               aria-pressed={voice.listening}
               aria-label={voice.listening ? t('tutor.ask.stopListening') : t('tutor.ask.talk')}
             >
               <MicIcon size={little ? 30 : 24} />
-              {little && <span className="sm:hidden">{voice.listening ? t('tutor.ask.listening') : t('tutor.ask.talkToMe')}</span>}
+              {little && <span className="medium:hidden">{voice.listening ? t('tutor.ask.listening') : t('tutor.ask.talkToMe')}</span>}
             </button>
           )}
           <label htmlFor="ask-input" className="sr-only">

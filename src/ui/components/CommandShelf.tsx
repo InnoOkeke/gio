@@ -78,7 +78,7 @@ export function CommandShelf({ onInsert }: { onInsert(code: string): void }) {
   );
   const colourWord = wordIn(lang, 'SETPENCOLOR');
   return (
-    <div className="command-shelf flex flex-col gap-3 px-4 py-4 border-t border-line bg-paper-2 rounded-b-[28px] lg:min-h-0 lg:overflow-y-auto">
+    <div className="command-shelf flex flex-col gap-3 px-4 py-4 border-t border-line bg-paper-2 rounded-b-[28px]">
       {compact && (
         <div className="shelf-tabs" role="tablist" aria-label={t('shelf.groups')} data-hscroll>
           {[...GROUPS.map((g) => g.id), 'colours'].map((id) => (

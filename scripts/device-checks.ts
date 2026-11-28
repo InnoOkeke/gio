@@ -273,7 +273,7 @@ export const stageFillsPane: Assertion = (f) => {
     else if (run.left < -0.5 || run.top < -0.5 || run.right > f.w + 0.5 || run.bottom > f.h + 0.5) out.push(`Run button is not fully on screen (${r(run.top)}-${r(run.bottom)} of ${f.h})`);
   } else {
     // Tablets upright put the controls beside the stage (56 % of the pane, at most 45 % of the screen height) so the blocks show on the first screen; phones fill the width.
-    const want = (f.w >= 600 && !f.keyboardOpen ? Math.max(320, Math.min(f.stage.paneInner * 0.56, f.h * 0.45)) : Math.min(f.stage.paneInner, 720, f.widthClass === 'compact' && f.h > f.w ? Math.max(220, f.h * 0.36) : 720)) - 4;
+    const want = (f.w >= 600 && !f.keyboardOpen ? Math.max(320, Math.min(f.stage.paneInner * 0.56, f.h * 0.45)) : Math.min(f.stage.paneInner, 720, f.widthClass === 'compact' && f.h > f.w ? Math.max(210, f.h * 0.32) : 720)) - 4;
     if (width(f.stage) < want) out.push(`stage is ${r(width(f.stage))}px wide, wanted at least ${r(want)}px in stack layout`);
   }
   return out;

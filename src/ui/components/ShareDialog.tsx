@@ -39,7 +39,7 @@ export default function ShareDialog({ title, url, picture, onClose }: ShareDialo
 
   return (
     <Sheet open variant="sheet" labelledBy="share-title" onClose={onClose}>
-      <div className="flex flex-col gap-4 px-5 pb-1 pt-1 sm:p-5">
+      <div className="flex flex-col gap-4 px-5 pb-1 pt-1 medium:p-5">
         <div className="flex items-center justify-between gap-3" data-sheet-header>
           <h2 id="share-title" className="m-0 text-[24px] font-black">
             {t('share.heading')}
@@ -48,30 +48,34 @@ export default function ShareDialog({ title, url, picture, onClose }: ShareDialo
             <CloseIcon />
           </button>
         </div>
-        <div className="overflow-hidden rounded-[20px] border border-line bg-white">
-          {picture && <img src={picture} alt={t('share.alt')} className="mx-auto block aspect-square w-full max-w-[320px] bg-white" />}
-          <div className="border-t border-line px-4 py-3">
-            <p className="m-0 text-[18px] font-black">{title}</p>
-            <p className="m-0 text-[15px] font-bold text-ink-2">{t('studio.shareText')}</p>
+        <div className="share-body">
+          <div className="share-card">
+            {picture && <img src={picture} alt={t('share.alt')} className="share-preview mx-auto block bg-white" />}
+            <div className="border-t border-line px-4 py-3">
+              <p className="m-0 text-[18px] font-black break-words">{title}</p>
+              <p className="m-0 text-[15px] font-bold text-ink-2">{t('studio.shareText')}</p>
+            </div>
           </div>
-        </div>
-        <input
-          ref={inputRef}
-          readOnly
-          value={url}
-          aria-label={t('share.link')}
-          onFocus={(e) => e.currentTarget.select()}
-          className="w-full rounded-[14px] border border-line bg-white px-3 py-3 text-[16px] font-bold"
-        />
-        <div className="flex flex-col gap-2" role="status" aria-live="polite">
-          <button type="button" data-autofocus className="btn btn-primary btn-lg" onClick={() => void copy()}>
-            {copied ? t('studio.linkCopied') : t('btn.copy')}
-          </button>
-          {canShare && (
-            <button type="button" className="btn btn-quiet btn-lg" onClick={() => void share()}>
-              {t('btn.share')}
-            </button>
-          )}
+          <div className="share-actions">
+            <input
+              ref={inputRef}
+              readOnly
+              value={url}
+              aria-label={t('share.link')}
+              onFocus={(e) => e.currentTarget.select()}
+              className="w-full rounded-[14px] border border-line bg-white px-3 py-3 text-[16px] font-bold"
+            />
+            <div className="flex flex-col gap-2" role="status" aria-live="polite">
+              <button type="button" data-autofocus className="btn btn-primary btn-lg" onClick={() => void copy()}>
+                {copied ? t('studio.linkCopied') : t('btn.copy')}
+              </button>
+              {canShare && (
+                <button type="button" className="btn btn-quiet btn-lg" onClick={() => void share()}>
+                  {t('btn.share')}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </Sheet>
